@@ -1,9 +1,11 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 import { computed } from 'vue';
 import MetricHint from 'dashboard/components-next/captain/pageComponents/overview/MetricHint.vue';
 
 const props = defineProps({
   label: { type: String, required: true },
+  accessibleLabel: { type: String, default: '' },
   value: { type: String, required: true },
   trend: { type: String, default: '' },
   supportingValue: { type: String, default: '' },
@@ -65,10 +67,10 @@ const onActivate = () => {
       <div
         class="flex items-center min-w-0 gap-1 text-body-main text-n-slate-11"
       >
-        <span>{{ label }}</span>
+        <span><AssistantNameText :text="label" /></span>
         <MetricHint
           v-if="hint"
-          :label="label"
+          :label="accessibleLabel || label"
           :description="hint"
           :note="hintNote"
         />
@@ -122,10 +124,10 @@ const onActivate = () => {
       v-if="layout === 'headline'"
       class="flex items-center gap-1 text-body-main text-n-slate-11"
     >
-      <span>{{ label }}</span>
+      <span><AssistantNameText :text="label" /></span>
       <MetricHint
         v-if="hint"
-        :label="label"
+        :label="accessibleLabel || label"
         :description="hint"
         :note="hintNote"
       />

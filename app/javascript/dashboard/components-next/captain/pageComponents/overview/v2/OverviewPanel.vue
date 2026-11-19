@@ -1,4 +1,5 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 defineProps({
   title: { type: String, default: '' },
   borderClass: { type: String, default: 'border-n-container' },
@@ -19,7 +20,7 @@ defineProps({
       class="flex h-[3.25rem] shrink-0 items-center justify-between gap-3 px-5 pt-5"
     >
       <h2 v-if="title" class="text-heading-3 text-n-slate-12">
-        {{ title }}
+        <AssistantNameText :text="title" />
       </h2>
       <slot name="actions" />
     </header>

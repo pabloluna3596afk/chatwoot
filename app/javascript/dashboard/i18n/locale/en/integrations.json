@@ -1077,7 +1077,7 @@
           "GROUP_CONTACT": "Contact attributes",
           "GROUP_CONVERSATION": "Conversation",
           "GROUP_CUSTOM": "Custom attributes",
-          "CHANNEL_WARNING": "The condition “{attribute}” does not apply to {channels}: those contacts do not have {attribute}, so Captain will not take their conversations.",
+          "CHANNEL_WARNING": "The condition “{attribute}” does not apply to {channels}: those contacts do not have {attribute}, so {assistantName} will not take their conversations.",
           "CHANNELS": {
             "INSTAGRAM": "Instagram",
             "MESSENGER": "Messenger",
@@ -1095,7 +1095,7 @@
             "BASE": "Base rule",
             "BASE_HELP": "Applies to inboxes that use the base rule.",
             "TITLE": "Inboxes",
-            "ATTENDS": "Captain responds:",
+            "ATTENDS": "{assistantName} responds:",
             "MODE_INHERIT": "According to the base rule",
             "MODE_EVERYONE": "To everyone",
             "MODE_CUSTOM": "With custom rules",
@@ -1117,8 +1117,8 @@
             "DATA_PHONES": "phone number",
             "DATA_CHANNEL_IDS": "username",
             "DATA_EMAILS": "email",
-            "HELP_ALLOW": "{count} {type} · If the contact has no {data}, Captain does not respond",
-            "HELP_DENY": "{count} {type} · If the contact has no {data}, Captain responds",
+            "HELP_ALLOW": "{count} {type} · If the contact has no {data}, {assistantName} does not respond",
+            "HELP_DENY": "{count} {type} · If the contact has no {data}, {assistantName} responds",
             "TOO_MANY": "The list cannot exceed 1000 entries.",
             "TOO_LONG": "Each entry must have at most 120 characters.",
             "SUMMARY_INHERIT": "Uses the base rule",
@@ -1153,13 +1153,13 @@
         "APPOINTMENTS": {
           "READINESS": {
             "TITLE": "Reminder preparation by inbox",
-            "SAVED_HELP": "Saved configuration. Save your changes to refresh these checks. This applies to appointments booked by Captain in its connected inboxes.",
-            "NO_INBOXES": "Connect an inbox to Captain to check reminder preparation.",
+            "SAVED_HELP": "Saved configuration. Save your changes to refresh these checks. This applies to appointments booked by {assistantName} in its connected inboxes.",
+            "NO_INBOXES": "Connect an inbox to {assistantName} to check reminder preparation.",
             "MISSING": "Missing bindings: {variables}",
             "DELIVERY_HELP": "Configuration does not guarantee delivery. The reply window, customer values, appointment status and sending hours (08:00 to 21:00) are checked at send time. Missing values skip the template and leave a private note. Turning reminders on does not authorize sending templates.",
             "STATUS": {
               "ready": "Prepared for outside-window WhatsApp templates. Customer values are checked at send time.",
-              "disabled": "Captain appointments or both reminders are disabled. Enable appointments for this assistant and inbox, and at least one reminder.",
+              "disabled": "{assistantName} appointments or both reminders are disabled. Enable appointments for this assistant and inbox, and at least one reminder.",
               "not_sent_channel": "This channel cannot send reminders outside its reply window. Inside the window, a normal reply can be sent.",
               "not_sent_window": "Outside the reply window, reminders are skipped because templates are off. Turn them on under Templates and WhatsApp Flows.",
               "no_template": "Outside the reply window, reminders are skipped: select a reminder template below and save.",
@@ -1168,7 +1168,7 @@
             }
           },
           "TOGGLE": "Book appointments",
-          "TOGGLE_HELP": "When on, Captain can offer available times from the calendar you choose. It is off by default.",
+          "TOGGLE_HELP": "When on, {assistantName} can offer available times from the calendar you choose. It is off by default.",
           "CONNECTION": "Calendar account",
           "CONNECTION_PLACEHOLDER": "Select an account",
           "CALENDAR": "Calendar",
@@ -1188,14 +1188,14 @@
             "PHONE": "Phone",
             "EMAIL": "Email"
           },
-          "FIELDS_HINT": "Captain only asks for the details that are missing from the contact.",
+          "FIELDS_HINT": "{assistantName} only asks for the details that are missing from the contact.",
           "LOADING": "Loading calendars…",
           "LOAD_ERROR": "The calendars could not be loaded. Please try again.",
-          "NO_CALENDAR": "This account has no calendar connected yet. Connect a Google calendar to let Captain book appointments.",
+          "NO_CALENDAR": "This account has no calendar connected yet. Connect a Google calendar to let {assistantName} book appointments.",
           "CONNECT_CALENDAR": "Connect a calendar",
           "REMINDERS": {
             "TITLE": "Confirmation and reminders",
-            "CONFIRMATION_NOTE": "The appointment confirmation is always written by Captain when it books, with buttons to change or cancel it.",
+            "CONFIRMATION_NOTE": "The appointment confirmation is always written by {assistantName} when it books, with buttons to change or cancel it.",
             "REMINDER_LABEL": "Reminder {number}:",
             "HOURS_BEFORE": "hours before the appointment",
             "HOURS_ERROR": "Use a whole number from 1 to 168.",
@@ -1232,19 +1232,19 @@
         "TEMPLATE_PLACEHOLDER": "Select an approved template",
         "FOLLOWUP": {
           "TOGGLE": "Ask \"Are you still there?\"",
-          "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, only inside the 24 h window. It is on by default.",
+          "TOGGLE_HELP": "When the customer stops answering, {assistantName} sends one short message with buttons, only inside the 24 h window. It is on by default.",
           "AFTER": "Ask after",
           "NUDGES": "Follow-up messages",
-          "HINT": "Only in conversations Captain is handling, never once a person took it and never outside the 24 h window. If the customer answers, the count starts over.",
+          "HINT": "Only in conversations {assistantName} is handling, never once a person took it and never outside the 24 h window. If the customer answers, the count starts over.",
           "NUDGES_ONE": "1 message",
           "NUDGES_TWO": "2 messages",
           "MINUTES": "{count} min",
           "HOURS": "{count} h",
           "REENGAGEMENT": "Re-engage with a template",
-          "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It is off by default. It goes out between 08:00 and 21:00.",
+          "REENGAGEMENT_HELP": "When {assistantName} closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It is off by default. It goes out between 08:00 and 21:00.",
           "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows.",
           "TEMPLATE": "Re-engagement template",
-          "GOODBYE_LINK": "System settings",
+          "GOODBYE_LINK": "Handoff and closing",
           "AFTER_ERROR": "It must be shorter than the waiting time above.",
           "GOODBYE_SENTENCE": "The goodbye message is edited in {link}."
         },
@@ -1284,19 +1284,19 @@
         },
         "MAX_REPLIES": {
           "TITLE": "Reply limit",
-          "DESCRIPTION": "How many replies Captain can send in one conversation. At the limit it says goodbye with the handoff message and the team takes over.",
+          "DESCRIPTION": "How many replies {assistantName} can send in one conversation. At the limit it says goodbye with the handoff message and the team takes over.",
           "LABEL": "Replies per conversation",
           "HINT": "20 by default. Use 0 for no limit."
         },
         "MESSAGING": {
-          "TOGGLE": "Let Captain send WhatsApp Flows and templates in this inbox",
-          "TOGGLE_HELP": "When off, Captain sends none here, but the list below is kept. Each inbox has its own switch.",
+          "TOGGLE": "Let {assistantName} send WhatsApp Flows and templates in this inbox",
+          "TOGGLE_HELP": "When off, {assistantName} sends none here, but the list below is kept. Each inbox has its own switch.",
           "INBOX": "Inbox",
           "INBOX_PLACEHOLDER": "Choose an inbox",
           "NO_INBOXES": "This assistant has no connected WhatsApp inboxes.",
           "FLOWS": "Allowed WhatsApp Flows",
-          "FLOWS_HELP": "Captain can only send a WhatsApp Flow published on the WhatsApp account of that inbox, within 24 h.",
-          "FLOWS_EMPTY": "Captain will not send any WhatsApp Flow on this inbox.",
+          "FLOWS_HELP": "{assistantName} can only send a WhatsApp Flow published on the WhatsApp account of that inbox, within 24 h.",
+          "FLOWS_EMPTY": "{assistantName} will not send any WhatsApp Flow on this inbox.",
           "ADD_FLOW": "Add WhatsApp Flow",
           "ADD_FLOW_TITLE": "Add a WhatsApp Flow",
           "ADD_FLOW_PICK": "WhatsApp Flow",
@@ -1304,7 +1304,7 @@
           "NO_FLOWS_LEFT": "There are no more published WhatsApp Flows to add.",
           "TEMPLATES": "Allowed templates",
           "TEMPLATES_HELP": "Approved, text-only templates without buttons that change per customer. Meta charges for each send.",
-          "TEMPLATES_EMPTY": "Captain will not send any template on this inbox.",
+          "TEMPLATES_EMPTY": "{assistantName} will not send any template on this inbox.",
           "ADD_TEMPLATE": "Add template",
           "ADD_TEMPLATE_TITLE": "Add a template",
           "ADD_TEMPLATE_PICK": "Template",
@@ -1312,7 +1312,7 @@
           "NO_TEMPLATES_LEFT": "There are no more approved templates to add.",
           "PURPOSE": "What it is for",
           "PURPOSE_PLACEHOLDER": "E.g. Ask for the booking details",
-          "PURPOSE_HELP": "Captain reads it to decide when to use it.",
+          "PURPOSE_HELP": "{assistantName} reads it to decide when to use it.",
           "REMOVE": "Remove",
           "ADD": "Add",
           "CANCEL": "Cancel",
@@ -1327,10 +1327,56 @@
           "SAVE_VARIABLES": "Save variables",
           "STATE_PUBLISHED": "Published",
           "SAVE": "Save",
-          "UNAVAILABLE_TEMPLATE": "It is no longer approved, or has a header file or per-customer buttons: Captain does not send it.",
-          "UNAVAILABLE_FLOW": "It is no longer published: Captain does not send it.",
+          "UNAVAILABLE_TEMPLATE": "It is no longer approved, or has a header file or per-customer buttons: {assistantName} does not send it.",
+          "UNAVAILABLE_FLOW": "It is no longer published: {assistantName} does not send it.",
           "TEMPLATES_TOGGLE": "Allow templates with a cost",
-          "TEMPLATES_TOGGLE_HELP": "Templates are messages approved by Meta and can be sent even if the customer has not written in 24 hours. Meta charges for each template. If this is off, Captain does not send any."
+          "TEMPLATES_TOGGLE_HELP": "Templates are messages approved by Meta and can be sent even if the customer has not written in 24 hours. Meta charges for each template. If this is off, {assistantName} does not send any."
+        },
+        "HANDOFF_ROUTING": {
+          "TITLE": "Who gets the handoff",
+          "DESCRIPTION": "{assistantName} never assigns someone who is offline or not in the inbox. If nobody is available, the conversation stays unassigned and the customer gets the handoff message.",
+          "NEW": "New conversation",
+          "REOPENED": "Reopened conversation",
+          "REOPENED_HELP": "The customer writes again after it was resolved.",
+          "MODES": {
+            "INBOX": {
+              "LABEL": "Assign like the inbox",
+              "HELP": "Uses the inbox's automatic assignment. If it is off or nobody is online, it stays unassigned."
+            },
+            "LAST_AGENT_NEW": {
+              "LABEL": "The person who last helped this customer"
+            },
+            "LAST_AGENT_REOPENED": {
+              "LABEL": "The person who handled it before"
+            },
+            "LAST_AGENT": {
+              "HELP": "If that person is online and in the inbox, it goes to them. Otherwise it is assigned like the inbox."
+            },
+            "TEAM": {
+              "LABEL": "A fixed team",
+              "HELP": "Assigned among the team's online members. If nobody is online, it stays in the team unassigned."
+            },
+            "AI_TEAM": {
+              "LABEL": "{assistantName} chooses the team",
+              "HELP": "{assistantName} reads each team's description (Settings → Teams) and picks the one that fits. If none fits, it is assigned like the inbox."
+            }
+          },
+          "TEAM_PLACEHOLDER": "Choose a team",
+          "TEAM_REQUIRED": "Choose a team.",
+          "TEAMS_LOADING": "Loading teams…",
+          "TEAMS_ERROR": "Teams could not be loaded.",
+          "NO_TEAMS": "Create a team in Settings → Teams to use this option.",
+          "TEAM_NO_MEMBERS": "Nobody in this team is in this assistant's inboxes. Conversations will stay in the team unassigned.",
+          "AI_TEAM_NONE": "No team has people in this assistant's inboxes. Until then it is assigned like the inbox.",
+          "TEAM_DELETED": "Deleted team",
+          "TEAM_DELETED_HELP": "That team no longer exists. Choose another; until then it is assigned like the inbox."
+        },
+        "HANDOFF_PRIORITY": {
+          "TITLE": "Priority on handoff",
+          "OFF": "Do not change the priority",
+          "ON_SIGNAL": "High if the customer is upset or in a hurry",
+          "ALWAYS": "Always high",
+          "HELP": "{assistantName} never lowers a priority that is already set."
         }
       },
       "EDIT": {
@@ -1347,9 +1393,9 @@
           "DESCRIPTION": "Customize what the assistant says when ending a conversation or transferring to a human."
         },
         "SYSTEM_SETTINGS": {
-          "TITLE": "System settings",
-          "DESCRIPTION": "Customize what the assistant says when ending a conversation or transferring to a human.",
-          "DESCRIPTION_V2": "The messages Captain sends when handing off or closing a conversation, and its limits."
+          "TITLE": "Handoff and closing",
+          "DESCRIPTION": "What Captain does when it hands a conversation to a person or closes it.",
+          "DESCRIPTION_V2": "What Captain does when it hands a conversation to a person or closes it."
         },
         "AUDIENCE": {
           "TITLE": "Audience",
@@ -1384,11 +1430,11 @@
         },
         "FOLLOWUP": {
           "TITLE": "Follow-up",
-          "DESCRIPTION": "What Captain does when the customer stops answering: ask if they are still there, close for inactivity and, if you turn it on, re-engage with a template."
+          "DESCRIPTION": "What {assistantName} does when the customer stops answering: ask if they are still there, close for inactivity and, if you turn it on, re-engage with a template."
         },
         "MESSAGING": {
           "TITLE": "Sending by inbox",
-          "DESCRIPTION": "Which Flows and templates Captain can send from each WhatsApp number."
+          "DESCRIPTION": "Which Flows and templates {assistantName} can send from each WhatsApp number."
         }
       },
       "ENVIOS": {
@@ -1406,9 +1452,9 @@
         "PREVIEW_FLOW": "Preview WhatsApp Flow: {name}",
         "PREVIEW_FLOW_UNPUBLISHED": "This Flow is not published on this inbox's WhatsApp account.",
         "PREVIEW_PANEL": {
-          "DESCRIPTION": "See how the message looks with Captain's data.",
-          "MISSING_VARIABLES": "A value is missing. Captain will not send this template until you complete it.",
-          "VARIABLES_TITLE": "What Captain fills in for each variable",
+          "DESCRIPTION": "See how the message looks with {assistantName}'s data.",
+          "MISSING_VARIABLES": "A value is missing. {assistantName} will not send this template until you complete it.",
+          "VARIABLES_TITLE": "What {assistantName} fills in for each variable",
           "INBOX": "Inbox: {name}",
           "TEMPLATE_UNAVAILABLE": "This template is no longer approved in this inbox and cannot be shown.",
           "SOURCE_ALIAS": "Automatic (by name)",
@@ -1422,25 +1468,25 @@
           "CONNECTED": "Connected",
           "NEEDS_REVIEW": "Check connection"
         },
-        "QUALITY_RED": "Low quality in Meta: Captain does not send templates from this number.",
+        "QUALITY_RED": "Low quality in Meta: {assistantName} does not send templates from this number.",
         "QUALITY_YELLOW": "Meta reports medium quality for this number. Review its status.",
         "TEMPLATES_STALE": "Templates have not been updated since {date}.",
         "PAID": {
           "TITLE": "Allow paid templates",
           "SCOPE": "For all WhatsApp inboxes of this assistant.",
-          "ON_LINE": "On. After 24 hours, Captain can send approved utility templates, appointment reminders and re-engagement (Meta charges for them). Within 24 hours it replies and sends Flows as usual.",
-          "OFF_LINE": "Off. Captain sends no utility templates, reminders or re-engagement after 24 hours. It keeps replying and sending Flows within 24 hours of the customer's last message.",
+          "ON_LINE": "On. After 24 hours, {assistantName} can send approved utility templates, appointment reminders and re-engagement (Meta charges for them). Within 24 hours it replies and sends Flows as usual.",
+          "OFF_LINE": "Off. {assistantName} sends no utility templates, reminders or re-engagement after 24 hours. It keeps replying and sending Flows within 24 hours of the customer's last message.",
           "TEMPLATES_OFF": "Not sent: \"Allow paid templates\" is off. Your choices are kept."
         },
         "CAP": {
-          "REACHED": "Today's limit was reached: {used} of {cap}. Captain replies with normal messages until tomorrow.",
+          "REACHED": "Today's limit was reached: {used} of {cap}. {assistantName} replies with normal messages until tomorrow.",
           "READONLY": "Account daily limit: today {used} of {cap}",
           "CHANGE": "Change"
         },
         "MESSAGING": {
-          "TOGGLE": "Captain uses this number’s Flows and utility templates",
-          "HELP": "Captain only sends the utility templates and Flows that are switched on.",
-          "OFF": "Off: Captain sends no Flows or utility templates from this number."
+          "TOGGLE": "{assistantName} uses this number’s Flows and utility templates",
+          "HELP": "{assistantName} only sends the utility templates and Flows that are switched on.",
+          "OFF": "Off: {assistantName} sends no Flows or utility templates from this number."
         },
         "FLOWS": {
           "TITLE": "WhatsApp Flows",
@@ -1458,7 +1504,7 @@
         },
         "REASONS": {
           "NEEDS_DATA": "Not available: variable {variables} still needs to be set up.",
-          "UNSUPPORTED": "It has a file header or a per-customer button, so Captain cannot send it.",
+          "UNSUPPORTED": "It has a file header or a per-customer button, so {assistantName} cannot send it.",
           "NEEDS_REVIEW": "It has a link. Review it before allowing it.",
           "NOT_PUBLISHED_HERE": "This Flow is not published on this inbox's WhatsApp account."
         },
@@ -1494,7 +1540,7 @@
           "FLOWS": "Flows",
           "TEMPLATES": "Templates"
         },
-        "ROW_SWITCH": "Captain can use {name}",
+        "ROW_SWITCH": "{assistantName} can use {name}",
         "CONFIGURE_IN_TEMPLATES": "Set up in Templates and Flows"
       },
       "OPTIONS": {
@@ -2120,7 +2166,7 @@
       },
       "APPOINTMENTS": {
         "LABEL": "Appointments on this channel",
-        "HELP": "Captain offers and books appointments here.",
+        "HELP": "{assistantName} offers and books appointments here.",
         "ENABLED": "On",
         "DISABLED": "Off",
         "SETTINGS_LINK": "Manage in assistant settings",

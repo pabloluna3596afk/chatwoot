@@ -187,6 +187,35 @@ describe('unified send center', () => {
     ).toEqual([1, 1]);
   });
 
+  it('does not flash a scrollbar on the detail section while the preview animates in', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    await wrapper.get('[data-testid^="center-row-template:"]').trigger('click');
+
+    // The section only clips; each child scrolls by itself. An overflow-y-auto section
+    // shows a scrollbar for ~150 ms while the preview's fade-in-up transform overflows it.
+    const detail = wrapper.get('[data-testid="center-detail"]').classes();
+    expect(detail).toContain('overflow-hidden');
+    expect(detail).not.toContain('overflow-y-auto');
+    expect(
+      wrapper.get('[data-testid="chat-preview-scroll"]').classes()
+    ).toContain('overflow-y-auto');
+  });
+
   it('keeps the selected name accessible without a repeated visual heading', async () => {
     wrapper = mount(SendCenter, {
       props: {

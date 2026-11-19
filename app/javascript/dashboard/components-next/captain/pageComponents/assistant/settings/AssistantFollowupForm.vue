@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { I18nT, useI18n } from 'vue-i18n';
@@ -30,6 +32,8 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
+const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+
 const route = useRoute();
 const { isCloudFeatureEnabled } = useAccount();
 const isCaptainV2Enabled = computed(() =>
@@ -81,11 +85,13 @@ const afterOptions = computed(() =>
 const autoResolveOptions = computed(() => [
   {
     value: 'evaluated',
-    label: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.LABEL'
+    label: nameRichFrom(
+      t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.LABEL')
     ),
-    description: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.DESCRIPTION'
+    description: nameRichFrom(
+      t(
+        'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.DESCRIPTION'
+      )
     ),
   },
   {
@@ -93,8 +99,10 @@ const autoResolveOptions = computed(() => [
     label: t(
       'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.LABEL'
     ),
-    description: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.DESCRIPTION'
+    description: nameRichFrom(
+      t(
+        'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.DESCRIPTION'
+      )
     ),
   },
   {
@@ -102,8 +110,10 @@ const autoResolveOptions = computed(() => [
     label: t(
       'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.LABEL'
     ),
-    description: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.DESCRIPTION'
+    description: nameRichFrom(
+      t(
+        'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.DESCRIPTION'
+      )
     ),
   },
 ]);
@@ -221,7 +231,9 @@ watch(
       v-if="isCaptainV2Enabled"
       hide-toggle
       data-testid="followup-inactivity-resolution"
-      :header="t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.TITLE')"
+      :header="
+        nameRichFrom(t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.TITLE'))
+      "
       :description="
         t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DESCRIPTION')
       "
@@ -277,9 +289,17 @@ watch(
           class="mx-4"
         >
           <div class="flex items-start gap-2">
-            <span class="i-lucide-triangle-alert mt-0.5 size-4 shrink-0" />{{
-              t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.ALWAYS_WARNING')
-            }}
+            <span
+              class="i-lucide-triangle-alert mt-0.5 size-4 shrink-0"
+            /><AssistantNameText
+              :text="
+                nameRichFrom(
+                  t(
+                    'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.ALWAYS_WARNING'
+                  )
+                )
+              "
+            />
           </div>
         </Banner>
         <Banner
@@ -319,7 +339,7 @@ watch(
     <SettingsToggleSection
       :model-value="state.inactivityEnabled"
       :header="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE')"
-      :description="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE_HELP')"
+      :description="nameRich('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE_HELP')"
       @update:model-value="setInactivityEnabled"
     >
       <div
@@ -354,7 +374,9 @@ watch(
           />
         </div>
         <p class="mb-0 text-xs text-n-slate-11 sm:col-span-2">
-          {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.HINT') }}
+          <AssistantNameText
+            :text="nameRich('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.HINT')"
+          />
         </p>
       </div>
       <p
@@ -370,7 +392,9 @@ watch(
       v-model="state.reengagementEnabled"
       data-testid="followup-reengagement"
       :header="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT')"
-      :description="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT_HELP')"
+      :description="
+        nameRich('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT_HELP')
+      "
     >
       <div
         v-if="state.reengagementEnabled"

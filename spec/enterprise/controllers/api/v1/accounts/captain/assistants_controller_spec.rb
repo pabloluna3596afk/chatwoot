@@ -5,6 +5,60 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
 
+  describe 'handoff settings' do
+    let(:assistant) { create(:captain_assistant, account: account) }
+    let(:url) { "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}" }
+
+    it 'returns defaults to administrators without persisting a config migration' do
+      get url, headers: admin.create_new_auth_token
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['config']).to include(
+        'handoff_routing' => { 'new' => { 'mode' => 'inbox', 'team_id' => nil }, 'reopened' => { 'mode' => 'inbox', 'team_id' => nil } },
+        'handoff_priority' => 'off'
+      )
+      expect(response.parsed_body['eligible_team_ids']).to eq([])
+      expect(assistant.reload.config).not_to have_key('handoff_routing')
+    end
+
+    it 'saves handoff settings without replacing unrelated config or messaging revision' do
+      assistant.update!(config: { 'product_name' => 'Support', 'messaging' => { 'version' => 2, 'revision' => 4, 'inboxes' => [] } })
+      team = create(:team, account: account)
+      patch url, params: { assistant: { config: { handoff_routing: { new: { mode: 'team', team_id: team.id } },
+                                                  handoff_priority: 'always' } } }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:ok)
+      expect(assistant.reload.config).to include('product_name' => 'Support', 'handoff_priority' => 'always')
+      expect(assistant.messaging.revision).to eq(4)
+      expect(response.parsed_body.dig('config', 'handoff_routing', 'new')).to eq('mode' => 'team', 'team_id' => team.id)
+    end
+
+    [nil, false, [], 'inbox', { new: { mode: 'unknown' } }, { new: { mode: 'team' } },
+     { new: { mode: 'inbox', unknown: true } }, { unknown: { mode: 'inbox' } }].each do |routing|
+      it "returns 422 atomically for routing #{routing.inspect}" do
+        patch url, params: { assistant: { name: 'Not saved', config: { handoff_routing: routing } } },
+                   headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(assistant.reload.name).not_to eq('Not saved')
+      end
+    end
+
+    it 'rejects a foreign team and an invalid priority' do
+      team = create(:team)
+      patch url, params: { assistant: { config: { handoff_routing: { new: { mode: 'team', team_id: team.id } } } } },
+                 headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      patch url, params: { assistant: { config: { handoff_priority: 'urgent' } } },
+                 headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'returns 403 for an agent changing handoff settings' do
+      patch url, params: { assistant: { config: { handoff_priority: 'always' } } },
+                 headers: agent.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:forbidden)
+      expect(assistant.reload.handoff_priority).to eq('off')
+    end
+  end
+
   describe 'rule list contracts' do
     let(:assistant) { create(:captain_assistant, account: account, response_guidelines: ['Original'], guardrails: ['Safe']) }
 

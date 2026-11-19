@@ -1,4 +1,6 @@
 <script setup>
+import { useAssistantSettings } from 'dashboard/routes/dashboard/captain/assistants/settings/useAssistantSettings';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -28,6 +30,8 @@ import KnowledgeCoverageCard from './KnowledgeCoverageCard.vue';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 
 const { t } = useI18n();
+const { assistant } = useAssistantSettings();
+const { nameTextFrom, nameRichFrom } = useAssistantName(assistant);
 const { isAdmin } = useAdmin();
 const route = useRoute();
 const router = useRouter();
@@ -189,6 +193,7 @@ const metricFor = ({
   key,
   label,
   hint,
+  accessibleLabel = '',
   hintNote = '',
   formatValue,
   direction,
@@ -203,6 +208,7 @@ const metricFor = ({
     return {
       key,
       label,
+      accessibleLabel,
       hint,
       hintNote,
       value: '—',
@@ -223,6 +229,7 @@ const metricFor = ({
   return {
     key,
     label,
+    accessibleLabel,
     hint,
     hintNote,
     value: formatValue(data.current),
@@ -244,8 +251,8 @@ const featuredMetrics = computed(() => {
     metricFor({
       key: 'hours_saved',
       label: t('CAPTAIN.OVERVIEW.V2.METRICS.TIME_SAVED.LABEL'),
-      hint: t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.HINT'),
-      hintNote: t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.NOTE'),
+      hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.HINT')),
+      hintNote: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.NOTE')),
       formatValue: formatDuration,
       formatTrend: formatDurationTrend,
       direction: TREND_DIRECTIONS.UP,
@@ -255,8 +262,11 @@ const featuredMetrics = computed(() => {
 
   const durableMetric = metricFor({
     key: 'durable_resolution_rate',
-    label: t('CAPTAIN.OVERVIEW.V2.METRICS.DURABLE.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.V2.METRICS.DURABLE.HINT'),
+    label: nameRichFrom(t('CAPTAIN.OVERVIEW.V2.METRICS.DURABLE.LABEL')),
+    accessibleLabel: nameTextFrom(
+      t('CAPTAIN.OVERVIEW.V2.METRICS.DURABLE.LABEL')
+    ),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.V2.METRICS.DURABLE.HINT')),
     hintNote: t('CAPTAIN.OVERVIEW.V2.METRICS.DURABLE.NOTE'),
     formatValue: value => `${value}%`,
     direction: TREND_DIRECTIONS.UP,
@@ -279,7 +289,7 @@ const metrics = computed(() => [
   metricFor({
     key: 'conversations_handled',
     label: t('CAPTAIN.OVERVIEW.METRICS.HANDLED.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.HANDLED.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HANDLED.HINT')),
     formatValue: value => value.toLocaleString(),
     direction: TREND_DIRECTIONS.UP,
     trendSuffix: '%',
@@ -287,7 +297,7 @@ const metrics = computed(() => [
   metricFor({
     key: 'auto_resolution_rate',
     label: t('CAPTAIN.OVERVIEW.METRICS.AUTO_RESOLUTION.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.AUTO_RESOLUTION.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.AUTO_RESOLUTION.HINT')),
     formatValue: value => `${value}%`,
     direction: TREND_DIRECTIONS.UP,
     trendSuffix: '%',
@@ -301,7 +311,7 @@ const metrics = computed(() => [
   metricFor({
     key: 'handoff_rate',
     label: t('CAPTAIN.OVERVIEW.METRICS.HANDOFF.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.HANDOFF.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HANDOFF.HINT')),
     formatValue: value => `${value}%`,
     direction: TREND_DIRECTIONS.DOWN,
     trendSuffix: '%',
@@ -315,7 +325,7 @@ const metrics = computed(() => [
   metricFor({
     key: 'conversation_depth',
     label: t('CAPTAIN.OVERVIEW.V2.METRICS.DEPTH.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.DEPTH.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.DEPTH.HINT')),
     hintNote: t('CAPTAIN.OVERVIEW.METRICS.DEPTH.NOTE'),
     formatValue: value => value.toFixed(1),
     direction: TREND_DIRECTIONS.NEUTRAL,
@@ -323,7 +333,7 @@ const metrics = computed(() => [
   metricFor({
     key: 'reopen_rate',
     label: t('CAPTAIN.OVERVIEW.METRICS.REOPEN.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.REOPEN.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.REOPEN.HINT')),
     hintNote: t('CAPTAIN.OVERVIEW.METRICS.REOPEN.NOTE'),
     formatValue: value => `${value}%`,
     direction: TREND_DIRECTIONS.DOWN,
@@ -332,7 +342,7 @@ const metrics = computed(() => [
   metricFor({
     key: 'median_resolution_seconds',
     label: t('CAPTAIN.OVERVIEW.V2.METRICS.MEDIAN_RESOLUTION.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.V2.METRICS.MEDIAN_RESOLUTION.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.V2.METRICS.MEDIAN_RESOLUTION.HINT')),
     hintNote: t('CAPTAIN.OVERVIEW.V2.METRICS.MEDIAN_RESOLUTION.NOTE'),
     formatValue: formatResolutionTime,
     formatTrend: formatResolutionTrend,
@@ -380,6 +390,7 @@ const reviewFaqs = () =>
         <CoverageBanner :knowledge="faqStats ?? undefined" />
 
         <OverviewSummaryCard
+          :assistant="assistant"
           :user-name="userName"
           :points="summaryPoints"
           :featured-metrics="featuredMetrics"
@@ -389,16 +400,19 @@ const reviewFaqs = () =>
         />
 
         <ResolutionFlowCard
+          :assistant="assistant"
           :flow="resolutionFlow"
           :loading="isFetchingReport"
         />
 
         <div class="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
           <ResolutionTrendCard
+            :assistant="assistant"
             :trend="resolutionTrend"
             :loading="isFetchingReport"
           />
           <CsatCard
+            :assistant="assistant"
             :autonomous="overview?.autonomous_csat_score"
             :assisted="overview?.assisted_csat_score"
             :human-only="overview?.human_only_csat_score"

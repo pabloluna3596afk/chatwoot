@@ -748,6 +748,12 @@ en:
     disabled: 'Captain AI is disabled for this account.'
     api_key_missing: 'Captain AI API key is not configured.'
     notes:
+      handoff_routing:
+        assigned: "Assigned to %{agent}."
+        previous_agent: "Assigned to %{agent}, who helped this customer before."
+        team_assigned: "Team %{team}: assigned to %{agent}."
+        team_unassigned: "Team %{team}: nobody is online; left unassigned."
+        priority_high: "Priority: high."
       handoff_without_reason: "%{assistant} handed the conversation to a person."
       handoff_reply_limit: "%{assistant} reached this conversation's reply limit."
       handoff_generation_failure: "%{assistant} could not generate a reply."
@@ -812,6 +818,11 @@ en:
         unknown: 'contiene opciones desconocidas: %{names}.'
         not_boolean: 'las opciones deben ser verdaderas o falsas.'
     assistant:
+      errors:
+        handoff_routing: "Handoff routing must contain only new/reopened rows with a valid mode and team_id."
+        handoff_priority: "Handoff priority must be off, on_signal or always."
+        handoff_team: "Choose a team from this account using an integer team_id."
+        handoff_team_unused: "team_id must be empty unless the mode is team."
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
     messaging:
       catalog:

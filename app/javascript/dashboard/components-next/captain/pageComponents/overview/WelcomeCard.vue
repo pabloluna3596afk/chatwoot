@@ -1,10 +1,14 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useI18n } from 'vue-i18n';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import CaptainAssistant from 'dashboard/api/captain/assistant';
 import MessageFormatter from 'shared/helpers/MessageFormatter.js';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   range: {
     type: String,
     default: '7',
@@ -66,6 +70,8 @@ watch([() => props.range, () => props.stats, assistantId], fetchSummary, {
 const formattedSummary = computed(
   () => new MessageFormatter(welcomeMarkdown.value).formattedMessage
 );
+const { t } = useI18n();
+const { nameRichFrom } = useAssistantName(() => props.assistant);
 </script>
 
 <!-- eslint-disable-next-line vue/no-root-v-if -->
@@ -74,7 +80,9 @@ const formattedSummary = computed(
     <div class="flex items-center gap-1.5 text-n-slate-10">
       <span class="i-lucide-sparkles size-3.5" />
       <span class="text-xs">
-        {{ $t('CAPTAIN.OVERVIEW.WELCOME.LABEL') }}
+        <AssistantNameText
+          :text="nameRichFrom(t('CAPTAIN.OVERVIEW.WELCOME.LABEL'))"
+        />
       </span>
     </div>
     <div

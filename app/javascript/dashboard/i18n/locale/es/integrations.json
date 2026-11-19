@@ -1077,7 +1077,7 @@
           "GROUP_CONTACT": "Atributos de contacto",
           "GROUP_CONVERSATION": "Conversación",
           "GROUP_CUSTOM": "Atributos personalizados",
-          "CHANNEL_WARNING": "La condición «{attribute}» no aplica en {channels}: esos contactos no tienen {attribute}, así que Captain no los atenderá.",
+          "CHANNEL_WARNING": "La condición «{attribute}» no aplica en {channels}: esos contactos no tienen {attribute}, así que {assistantName} no los atenderá.",
           "CHANNELS": {
             "INSTAGRAM": "Instagram",
             "MESSENGER": "Messenger",
@@ -1095,7 +1095,7 @@
             "BASE": "Regla base",
             "BASE_HELP": "Se aplica a las bandejas que usan la regla base.",
             "TITLE": "Bandejas",
-            "ATTENDS": "Captain atiende:",
+            "ATTENDS": "{assistantName} atiende:",
             "MODE_INHERIT": "Según la regla base",
             "MODE_EVERYONE": "A todos",
             "MODE_CUSTOM": "Con reglas propias",
@@ -1117,8 +1117,8 @@
             "DATA_PHONES": "número de teléfono",
             "DATA_CHANNEL_IDS": "usuario",
             "DATA_EMAILS": "correo",
-            "HELP_ALLOW": "{count} {type} · Si el contacto no tiene {data}, Captain no lo atiende",
-            "HELP_DENY": "{count} {type} · Si el contacto no tiene {data}, Captain lo atiende",
+            "HELP_ALLOW": "{count} {type} · Si el contacto no tiene {data}, {assistantName} no lo atiende",
+            "HELP_DENY": "{count} {type} · Si el contacto no tiene {data}, {assistantName} lo atiende",
             "TOO_MANY": "La lista no puede superar las 1000 entradas.",
             "TOO_LONG": "Cada entrada debe tener como máximo 120 caracteres.",
             "SUMMARY_INHERIT": "Usa la regla base",
@@ -1153,13 +1153,13 @@
         "APPOINTMENTS": {
           "READINESS": {
             "TITLE": "Preparación de recordatorios por bandeja",
-            "SAVED_HELP": "Configuración guardada. Guarda los cambios para actualizar estas comprobaciones. Se aplica a citas reservadas por Captain en sus bandejas conectadas.",
-            "NO_INBOXES": "Conecta una bandeja a Captain para comprobar la preparación de recordatorios.",
+            "SAVED_HELP": "Configuración guardada. Guarda los cambios para actualizar estas comprobaciones. Se aplica a citas reservadas por {assistantName} en sus bandejas conectadas.",
+            "NO_INBOXES": "Conecta una bandeja a {assistantName} para comprobar la preparación de recordatorios.",
             "MISSING": "Asignaciones pendientes: {variables}",
             "DELIVERY_HELP": "La configuración no garantiza la entrega. Al enviar se comprueban la ventana de respuesta, los valores del contacto, el estado de la cita y el horario de envío (08:00 a 21:00). Si faltan valores, se omite la plantilla y se deja una nota privada. Activar recordatorios no autoriza el envío de plantillas.",
             "STATUS": {
               "ready": "Preparado para plantillas de WhatsApp fuera de la ventana. Los valores del contacto se comprueban al enviar.",
-              "disabled": "Las citas de Captain o ambos recordatorios están desactivados. Activa las citas para este asistente y bandeja, y al menos un recordatorio.",
+              "disabled": "Las citas de {assistantName} o ambos recordatorios están desactivados. Activa las citas para este asistente y bandeja, y al menos un recordatorio.",
               "not_sent_channel": "Este canal no permite recordatorios fuera de su ventana de respuesta. Dentro de la ventana se puede enviar una respuesta normal.",
               "not_sent_window": "Fuera de la ventana se omiten los recordatorios porque las plantillas están desactivadas. Actívalas en Plantillas y Flows.",
               "no_template": "Fuera de la ventana se omiten los recordatorios: selecciona una plantilla de recordatorio abajo y guarda.",
@@ -1168,7 +1168,7 @@
             }
           },
           "TOGGLE": "Agendar citas",
-          "TOGGLE_HELP": "Si está activado, Captain puede ofrecer horarios disponibles del calendario que elijas. Viene desactivado.",
+          "TOGGLE_HELP": "Si está activado, {assistantName} puede ofrecer horarios disponibles del calendario que elijas. Viene desactivado.",
           "CONNECTION": "Cuenta de calendario",
           "CONNECTION_PLACEHOLDER": "Selecciona una cuenta",
           "CALENDAR": "Calendario",
@@ -1188,14 +1188,14 @@
             "PHONE": "Teléfono",
             "EMAIL": "Correo electrónico"
           },
-          "FIELDS_HINT": "Captain solo pide los datos que falten en el contacto.",
+          "FIELDS_HINT": "{assistantName} solo pide los datos que falten en el contacto.",
           "LOADING": "Cargando calendarios…",
           "LOAD_ERROR": "No se pudieron cargar los calendarios. Inténtalo de nuevo.",
-          "NO_CALENDAR": "Esta cuenta aún no tiene un calendario conectado. Conecta un calendario de Google para que Captain pueda agendar citas.",
+          "NO_CALENDAR": "Esta cuenta aún no tiene un calendario conectado. Conecta un calendario de Google para que {assistantName} pueda agendar citas.",
           "CONNECT_CALENDAR": "Conectar un calendario",
           "REMINDERS": {
             "TITLE": "Confirmación y recordatorios",
-            "CONFIRMATION_NOTE": "La confirmación de la cita siempre la escribe Captain al agendar, con los botones para cambiarla o cancelarla.",
+            "CONFIRMATION_NOTE": "La confirmación de la cita siempre la escribe {assistantName} al agendar, con los botones para cambiarla o cancelarla.",
             "REMINDER_LABEL": "Recordatorio {number}:",
             "HOURS_BEFORE": "horas antes de la cita",
             "HOURS_ERROR": "Usa un número entero de 1 a 168.",
@@ -1232,19 +1232,19 @@
         "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
         "FOLLOWUP": {
           "TOGGLE": "Preguntar «¿Sigues ahí?»",
-          "TOGGLE_HELP": "Si el cliente deja de responder, Captain le escribe un mensaje corto con botones, solo dentro de las 24 h. Viene activado.",
+          "TOGGLE_HELP": "Si el cliente deja de responder, {assistantName} le escribe un mensaje corto con botones, solo dentro de las 24 h. Viene activado.",
           "AFTER": "Preguntar tras",
           "NUDGES": "Mensajes de seguimiento",
-          "HINT": "Solo en las conversaciones que atiende Captain, nunca si una persona la tomó y nunca fuera de las 24 h. Si el cliente responde, el conteo empieza de nuevo.",
+          "HINT": "Solo en las conversaciones que atiende {assistantName}, nunca si una persona la tomó y nunca fuera de las 24 h. Si el cliente responde, el conteo empieza de nuevo.",
           "NUDGES_ONE": "1 mensaje",
           "NUDGES_TWO": "2 mensajes",
           "MINUTES": "{count} min",
           "HOURS": "{count} h",
           "REENGAGEMENT": "Reenganchar con una plantilla",
-          "REENGAGEMENT_HELP": "Cuando Captain cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Viene desactivado. Sale entre las 08:00 y las 21:00.",
+          "REENGAGEMENT_HELP": "Cuando {assistantName} cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Viene desactivado. Sale entre las 08:00 y las 21:00.",
           "PAID_HINT": "Para enviar plantillas, activa «Permitir plantillas con costo» en Plantillas y Flows.",
           "TEMPLATE": "Plantilla de reenganche",
-          "GOODBYE_LINK": "Mensajes del sistema",
+          "GOODBYE_LINK": "Traspaso y cierre",
           "AFTER_ERROR": "Debe ser menor que el tiempo de espera de arriba.",
           "GOODBYE_SENTENCE": "El mensaje de despedida se edita en {link}."
         },
@@ -1284,19 +1284,19 @@
         },
         "MAX_REPLIES": {
           "TITLE": "Límite de respuestas",
-          "DESCRIPTION": "Cuántas respuestas puede enviar Captain en una conversación. Al llegar al límite se despide con el mensaje de transferencia y el equipo toma la conversación.",
+          "DESCRIPTION": "Cuántas respuestas puede enviar {assistantName} en una conversación. Al llegar al límite se despide con el mensaje de transferencia y el equipo toma la conversación.",
           "LABEL": "Respuestas por conversación",
           "HINT": "20 por defecto. Usa 0 para no tener límite."
         },
         "MESSAGING": {
-          "TOGGLE": "Permitir que Captain envíe Flows y plantillas en esta bandeja",
-          "TOGGLE_HELP": "Si lo apagas, Captain no envía nada aquí, pero la lista de abajo se conserva. Cada bandeja tiene su propio interruptor.",
+          "TOGGLE": "Permitir que {assistantName} envíe Flows y plantillas en esta bandeja",
+          "TOGGLE_HELP": "Si lo apagas, {assistantName} no envía nada aquí, pero la lista de abajo se conserva. Cada bandeja tiene su propio interruptor.",
           "INBOX": "Bandeja",
           "INBOX_PLACEHOLDER": "Elige una bandeja",
           "NO_INBOXES": "Este asistente no tiene bandejas de WhatsApp conectadas.",
           "FLOWS": "Flows permitidos",
-          "FLOWS_HELP": "Captain solo puede enviar un Flow publicado en la cuenta de WhatsApp de esa bandeja, dentro de las 24 h.",
-          "FLOWS_EMPTY": "Captain no enviará ningún Flow en esta bandeja.",
+          "FLOWS_HELP": "{assistantName} solo puede enviar un Flow publicado en la cuenta de WhatsApp de esa bandeja, dentro de las 24 h.",
+          "FLOWS_EMPTY": "{assistantName} no enviará ningún Flow en esta bandeja.",
           "ADD_FLOW": "Agregar Flow",
           "ADD_FLOW_TITLE": "Agregar un Flow",
           "ADD_FLOW_PICK": "Flow",
@@ -1304,7 +1304,7 @@
           "NO_FLOWS_LEFT": "No hay más Flows publicados para agregar.",
           "TEMPLATES": "Plantillas permitidas",
           "TEMPLATES_HELP": "Solo plantillas aprobadas, de texto y sin botones que cambien por cliente. Meta cobra cada envío.",
-          "TEMPLATES_EMPTY": "Captain no enviará ninguna plantilla en esta bandeja.",
+          "TEMPLATES_EMPTY": "{assistantName} no enviará ninguna plantilla en esta bandeja.",
           "ADD_TEMPLATE": "Agregar plantilla",
           "ADD_TEMPLATE_TITLE": "Agregar una plantilla",
           "ADD_TEMPLATE_PICK": "Plantilla",
@@ -1312,7 +1312,7 @@
           "NO_TEMPLATES_LEFT": "No hay más plantillas aprobadas para agregar.",
           "PURPOSE": "Para qué sirve",
           "PURPOSE_PLACEHOLDER": "Ej.: Pedir los datos para reservar",
-          "PURPOSE_HELP": "Captain lo lee para decidir cuándo usarlo.",
+          "PURPOSE_HELP": "{assistantName} lo lee para decidir cuándo usarlo.",
           "REMOVE": "Quitar",
           "ADD": "Agregar",
           "CANCEL": "Cancelar",
@@ -1327,10 +1327,56 @@
           "SAVE_VARIABLES": "Guardar variables",
           "STATE_PUBLISHED": "Publicado",
           "SAVE": "Guardar",
-          "UNAVAILABLE_TEMPLATE": "Ya no está aprobada, o tiene archivo en el encabezado o botones que cambian por cliente: Captain no la envía.",
-          "UNAVAILABLE_FLOW": "Ya no está publicado: Captain no lo envía.",
+          "UNAVAILABLE_TEMPLATE": "Ya no está aprobada, o tiene archivo en el encabezado o botones que cambian por cliente: {assistantName} no la envía.",
+          "UNAVAILABLE_FLOW": "Ya no está publicado: {assistantName} no lo envía.",
           "TEMPLATES_TOGGLE": "Permitir plantillas con costo",
-          "TEMPLATES_TOGGLE_HELP": "Las plantillas son mensajes aprobados por Meta y pueden enviarse aunque el cliente no haya escrito en 24 h. Meta cobra cada plantilla. Si está apagado, Captain no envía ninguna."
+          "TEMPLATES_TOGGLE_HELP": "Las plantillas son mensajes aprobados por Meta y pueden enviarse aunque el cliente no haya escrito en 24 h. Meta cobra cada plantilla. Si está apagado, {assistantName} no envía ninguna."
+        },
+        "HANDOFF_ROUTING": {
+          "TITLE": "A quién va el traspaso",
+          "DESCRIPTION": "{assistantName} nunca asigna a alguien desconectado ni a quien no está en la bandeja. Si nadie está disponible, la conversación queda sin asignar y el cliente recibe el mensaje de traspaso.",
+          "NEW": "Conversación nueva",
+          "REOPENED": "Conversación reabierta",
+          "REOPENED_HELP": "El cliente vuelve a escribir después de que se resolvió.",
+          "MODES": {
+            "INBOX": {
+              "LABEL": "Repartir como la bandeja",
+              "HELP": "Usa la asignación automática de la bandeja. Si está apagada o no hay nadie conectado, queda sin asignar."
+            },
+            "LAST_AGENT_NEW": {
+              "LABEL": "La persona que atendió a este cliente la última vez"
+            },
+            "LAST_AGENT_REOPENED": {
+              "LABEL": "La persona que la atendió antes"
+            },
+            "LAST_AGENT": {
+              "HELP": "Si esa persona está conectada y está en la bandeja, se la asigna a ella. Si no, se reparte como la bandeja."
+            },
+            "TEAM": {
+              "LABEL": "Un equipo fijo",
+              "HELP": "Se reparte entre las personas conectadas del equipo. Si nadie está conectado, queda en el equipo sin asignar."
+            },
+            "AI_TEAM": {
+              "LABEL": "{assistantName} elige el equipo",
+              "HELP": "{assistantName} lee la descripción de cada equipo (Ajustes → Equipos) y elige el que encaja. Si ninguno encaja, se reparte como la bandeja."
+            }
+          },
+          "TEAM_PLACEHOLDER": "Elige un equipo",
+          "TEAM_REQUIRED": "Elige un equipo.",
+          "TEAMS_LOADING": "Cargando equipos…",
+          "TEAMS_ERROR": "No se pudieron cargar los equipos.",
+          "NO_TEAMS": "Crea un equipo en Ajustes → Equipos para usar esta opción.",
+          "TEAM_NO_MEMBERS": "Nadie de este equipo está en las bandejas de este asistente. Las conversaciones quedarán en el equipo sin asignar.",
+          "AI_TEAM_NONE": "Ningún equipo tiene personas en las bandejas de este asistente. Mientras tanto se repartirá como la bandeja.",
+          "TEAM_DELETED": "Equipo eliminado",
+          "TEAM_DELETED_HELP": "Ese equipo ya no existe. Elige otro; mientras tanto se reparte como la bandeja."
+        },
+        "HANDOFF_PRIORITY": {
+          "TITLE": "Prioridad al traspasar",
+          "OFF": "No cambiar la prioridad",
+          "ON_SIGNAL": "Alta si el cliente está molesto o tiene prisa",
+          "ALWAYS": "Alta siempre",
+          "HELP": "{assistantName} nunca baja una prioridad que ya está puesta."
         }
       },
       "EDIT": {
@@ -1347,9 +1393,9 @@
           "DESCRIPTION": "Personaliza lo que dice el asistente al terminar una conversación o al transferirla a una persona."
         },
         "SYSTEM_SETTINGS": {
-          "TITLE": "Mensajes del sistema",
-          "DESCRIPTION": "Personaliza lo que dice el asistente al terminar una conversación o al transferirla a una persona.",
-          "DESCRIPTION_V2": "Los mensajes que Captain envía al transferir o al cerrar una conversación, y sus límites."
+          "TITLE": "Traspaso y cierre",
+          "DESCRIPTION": "Qué hace Captain al pasar una conversación a una persona o al cerrarla.",
+          "DESCRIPTION_V2": "Qué hace Captain al pasar una conversación a una persona o al cerrarla."
         },
         "AUDIENCE": {
           "TITLE": "Audiencia",
@@ -1384,11 +1430,11 @@
         },
         "FOLLOWUP": {
           "TITLE": "Seguimiento",
-          "DESCRIPTION": "Qué hace Captain cuando el cliente deja de responder: preguntar si sigue ahí, cerrar por inactividad y, si lo activas, reenganchar con una plantilla."
+          "DESCRIPTION": "Qué hace {assistantName} cuando el cliente deja de responder: preguntar si sigue ahí, cerrar por inactividad y, si lo activas, reenganchar con una plantilla."
         },
         "MESSAGING": {
           "TITLE": "Envíos por bandeja",
-          "DESCRIPTION": "Qué Flows y plantillas puede enviar Captain en cada número de WhatsApp."
+          "DESCRIPTION": "Qué Flows y plantillas puede enviar {assistantName} en cada número de WhatsApp."
         }
       },
       "ENVIOS": {
@@ -1406,9 +1452,9 @@
         "PREVIEW_FLOW": "Vista previa del Flow: {name}",
         "PREVIEW_FLOW_UNPUBLISHED": "Este Flow no está publicado en la cuenta de WhatsApp de esta bandeja.",
         "PREVIEW_PANEL": {
-          "DESCRIPTION": "Así quedará el mensaje con los datos de Captain.",
-          "MISSING_VARIABLES": "Falta un dato. Captain no enviará esta plantilla hasta que lo completes.",
-          "VARIABLES_TITLE": "Qué pone Captain en cada variable",
+          "DESCRIPTION": "Así quedará el mensaje con los datos de {assistantName}.",
+          "MISSING_VARIABLES": "Falta un dato. {assistantName} no enviará esta plantilla hasta que lo completes.",
+          "VARIABLES_TITLE": "Qué pone {assistantName} en cada variable",
           "INBOX": "Bandeja: {name}",
           "TEMPLATE_UNAVAILABLE": "Esta plantilla ya no está aprobada en esta bandeja; no se puede mostrar.",
           "SOURCE_ALIAS": "Automático (por su nombre)",
@@ -1422,25 +1468,25 @@
           "CONNECTED": "Conectado",
           "NEEDS_REVIEW": "Revisar conexión"
         },
-        "QUALITY_RED": "Calidad baja en Meta: Captain no envía plantillas en este número.",
+        "QUALITY_RED": "Calidad baja en Meta: {assistantName} no envía plantillas en este número.",
         "QUALITY_YELLOW": "Meta informa calidad media para este número. Revisa su estado.",
         "TEMPLATES_STALE": "Las plantillas no se actualizan desde {date}.",
         "PAID": {
           "TITLE": "Permitir plantillas con costo",
           "SCOPE": "Para todas las bandejas de WhatsApp de este asistente.",
-          "ON_LINE": "Encendido. Fuera de las 24 horas, Captain puede enviar plantillas de utilidad aprobadas, recordatorios de cita y reenganche (Meta las cobra). Dentro de las 24 horas, responde y envía Flows como siempre.",
-          "OFF_LINE": "Apagado. Captain no envía plantillas de utilidad, ni recordatorios ni reenganche fuera de las 24 horas. Sigue respondiendo y enviando Flows dentro de las 24 horas desde el último mensaje del cliente.",
+          "ON_LINE": "Encendido. Fuera de las 24 horas, {assistantName} puede enviar plantillas de utilidad aprobadas, recordatorios de cita y reenganche (Meta las cobra). Dentro de las 24 horas, responde y envía Flows como siempre.",
+          "OFF_LINE": "Apagado. {assistantName} no envía plantillas de utilidad, ni recordatorios ni reenganche fuera de las 24 horas. Sigue respondiendo y enviando Flows dentro de las 24 horas desde el último mensaje del cliente.",
           "TEMPLATES_OFF": "No se envían: «Permitir plantillas con costo» está apagado. Tus elecciones se guardan."
         },
         "CAP": {
-          "REACHED": "Hoy se alcanzó el tope: {used} de {cap}. Captain responde con mensajes normales hasta mañana.",
+          "REACHED": "Hoy se alcanzó el tope: {used} de {cap}. {assistantName} responde con mensajes normales hasta mañana.",
           "READONLY": "Tope diario de la cuenta: hoy {used} de {cap}",
           "CHANGE": "Cambiar"
         },
         "MESSAGING": {
-          "TOGGLE": "Captain usa los Flows y las plantillas de utilidad de este número",
-          "HELP": "Captain solo envía las plantillas de utilidad y los Flows que tengan el interruptor encendido.",
-          "OFF": "Apagado: Captain no envía Flows ni plantillas de utilidad en este número."
+          "TOGGLE": "{assistantName} usa los Flows y las plantillas de utilidad de este número",
+          "HELP": "{assistantName} solo envía las plantillas de utilidad y los Flows que tengan el interruptor encendido.",
+          "OFF": "Apagado: {assistantName} no envía Flows ni plantillas de utilidad en este número."
         },
         "FLOWS": {
           "TITLE": "Flows",
@@ -1458,7 +1504,7 @@
         },
         "REASONS": {
           "NEEDS_DATA": "No disponible: la variable {variables} está pendiente de configurar.",
-          "UNSUPPORTED": "Tiene un archivo en el encabezado o un botón que cambia por cliente: Captain no puede enviarla.",
+          "UNSUPPORTED": "Tiene un archivo en el encabezado o un botón que cambia por cliente: {assistantName} no puede enviarla.",
           "NEEDS_REVIEW": "Tiene un enlace. Revísala antes de permitirla.",
           "NOT_PUBLISHED_HERE": "Este Flow no está publicado en la cuenta de WhatsApp de esta bandeja."
         },
@@ -1494,7 +1540,7 @@
           "FLOWS": "Flows",
           "TEMPLATES": "Plantillas"
         },
-        "ROW_SWITCH": "Captain puede usar {name}",
+        "ROW_SWITCH": "{assistantName} puede usar {name}",
         "CONFIGURE_IN_TEMPLATES": "Configurar en Plantillas y Flows"
       },
       "OPTIONS": {
@@ -2120,7 +2166,7 @@
       },
       "APPOINTMENTS": {
         "LABEL": "Citas en este canal",
-        "HELP": "Captain ofrece y agenda citas en este canal.",
+        "HELP": "{assistantName} ofrece y agenda citas en este canal.",
         "ENABLED": "Activadas",
         "DISABLED": "Apagadas",
         "SETTINGS_LINK": "Gestionar en ajustes del asistente",

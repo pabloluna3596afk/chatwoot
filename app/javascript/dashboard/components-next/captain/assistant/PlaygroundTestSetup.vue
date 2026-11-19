@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Accordion from 'dashboard/components-next/Accordion/Accordion.vue';
@@ -15,10 +17,13 @@ import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import AddNewRulesInput from 'dashboard/components-next/captain/assistant/AddNewRulesInput.vue';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   session: { type: Object, required: true },
 });
 
 const { t } = useI18n();
+const { nameRichFrom } = useAssistantName(() => props.assistant);
+
 const KNOWLEDGE_MAX_LENGTH = 10_000;
 
 const RULE_TABS = {
@@ -471,7 +476,13 @@ const selectTab = tab => {
               </span>
               <div class="min-w-0">
                 <h4 class="text-sm font-medium">
-                  {{ t('CAPTAIN.PLAYGROUND.SETUP.KNOWLEDGE.AVAILABLE_TITLE') }}
+                  <AssistantNameText
+                    :text="
+                      nameRichFrom(
+                        t('CAPTAIN.PLAYGROUND.SETUP.KNOWLEDGE.AVAILABLE_TITLE')
+                      )
+                    "
+                  />
                 </h4>
                 <p class="mt-1 text-xs leading-5 text-n-slate-11">
                   {{

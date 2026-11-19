@@ -433,7 +433,7 @@ describe('AssistantAppointmentsForm', () => {
       expect(
         wrapper.get('[data-testid="appointments-confirmation-note"]').text()
       ).toBe(
-        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.CONFIRMATION_NOTE'
+        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.CONFIRMATION_NOTE {"assistantName":"Captain"}'
       );
     });
 

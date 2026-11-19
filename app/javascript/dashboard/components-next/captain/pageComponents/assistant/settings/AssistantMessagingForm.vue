@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -26,6 +28,8 @@ const conflict = ref(false);
 const pendingAllows = reactive({});
 const baseline = ref('');
 const { t } = useI18n();
+const { nameText, nameRich } = useAssistantName(() => props.assistant);
+
 const route = useRoute();
 const store = useStore();
 const { accountScopedRoute } = useAccount();
@@ -49,7 +53,7 @@ const previewDrawer = ref(null);
 const selectedRow = ref(null);
 const paidTemplates = ref(false);
 const paidExplanation = computed(() =>
-  t(
+  nameRich(
     paidTemplates.value
       ? 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.ON_LINE'
       : 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.OFF_LINE'
@@ -577,7 +581,7 @@ onMounted(async () => {
           class="mt-1.5 size-2 shrink-0 rounded-full"
           :class="paidTemplates ? 'bg-n-teal-9' : 'bg-n-amber-9'"
         />
-        <span>{{ paidExplanation }}</span>
+        <span><AssistantNameText :text="paidExplanation" /></span>
       </p>
     </SettingsToggleSection>
 
@@ -604,12 +608,14 @@ onMounted(async () => {
         </RouterLink>
       </p>
       <p v-if="capUsed >= capValue" class="mb-0 w-full text-xs text-n-amber-11">
-        {{
-          t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.REACHED', {
-            used: capUsed,
-            cap: capValue,
-          })
-        }}
+        <AssistantNameText
+          :text="
+            nameRich('CAPTAIN.ASSISTANTS.ENVIOS.CAP.REACHED', {
+              used: capUsed,
+              cap: capValue,
+            })
+          "
+        />
       </p>
     </div>
 
@@ -781,7 +787,9 @@ onMounted(async () => {
           v-if="serverInbox?.channel?.quality_rating === 'RED'"
           color="amber"
         >
-          {{ t('CAPTAIN.ASSISTANTS.ENVIOS.QUALITY_RED') }}
+          <AssistantNameText
+            :text="nameRich('CAPTAIN.ASSISTANTS.ENVIOS.QUALITY_RED')"
+          />
         </Banner>
         <Banner
           v-else-if="serverInbox?.channel?.quality_rating === 'YELLOW'"
@@ -803,9 +811,9 @@ onMounted(async () => {
         <template v-if="selectedInbox.channel_type === 'Channel::Whatsapp'">
           <SettingsToggleSection
             :model-value="currentEntry.enabled === true"
-            :header="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
+            :header="nameRich('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
             :description="
-              t(
+              nameRich(
                 currentEntry.enabled
                   ? 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.HELP'
                   : 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.OFF'
@@ -818,7 +826,9 @@ onMounted(async () => {
               <Switch
                 v-model="currentEntry.enabled"
                 :disabled="!isAdmin || saving"
-                :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
+                :aria-label="
+                  nameText('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')
+                "
                 class="disabled:cursor-not-allowed disabled:opacity-50"
               />
             </template>
@@ -904,6 +914,7 @@ onMounted(async () => {
                     <CaptainResourceRow
                       v-for="row in group.rows"
                       :key="row.key"
+                      :assistant="props.assistant"
                       :data-testid="`messaging-${row.kind}-row`"
                       :name="
                         row.kind === 'flow'
@@ -985,6 +996,7 @@ onMounted(async () => {
 
     <CaptainTemplatePreview
       ref="templatePreview"
+      :assistant="props.assistant"
       :template="selectedRow?.template"
       :params="selectedRow?.processed_params"
       :sources="selectedRow?.sources"

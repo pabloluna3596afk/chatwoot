@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, ref, watch, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -21,6 +23,8 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t, locale } = useI18n();
+const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+
 const { filterTypes } = useAudienceFilterTypes();
 const store = useStore();
 const { isAdmin } = useAdmin();
@@ -81,7 +85,7 @@ const channelForInbox = inbox =>
     ? 'whatsapp'
     : CHANNELS[inbox.channel_type];
 const warningText = (key, channels) =>
-  t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNEL_WARNING', {
+  nameRich('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNEL_WARNING', {
     attribute: filterTypes.value.find(type => type.attributeKey === key).label,
     channels: new Intl.ListFormat(locale?.value, {
       type: 'conjunction',
@@ -179,14 +183,18 @@ watch(
       <RadioCard
         :id="MODE.EVERYONE"
         :label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.EVERYONE.LABEL')"
-        :description="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.EVERYONE.DESC')"
+        :description="
+          nameRichFrom(t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.EVERYONE.DESC'))
+        "
         :is-active="mode === MODE.EVERYONE"
         @select="mode = MODE.EVERYONE"
       />
       <RadioCard
         :id="MODE.SPECIFIC"
         :label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.SPECIFIC.LABEL')"
-        :description="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.SPECIFIC.DESC')"
+        :description="
+          nameRichFrom(t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.SPECIFIC.DESC'))
+        "
         :is-active="mode === MODE.SPECIFIC"
         @select="mode = MODE.SPECIFIC"
       >
@@ -209,7 +217,7 @@ watch(
       color="amber"
       role="status"
     >
-      {{ warning.text }}
+      <AssistantNameText :text="warning.text" />
     </Banner>
     <div v-if="isAdmin">
       <Button
@@ -223,6 +231,7 @@ watch(
     <InboxAudienceCard
       v-for="inbox in inboxFlags.fetchingList ? [] : connectedInboxes"
       :key="`${assistant.id}-${inbox.id}`"
+      :assistant="props.assistant"
       :inbox="inbox"
       :assistant-id="assistant.id"
       :can-edit="isAdmin"

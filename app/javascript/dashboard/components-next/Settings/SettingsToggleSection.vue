@@ -1,4 +1,5 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 import ToggleSwitch from 'dashboard/components-next/switch/Switch.vue';
 
 defineProps({
@@ -30,7 +31,7 @@ const modelValue = defineModel({ type: Boolean, default: false });
     <div class="flex flex-col gap-1 items-start w-full py-3">
       <div class="flex items-center gap-3 w-full justify-between px-4">
         <span class="text-heading-3 text-n-slate-12">
-          {{ header }}
+          <AssistantNameText :text="header" />
         </span>
         <template v-if="hideToggle">
           <slot name="hiddenToggle">
@@ -40,7 +41,7 @@ const modelValue = defineModel({ type: Boolean, default: false });
         <ToggleSwitch v-else v-model="modelValue" />
       </div>
       <span v-if="description" class="text-body-main text-n-slate-11 px-4">
-        {{ description }}
+        <AssistantNameText :text="description" />
       </span>
       <slot />
     </div>

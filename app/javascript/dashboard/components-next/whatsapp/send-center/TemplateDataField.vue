@@ -19,7 +19,7 @@ const input = ref(null);
 const open = ref(false);
 const active = ref(-1);
 const alignment = ref('start');
-const MENU_WIDTH_REM = 14;
+const MENU_WIDTH_REM = 18;
 const MENU_HEIGHT_REM = 14;
 const above = ref(false);
 const selected = computed(() =>
@@ -38,6 +38,12 @@ const display = computed(() => {
 });
 const pending = computed(() => props.missing || !display.value.trim());
 const query = ref('');
+const fold = text =>
+  String(text ?? '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase();
+const oneLine = text => String(text ?? '').replace(/\s*\n\s*/g, ' ');
 const options = computed(() => [
   ...(query.value.trim()
     ? [
@@ -51,9 +57,9 @@ const options = computed(() => [
       ]
     : []),
   ...props.options.filter(option =>
-    `${option.label} ${option.value}`
-      .toLowerCase()
-      .includes(query.value.trim().toLowerCase())
+    fold(`${option.label} ${option.value} ${option.name || ''}`).includes(
+      fold(query.value.trim())
+    )
   ),
   ...(selected.value
     ? [
@@ -211,7 +217,7 @@ const keydown = async event => {
     />
     <span
       v-if="open"
-      class="absolute z-50 w-56 max-w-[calc(100vw-6rem)] rounded-lg border border-n-weak bg-n-alpha-3 p-2 backdrop-blur-[100px] font-sans text-sm font-normal not-italic text-n-slate-12 shadow-lg"
+      class="absolute z-50 w-72 max-w-[calc(100vw-6rem)] rounded-lg border border-n-weak bg-n-alpha-3 p-2 backdrop-blur-[100px] font-inter text-sm font-normal not-italic text-n-slate-12 shadow-lg"
       :class="[
         {
           'start-0': alignment === 'start',
@@ -244,26 +250,30 @@ const keydown = async event => {
           :key="option.id"
           role="option"
           :aria-selected="active === index"
-          :aria-disabled="option.disabled"
           :title="
-            option.disabled
-              ? t('WHATSAPP_TEMPLATES.SEND_CENTER.NO_DATA')
+            option.label
+              ? `${oneLine(option.value)} — ${option.label}`
               : String(option.value)
           "
-          class="block min-h-8 rounded px-2 py-2 whitespace-normal [overflow-wrap:anywhere]"
-          :class="[
-            option.disabled
-              ? 'cursor-not-allowed text-n-slate-10'
-              : 'cursor-pointer hover:bg-n-alpha-2',
-            active === index ? 'bg-n-alpha-2' : '',
-          ]"
+          class="block min-h-8 rounded px-2 py-2 cursor-pointer hover:bg-n-alpha-2"
+          :class="[active === index ? 'bg-n-alpha-2' : '']"
           @click="choose(option)"
         >
-          {{
-            option.disabled
-              ? t('WHATSAPP_TEMPLATES.SEND_CENTER.NO_DATA')
-              : option.value
-          }}
+          <span v-if="option.label" class="flex min-w-0 items-baseline gap-1.5">
+            <span class="min-w-0 truncate text-sm font-420 text-n-slate-12">{{
+              oneLine(option.value)
+            }}</span>
+            <span aria-hidden="true" class="shrink-0 text-n-slate-9">·</span>
+            <span
+              class="max-w-[45%] shrink-0 truncate text-xs font-normal text-n-slate-10"
+              >{{ option.label }}</span
+            >
+          </span>
+          <span
+            v-else
+            class="block whitespace-normal [overflow-wrap:anywhere]"
+            >{{ option.value }}</span
+          >
         </span>
         <span v-if="!options.length" class="block px-2 py-2 text-n-slate-11">{{
           t(

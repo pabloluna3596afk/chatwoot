@@ -1,4 +1,5 @@
 <script setup>
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -14,6 +15,7 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
+const { nameRichFrom } = useAssistantName(() => props.assistant);
 
 const RESPONSE_WINDOW = {
   ALWAYS: 'always',
@@ -54,7 +56,9 @@ watch(
           t(`CAPTAIN.ASSISTANTS.FORM.SCHEDULE.${option.toUpperCase()}.LABEL`)
         "
         :description="
-          t(`CAPTAIN.ASSISTANTS.FORM.SCHEDULE.${option.toUpperCase()}.DESC`)
+          nameRichFrom(
+            t(`CAPTAIN.ASSISTANTS.FORM.SCHEDULE.${option.toUpperCase()}.DESC`)
+          )
         "
         :is-active="selected === option"
         @select="selected = $event"

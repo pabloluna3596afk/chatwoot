@@ -1,3 +1,4 @@
+import { ASSISTANT_NAME_MARKER } from 'dashboard/composables/useAssistantName';
 import { shallowMount } from '@vue/test-utils';
 import MessageList from './MessageList.vue';
 
@@ -22,9 +23,28 @@ const mountList = (props = {}) =>
       },
       ...props,
     },
+    global: { stubs: { AssistantNameText: false } },
   });
 
 describe('MessageList', () => {
+  it('renders local error copy as text and a name span without leaking the sentinel', () => {
+    const wrapper = mountList({
+      messages: [
+        {
+          sender: 'assistant',
+          isError: true,
+          nameRichText: true,
+          content: `${ASSISTANT_NAME_MARKER}Aurora${ASSISTANT_NAME_MARKER} no pudo completar <esta prueba>.`,
+        },
+      ],
+    });
+    expect(wrapper.text()).toBe('Aurora no pudo completar <esta prueba>.');
+    expect(wrapper.get('.assistant-name').attributes('title')).toBe('Aurora');
+    expect(wrapper.html()).not.toContain(ASSISTANT_NAME_MARKER);
+    expect(wrapper.find('esta').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it('shows the assistant photo on assistant messages only', () => {
     const avatars = mountList().findAllComponents({ name: 'Avatar' });
 

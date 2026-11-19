@@ -505,9 +505,18 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       expect(conversation.messages.outgoing).to be_empty
     end
 
+    it 'routes an inactivity handoff with the configured priority' do
+      captain_assistant.update!(config: captain_assistant.config.merge('handoff_priority' => 'always'))
+      expect(Captain::HandoffRouter).to receive(:new).with(conversation: conversation, assistant: captain_assistant).and_call_original
+      job.send(:handoff_conversation, conversation, { reason: 'Customer needs an agent' })
+      expect(conversation.reload).to be_high
+      expect(conversation.messages.where(private: true).last.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
+    end
+
     it 'dispatches the bot handoff event after leaving the lock transaction' do
       open_transactions_before_handoff = ActiveRecord::Base.connection.open_transactions
-      expect(conversation).to receive(:bot_handoff!).with(dispatch_event: false).and_call_original
+      expect(conversation).to receive(:bot_handoff!).with(dispatch_event: false,
+                                                          routing: an_instance_of(Captain::HandoffRouter::Routing)).and_call_original
       expect(conversation).to receive(:dispatch_bot_handoff_event) do
         expect(ActiveRecord::Base.connection.open_transactions).to eq(open_transactions_before_handoff)
       end
