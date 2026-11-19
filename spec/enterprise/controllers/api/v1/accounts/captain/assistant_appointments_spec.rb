@@ -35,7 +35,8 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
                                 'allow_paid_templates' => true })
     channels = %w[approved pending].map do |status|
       create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false,
-                                message_templates: [{ 'name' => 'shared', 'language' => 'es', 'status' => status, 'components' => [] }])
+                                message_templates: [{ 'name' => 'shared', 'language' => 'es', 'category' => 'UTILITY',
+                                                      'status' => status, 'components' => [] }])
     end
     channels.each { |channel| create(:captain_inbox, captain_assistant: assistant, inbox: channel.inbox) }
     entries = channels.map do |channel|

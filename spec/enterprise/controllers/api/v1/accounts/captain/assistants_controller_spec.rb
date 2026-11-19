@@ -96,6 +96,17 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
       expect(assistant.messaging.entry_for(inbox.id).dig('reviewed', 'templates')).to include(key)
     end
 
+    it 'returns 422 for marketing without changing permissions' do
+      channel.update!(message_templates: [channel.message_templates.first.merge('category' => 'MARKETING')])
+      original = assistant.config.deep_dup
+      post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
+           params: { revision: 0, inbox_id: inbox.id, kind: 'template', key: '123:appointment|es' },
+           headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to include('utility templates and Flows')
+      expect(assistant.reload.config).to eq(original)
+    end
+
     it 'denies agents access to resource approval' do
       post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
            params: { revision: 0, inbox_id: inbox.id, kind: 'template',

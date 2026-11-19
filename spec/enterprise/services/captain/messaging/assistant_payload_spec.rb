@@ -76,7 +76,21 @@ RSpec.describe Captain::Messaging::AssistantPayload do
     end
 
     expect(resource[:state]).to eq('available')
-    expect(resource[:processed_params]).to eq(processed_params)
+    expect(resource[:processed_params]).to eq(processed_params.merge('header' => {}))
     expect(resource[:sources]).to eq('body' => { 'nombre' => 'legacy' }, 'header' => {})
+  end
+
+  it 'omits marketing and authentication resources and counts even when the inbox is disabled' do
+    channel = create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
+                                        validate_provider_config: false, provider_config: { 'business_account_id' => '123' },
+                                        message_templates: %w[UTILITY MARKETING AUTHENTICATION].map do |category|
+                                          { 'name' => category.downcase, 'language' => 'es', 'category' => category,
+                                            'status' => 'APPROVED', 'components' => [] }
+                                        end)
+    create(:captain_inbox, captain_assistant: assistant, inbox: channel.inbox)
+    payload = described_class.new(assistant).as_json[:inboxes].first
+    expect(payload[:resources].map { |item| item[:resource]['category'] }).to eq(['UTILITY'])
+    expect(payload[:counts]['disabled']).to eq(1)
+    expect(payload[:counts].values.sum).to eq(1)
   end
 end

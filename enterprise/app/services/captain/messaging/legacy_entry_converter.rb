@@ -29,6 +29,9 @@ class Captain::Messaging::LegacyEntryConverter
 
   def add_template_settings(result, template)
     key = Captain::Messaging::TemplateKey.for(@waba_id, template)
+    current = @inbox.channel.message_templates.to_a.find { |item| Captain::Messaging::TemplateKey.for(@waba_id, item) == key }
+    return unless current && current['category'].to_s.upcase == 'UTILITY'
+
     result[0]["template:#{key}"] = template['purpose'] if template['purpose'].present?
     result[1][key] = template['processed_params'] if template['processed_params'].present?
   end

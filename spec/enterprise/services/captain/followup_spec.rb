@@ -283,7 +283,7 @@ RSpec.describe Captain::Followup do
 
   describe Captain::Followup::Reengager do
     let(:templates) do
-      [{ 'name' => 'volver_a_hablar', 'language' => 'es', 'status' => 'approved', 'category' => 'MARKETING', 'namespace' => 'ns',
+      [{ 'name' => 'volver_a_hablar', 'language' => 'es', 'status' => 'approved', 'category' => 'UTILITY', 'namespace' => 'ns',
          'components' => [{ 'type' => 'BODY', 'text' => 'Hola {{1}}, soy {{2}}. ¿Seguimos?' }] },
        { 'name' => 'pendiente', 'language' => 'es', 'status' => 'pending', 'components' => [] }]
     end
@@ -331,6 +331,14 @@ RSpec.describe Captain::Followup do
       expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'template_variables_missing')
     end
 
+    it 'refuses marketing selected in an old list even with paid permission' do
+      resources = channel.message_templates.map { |item| item.merge('category' => 'MARKETING') }
+      channel.update!(message_templates: resources)
+      expect(reengage).to eq(:skipped)
+      expect(public_messages.where('created_at >= ?', now)).to be_empty
+      expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'template_unavailable')
+    end
+
     it 'sends the approved template with the customer and assistant names' do
       expect(reengage).to eq(:sent)
 
@@ -339,7 +347,7 @@ RSpec.describe Captain::Followup do
       expect(message.additional_attributes['template_params']).to include(
         'name' => 'volver_a_hablar', 'language' => 'es', 'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Asistente de Ventas' } }
       )
-      expect(message.content_attributes.fetch('whatsapp_template')).to include('name' => 'volver_a_hablar', 'category' => 'MARKETING')
+      expect(message.content_attributes.fetch('whatsapp_template')).to include('name' => 'volver_a_hablar', 'category' => 'UTILITY')
       expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('status' => 'sent')
     end
 

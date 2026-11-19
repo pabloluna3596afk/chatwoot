@@ -1,3 +1,11 @@
+### B-NEW-280 - Envios v3-A: fuentes de variables por variable y solo utilidad en Captain (2026-11-18)
+
+- **Archivos:** `Whatsapp::TemplateVariableSources`, `TemplateVariableBindingsService`, controladores de plantillas/bandejas y `Captain::Messaging::{TemplateParams,TemplateAvailability,SendService,AssistantPayload,Review,LegacyEntryConverter}`; catalogo de herramientas y specs asociados.
+- **Problema:** un binding parcial descartaba todos los bindings; el modo lista no leia asignaciones de la bandeja y los previews excluidos no resolvian datos. El listado de Plantillas y Flows devolvia plantillas sin fuentes; bindings estaba limitado a Cloud. Marketing podia usarse por listas antiguas o permisos previos.
+- **Arreglo:** una regla compartida binding > alias del catalogo message > missing; parametros legacy/override conservan precedencia. Variables pendientes bloquean los estados utilizables o revisables. Ambos payloads de bandeja incluyen fuentes y variables pendientes; bindings para cualquier Channel::Whatsapp aprobado, sin AUTHENTICATION ni llamadas a Meta. Captain solo admite UTILITY y Flows: omite marketing/authentication del payload y contadores, rechaza permisos/envios/recordatorios/reenganche y descarta marketing al convertir. Campanas y Plantillas y Flows conservan marketing.
+- **Como probar:** specs del helper, bindings y endpoints; mezcla alias + binding, claves obsoletas, lista sin escritura, previews y needs_data; catalogo, SendService, recordatorios, reenganche, payload, 422 de allow_resource y conversion/restauracion. Evidencias y gates: `tmp/PR-ENVIOS-V3A.md`.
+- **Alcance:** solo PR-A backend; sin migraciones, frontend, fetch, push, navegador, PR ni despliegue. La retirada visual de Asignar y los textos corresponden a PR-B.
+
 ### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
 
 - **Archivos:** `Conversations::AssignmentService` y su extensión Enterprise, `AssignmentsController`, hook de mensajes de Captain, `ResponseBuilderJob` y registro de ciclo de respuesta, `InboxPendingConversationsResolutionJob`, `captain_followup.rake`; contrato Swagger y specs asociados.

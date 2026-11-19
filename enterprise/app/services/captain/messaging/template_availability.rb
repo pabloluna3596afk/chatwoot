@@ -23,7 +23,7 @@ class Captain::Messaging::TemplateAvailability
     identity = Captain::Messaging::TemplateKey.for(@waba_id, template)
     state = state_for(template, identity)
     params, missing, sources = resolved_params(template, state)
-    state = 'needs_data' if state == 'available' && missing.any?
+    state = 'needs_data' if %w[available excluded new changed needs_review].include?(state) && missing.any?
     Item.new(resource: resource(template), state: state, missing: missing, processed_params: params, sources: sources,
              note: note_for(template, identity))
   end
@@ -33,22 +33,9 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def resolved_params(template, state)
-    return [nil, [], {}] unless state == 'available'
+    return [nil, [], {}] if %w[disabled authentication marketing_off pending rejected unsupported unavailable].include?(state)
 
-    if @settings.mode(@inbox.id) == 'list'
-      params = @settings.template(@inbox.id, template['name'], template['language'])&.fetch('processed_params', nil)
-      [params, Captain::TemplateMessage.unmapped(template, params), legacy_sources(template, params)]
-    else
-      Captain::Messaging::TemplateParams.new(@assistant, @inbox, template).resolve
-    end
-  end
-
-  def legacy_sources(template, params)
-    Captain::TemplateMessage.variables(template).each_with_object({ 'body' => {}, 'header' => {} }) do |variable, sources|
-      next if params&.dig(variable.component, variable.name).blank?
-
-      sources[variable.component][variable.name] = 'legacy'
-    end
+    Captain::Messaging::TemplateParams.new(@assistant, @inbox, template).resolve
   end
 
   def note_for(template, identity)
@@ -60,21 +47,20 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def state_for(template, identity)
-    pre_review_state(template, identity) || review_state(template, identity) || available_state(template, identity)
+    pre_review_state(template) || (excluded?(identity) ? 'excluded' : nil) || review_state(template, identity) || available_state(template, identity)
   end
 
-  def pre_review_state(template, identity)
+  def pre_review_state(template)
     return 'disabled' unless @entry&.fetch('enabled', false) == true
     return 'authentication' if template['category'].to_s.upcase == 'AUTHENTICATION'
+    return 'marketing_off' unless template['category'].to_s.upcase == 'UTILITY'
     return meta_state(template) unless template['status'].to_s.upcase == 'APPROVED'
     return 'unsupported' unless Captain::TemplateSupport.supported?(template)
-    return 'excluded' if excluded?(identity)
   end
 
   def review_state(template, identity)
     return 'changed' if changed?(template, identity)
     return 'needs_review' if needs_review?(template, identity)
-    return 'marketing_off' if marketing_off?(template, identity)
     return 'unavailable' if quality_red?
   end
 
@@ -105,11 +91,6 @@ class Captain::Messaging::TemplateAvailability
 
   def needs_review?(template, identity)
     @settings.mode(@inbox.id) == 'auto' && Captain::TemplateSupport.url_button?(template) && !reviewed_templates.key?(identity)
-  end
-
-  def marketing_off?(template, identity)
-    @settings.mode(@inbox.id) == 'auto' && template['category'].to_s.upcase == 'MARKETING' &&
-      Array(@entry['included_marketing']).none? { |key| Captain::Messaging::TemplateKey.normalize(key) == identity }
   end
 
   def listed?(template)

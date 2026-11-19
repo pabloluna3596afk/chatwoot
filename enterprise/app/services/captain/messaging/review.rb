@@ -9,7 +9,7 @@ class Captain::Messaging::Review
     @waba_id = @channel.provider_config.to_h['business_account_id'].to_s if whatsapp?
   end
 
-  # Marketing, authentication, unsupported and link-bearing templates require a separate choice.
+  # Only supported utility templates can be reviewed; link-bearing ones require an explicit choice.
   def activation_snapshot
     return { 'templates' => {}, 'flows' => {} } unless whatsapp? && @waba_id.present?
 
@@ -62,7 +62,6 @@ class Captain::Messaging::Review
 
     key = template_key(template)
     reviewed['templates'][key] = fingerprint(template)
-    @entry['included_marketing'] = Array(@entry['included_marketing']) | [key] if template['category'].to_s.upcase == 'MARKETING'
     true
   end
 
@@ -79,12 +78,11 @@ class Captain::Messaging::Review
   end
 
   def activation_template?(template)
-    template['status'].to_s.upcase == 'APPROVED' && template['category'].to_s.upcase == 'UTILITY' &&
-      allowable_template?(template) && !Captain::TemplateSupport.url_button?(template) && !quality_red?
+    allowable_template?(template) && !Captain::TemplateSupport.url_button?(template) && !quality_red?
   end
 
   def allowable_template?(template)
-    template['status'].to_s.upcase == 'APPROVED' && template['category'].to_s.upcase != 'AUTHENTICATION' &&
+    template['status'].to_s.upcase == 'APPROVED' && template['category'].to_s.upcase == 'UTILITY' &&
       Captain::TemplateSupport.supported?(template)
   end
 
