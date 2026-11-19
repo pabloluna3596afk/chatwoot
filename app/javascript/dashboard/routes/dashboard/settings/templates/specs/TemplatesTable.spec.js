@@ -8,6 +8,24 @@ import en from 'dashboard/i18n/locale/en/whatsappTemplateMgmt.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
 
 describe('shared templates table', () => {
+  it('shows Variables independently of provider management and hides it for ineligible rows', async () => {
+    const wrapper = mount(TemplateRowActions, {
+      props: {
+        canAssignVariables: true,
+        canManage: false,
+        canEdit: false,
+        labels: { variables: 'Variables' },
+      },
+    });
+    await wrapper.get('[data-action="variables"]').trigger('click');
+    expect(wrapper.emitted('variables')).toHaveLength(1);
+    expect(
+      wrapper.get('[data-action="variables"]').attributes('disabled')
+    ).toBeUndefined();
+    await wrapper.setProps({ canAssignVariables: false });
+    expect(wrapper.find('[data-action="variables"]').exists()).toBe(false);
+  });
+
   it('renders configurable columns and already paginated rows, with a range footer', async () => {
     const wrapper = mount(TemplatesTable, {
       props: {

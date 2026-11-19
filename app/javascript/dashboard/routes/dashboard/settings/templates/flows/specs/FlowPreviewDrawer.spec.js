@@ -28,6 +28,17 @@ const mountDrawer = () =>
   });
 
 describe('FlowPreviewDrawer', () => {
+  it('hides editing and ignores simulator edit events in readonly mode', async () => {
+    WhatsappFlowsAPI.show.mockResolvedValue({ data: flow });
+    const wrapper = mountDrawer();
+    await wrapper.setProps({ readonly: true });
+    await wrapper.vm.open(flow);
+    expect(
+      wrapper.find('[data-testid="flow-preview-edit-button"]').exists()
+    ).toBe(false);
+    wrapper.findComponent(SimulatorStub).vm.$emit('edit');
+    expect(wrapper.emitted('edit')).toBeUndefined();
+  });
   it('loads the Flow and shows it in the interactive phone', async () => {
     WhatsappFlowsAPI.show.mockResolvedValue({ data: flow });
     const wrapper = mountDrawer();

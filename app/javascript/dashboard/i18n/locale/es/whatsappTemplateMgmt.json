@@ -317,7 +317,35 @@
       "VIEW": "Ver",
       "COUNT": "{startItem}–{endItem} de {totalItems}",
       "UPDATED": "Actualizado",
-      "SCREENS": "Pantallas"
+      "SCREENS": "Pantallas",
+      "DATA": "Datos"
+    },
+    "DATA_STATE": {
+      "NONE": "Sin variables",
+      "AUTO": "Variables listas",
+      "MISSING": "Variable pendiente: {variables}",
+      "MISSING_TOOLTIP": "Ninguna variable del sistema está asignada a {variables}. La IA no usará esta plantilla hasta que la configures en «Variables»."
+    },
+    "FILTER": {
+      "MISSING": "Variables pendientes ({count})"
+    },
+    "ACTIONS": {
+      "VARIABLES": "Variables"
+    },
+    "VARIABLES_DRAWER": {
+      "TITLE": "Variables · {name}",
+      "AUTO": "Automático: {label}",
+      "CHANGE": "Cambiar",
+      "MISSING_HINT": "Pendiente: elige una variable del sistema. Hasta entonces, la IA no envía esta plantilla.",
+      "SUGGESTED_EMAIL": "Sugerido porque el ejemplo de Meta es un correo. Se guarda solo si pulsas Guardar.",
+      "SUGGESTED_PHONE": "Sugerido porque el ejemplo de Meta es un teléfono. Se guarda solo si pulsas Guardar.",
+      "APPLIES_TO": "Se aplica en:",
+      "WARNING": "También cambia lo que se completa en el Centro de envíos y en las campañas. No se vuelve a enviar a Meta.",
+      "SAVE": "Guardar",
+      "CANCEL": "Cancelar",
+      "SAVE_ERROR": "No se pudieron guardar las variables en {inbox}. Inténtalo de nuevo.",
+      "NOT_APPROVED": "Esta plantilla ya no está aprobada",
+      "AUTO_HINT": "Se completa solo porque la variable se llama ?{token}?."
     }
   }
 }

@@ -317,7 +317,35 @@
       "VIEW": "View",
       "COUNT": "{startItem}–{endItem} of {totalItems}",
       "UPDATED": "Updated",
-      "SCREENS": "Screens"
+      "SCREENS": "Screens",
+      "DATA": "Data"
+    },
+    "DATA_STATE": {
+      "NONE": "No variables",
+      "AUTO": "Variables ready",
+      "MISSING": "Pending variable: {variables}",
+      "MISSING_TOOLTIP": "No system variable is assigned to {variables}. The AI will not use this template until you set it up in «Variables»."
+    },
+    "FILTER": {
+      "MISSING": "Pending variables ({count})"
+    },
+    "ACTIONS": {
+      "VARIABLES": "Variables"
+    },
+    "VARIABLES_DRAWER": {
+      "TITLE": "Variables · {name}",
+      "AUTO": "Automatic: {label}",
+      "CHANGE": "Change",
+      "MISSING_HINT": "Pending: choose a system variable. Until then, the AI will not send this template.",
+      "SUGGESTED_EMAIL": "Suggested because the Meta example is an email. Saved only when you click Save.",
+      "SUGGESTED_PHONE": "Suggested because the Meta example is a phone number. Saved only when you click Save.",
+      "APPLIES_TO": "Applies to:",
+      "WARNING": "Also changes what is filled in the Send Center and campaigns. It is not resubmitted to Meta.",
+      "SAVE": "Save",
+      "CANCEL": "Cancel",
+      "SAVE_ERROR": "Could not save variables in {inbox}. Try again.",
+      "NOT_APPROVED": "This template is no longer approved",
+      "AUTO_HINT": "Filled automatically because the variable is named ?{token}?."
     }
   }
 }

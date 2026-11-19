@@ -179,7 +179,8 @@
       "USE_TEXT": "Usar «{text}»",
       "NO_DATA": "Sin dato",
       "SEARCH_OR_TYPE": "Buscar o escribir…",
-      "REMOVE_VALUE": "Quitar"
+      "REMOVE_VALUE": "Quitar",
+      "MISSING_DATA_HINT": "Variable pendiente: {variables}. Escríbela al enviar."
     }
   }
 }

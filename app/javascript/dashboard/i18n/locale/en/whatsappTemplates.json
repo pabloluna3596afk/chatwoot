@@ -179,7 +179,8 @@
       "USE_TEXT": "Use “{text}”",
       "NO_DATA": "No data",
       "SEARCH_OR_TYPE": "Search or type…",
-      "REMOVE_VALUE": "Remove"
+      "REMOVE_VALUE": "Remove",
+      "MISSING_DATA_HINT": "Pending variable: {variables}. Type it when sending."
     }
   }
 }

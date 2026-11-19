@@ -15,6 +15,56 @@ const whatsappInbox = ({
 });
 
 describe('#groupTemplates', () => {
+  it('keeps pending variables from every inbox sharing the same template', () => {
+    const template = {
+      id: 'shared',
+      name: 'pedido',
+      language: 'es',
+      status: 'APPROVED',
+      category: 'UTILITY',
+    };
+    const result = groupTemplates([
+      {
+        inbox: whatsappInbox({
+          id: 1,
+          name: 'Ventas',
+          businessAccountId: 'waba',
+        }),
+        template: {
+          ...template,
+          missing_variables: ['1'],
+          variable_sources: {
+            body: {
+              1: { source: 'missing', path: null },
+              2: { source: 'binding', path: 'contact.email' },
+            },
+          },
+        },
+      },
+      {
+        inbox: whatsappInbox({
+          id: 2,
+          name: 'Soporte',
+          businessAccountId: 'waba',
+        }),
+        template: {
+          ...template,
+          missing_variables: ['2'],
+          variable_sources: {
+            body: {
+              1: { source: 'binding', path: 'contact.name' },
+              2: { source: 'missing', path: null },
+            },
+          },
+        },
+      },
+    ]);
+    expect(result[0].missing_variables).toEqual(['1', '2']);
+    expect(result[0].variable_sources.body).toEqual({
+      1: { source: 'missing', path: null },
+      2: { source: 'missing', path: null },
+    });
+  });
   it('uses the newest cache fields when grouping a shared provider template', () => {
     const olderInbox = whatsappInbox({
       id: 1,

@@ -16,6 +16,13 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
+import TemplateVariablesDrawer from './TemplateVariablesDrawer.vue';
+import TemplateDataPill from './TemplateDataPill.vue';
+import {
+  templateDataEligible,
+  templateVariables,
+  hasPendingVariables,
+} from './templateData';
 import TemplatesTable from './TemplatesTable.vue';
 import TemplatesToolbar from './TemplatesToolbar.vue';
 import { templateTableColumns } from './templateTableColumns';
@@ -67,7 +74,17 @@ const canManage = template => isAdmin.value && Boolean(cloudInboxFor(template));
 const canEdit = template => canManage(template) && isEditable(template);
 
 const templates = ref([]);
-const searchQuery = ref('');
+const searchQuery = ref(route.query.q || '');
+const missingOnly = ref(route.query.filter === 'missing');
+const missingCount = computed(
+  () => templates.value.filter(hasPendingVariables).length
+);
+const selectedTemplate = ref(null);
+const variablesDrawer = ref(null);
+const openVariables = template => {
+  selectedTemplate.value = template;
+  variablesDrawer.value?.open(template);
+};
 const selectedInboxId = ref('all');
 const selectedLanguage = ref('all');
 const selectedType = ref('all');
@@ -88,13 +105,15 @@ const categoryOptions = computed(() => [
     ).length,
   })),
 ]);
-const columns = computed(() => templateTableColumns(t, ['LANGUAGE', 'TYPE']));
+const columns = computed(() =>
+  templateTableColumns(t, ['DATA', 'LANGUAGE', 'TYPE'])
+);
 const actionLabels = computed(() => ({
+  variables: t('WHATSAPP_TEMPLATE_MGMT.ACTIONS.VARIABLES'),
   edit: t('WHATSAPP_TEMPLATE_MGMT.EDIT'),
   duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
   delete: t('WHATSAPP_TEMPLATE_MGMT.DELETE'),
 }));
-const selectedTemplate = ref(null);
 const previewPanelRef = ref(null);
 const flowsPanel = ref(null);
 const formDrawerRef = ref(null);
@@ -233,6 +252,13 @@ const askDelete = template => {
 
 const filteredTemplates = computed(() => {
   let records = templates.value;
+  if (missingOnly.value)
+    records = records
+      .filter(hasPendingVariables)
+      .sort(
+        (a, b) =>
+          Number(b.category === 'UTILITY') - Number(a.category === 'UTILITY')
+      );
 
   if (selectedInboxId.value !== 'all') {
     records = records.filter(template =>
@@ -279,6 +305,7 @@ const pagedTemplates = computed(() =>
 watch(
   [
     searchQuery,
+    missingOnly,
     selectedInboxId,
     selectedLanguage,
     selectedType,
@@ -302,7 +329,9 @@ watch(
 const fetchTemplates = async () => {
   try {
     await runTemplateRequest(async signal => {
-      const didFetchInboxes = await store.dispatch('inboxes/get');
+      const didFetchInboxes = await store.dispatch('inboxes/get', {
+        force: true,
+      });
       if (!didFetchInboxes) throw new Error();
       if (signal.aborted) return;
 
@@ -482,6 +511,23 @@ onDeactivated(abortTemplateRequest);
             v-if="hasTemplates && showTemplates"
             class="flex flex-wrap items-center gap-2"
           >
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1 text-xs"
+              :class="
+                missingOnly
+                  ? 'border-n-amber-8 bg-n-amber-3 text-n-amber-11'
+                  : 'border-n-weak text-n-slate-11'
+              "
+              :aria-pressed="missingOnly"
+              @click="missingOnly = !missingOnly"
+            >
+              {{
+                t('WHATSAPP_TEMPLATE_MGMT.FILTER.MISSING', {
+                  count: missingCount,
+                })
+              }}
+            </button>
             <FilterDropdown
               v-model="selectedInboxId"
               :options="inboxOptions"
@@ -560,6 +606,9 @@ onDeactivated(abortTemplateRequest);
             }}</span
           >
         </template>
+        <template #DATA="{ item }">
+          <TemplateDataPill :template="item" />
+        </template>
         <template #LANGUAGE="{ item }">
           {{ formatTemplateLanguage(item.language) }}
         </template>
@@ -593,6 +642,12 @@ onDeactivated(abortTemplateRequest);
             :labels="actionLabels"
             :can-manage="canManage(item)"
             :can-edit="canEdit(item)"
+            :can-assign-variables="
+              isAdmin &&
+              templateDataEligible(item) &&
+              templateVariables(item).length > 0
+            "
+            @variables="openVariables(item)"
             @edit="openEdit(item)"
             @duplicate="duplicateTemplate(item)"
             @delete="askDelete(item)"
@@ -601,6 +656,12 @@ onDeactivated(abortTemplateRequest);
       </TemplatesTable>
     </template>
 
+    <TemplateVariablesDrawer
+      v-if="isAdmin"
+      ref="variablesDrawer"
+      :template="selectedTemplate"
+      @saved="fetchTemplates"
+    />
     <TemplatePreviewDrawer ref="previewPanelRef" :template="selectedTemplate" />
     <TemplateFormDrawer
       v-if="isAdmin"

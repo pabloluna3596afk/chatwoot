@@ -17,6 +17,7 @@ import FlowPhoneFrame from './FlowPhoneFrame.vue';
 import FlowPreviewResult from './FlowPreviewResult.vue';
 
 const props = defineProps({
+  readonly: { type: Boolean, default: false },
   definition: { type: Object, required: true },
   flowName: { type: String, required: true },
   attributes: { type: Array, default: () => [] },
@@ -119,6 +120,7 @@ watch(() => props.definition, reset, { deep: true });
     >
       <FlowPreviewResult
         v-if="completed"
+        :readonly="readonly"
         :flow-name="flowName"
         :definition="definition"
         :answers="collected"

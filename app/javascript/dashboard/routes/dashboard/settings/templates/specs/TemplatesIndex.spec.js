@@ -50,6 +50,9 @@ vi.mock('dashboard/api/inboxes', () => ({
 vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: { createTemplate: vi.fn() },
 }));
+vi.mock('../TemplateVariablesDrawer.vue', () => ({
+  default: { template: '<div/>', methods: { open() {} } },
+}));
 vi.mock('../TemplateFormDrawer.vue', () => ({
   default: { template: '<div/>', methods: { open: openForm, openSystemCopy } },
 }));
@@ -72,17 +75,19 @@ vi.mock('../../components/BaseSettingsHeader.vue', () => ({
 }));
 
 describe('Templates page', () => {
-  const render = async () => {
+  const render = async (records = null) => {
     InboxesAPI.getMessageTemplates.mockResolvedValue({
       data: {
-        payload: Array.from({ length: 1000 }, (_, i) => ({
-          id: String(i),
-          name: `template_${i}`,
-          language: 'en',
-          category: i % 2 ? 'MARKETING' : 'UTILITY',
-          status: 'APPROVED',
-          components: [{ type: 'BODY', text: 'Hello' }],
-        })),
+        payload:
+          records ||
+          Array.from({ length: 1000 }, (_, i) => ({
+            id: String(i),
+            name: `template_${i}`,
+            language: 'en',
+            category: i % 2 ? 'MARKETING' : 'UTILITY',
+            status: 'APPROVED',
+            components: [{ type: 'BODY', text: 'Hello' }],
+          })),
       },
     });
     const wrapper = mount(
@@ -92,6 +97,38 @@ describe('Templates page', () => {
     await flushPromises();
     return wrapper;
   };
+
+  it('filters pending variables, sorts utility first and exposes Variables independently of Edit', async () => {
+    const pending = {
+      language: 'es',
+      category: 'MARKETING',
+      status: 'APPROVED',
+      variable_sources: { body: { 1: { source: 'missing' } } },
+      missing_variables: ['1'],
+      components: [{ type: 'BODY', text: 'Hola {{1}}' }],
+    };
+    const wrapper = await render([
+      { ...pending, id: '1', name: 'a_promo' },
+      { ...pending, id: '2', name: 'z_utilidad', category: 'UTILITY' },
+      { ...pending, id: '3', name: 'code', category: 'AUTHENTICATION' },
+      { ...pending, id: '4', name: 'waiting', status: 'PENDING' },
+    ]);
+    const actions = wrapper.findAllComponents(TemplateRowActions);
+    expect(actions.map(action => action.props('canAssignVariables'))).toEqual([
+      true,
+      false,
+      false,
+      true,
+    ]);
+    await wrapper.get('button[aria-pressed]').trigger('click');
+    const table = wrapper.findComponent(TemplatesTable);
+    expect(table.props('items').map(item => item.name)).toEqual([
+      'z_utilidad',
+      'a_promo',
+    ]);
+    expect(table.props('columns').map(column => column.key)).toContain('DATA');
+    wrapper.unmount();
+  });
 
   it('renders only a client page and resets pagination for combinable filters', async () => {
     const wrapper = await render();

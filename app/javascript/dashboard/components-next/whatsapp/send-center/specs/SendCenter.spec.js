@@ -63,6 +63,30 @@ const ParserStub = {
 describe('unified send center', () => {
   let wrapper;
   let globalOptions;
+  it('keeps human sends enabled with a pending-variable hint', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [{ ...templates[1], missing_variables: ['1'] }],
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="missing-data-hint"]').text()).toContain(
+      '{{1}}'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeUndefined();
+  });
   beforeEach(() => {
     Element.prototype.scrollIntoView = vi.fn();
     lastSendCenterTab.value = 0;
