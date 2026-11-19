@@ -8,6 +8,12 @@ import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useImageZoom } from 'dashboard/composables/useImageZoom';
 import { messageTimestamp } from 'shared/helpers/timeHelper';
 import { downloadFile } from '@chatwoot/utils';
+import { useCamelCase } from 'dashboard/composables/useTransformKeys';
+import {
+  isPdfAttachment,
+  PDF_PREVIEW_MAX_BYTES,
+} from 'next/message/media/attachment';
+import FileIcon from 'next/icon/FileIcon.vue';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'next/avatar/Avatar.vue';
@@ -39,16 +45,16 @@ const ALLOWED_FILE_TYPES = {
   VIDEO: 'video',
   IG_REEL: 'ig_reel',
   AUDIO: 'audio',
+  FILE: 'file',
 };
 
 const isDownloading = ref(false);
 const activeAttachment = ref({});
 const activeFileType = ref('');
-const activeImageIndex = ref(
-  props.allAttachments.findIndex(
-    attachment => attachment.message_id === props.attachment.message_id
-  ) || 0
+const attachmentIndex = props.allAttachments.findIndex(
+  attachment => attachment.id === props.attachment.id
 );
+const activeImageIndex = ref(Math.max(0, attachmentIndex));
 
 const imageRef = useTemplateRef('imageRef');
 
@@ -88,6 +94,15 @@ const isAudio = computed(
   () => activeFileType.value === ALLOWED_FILE_TYPES.AUDIO
 );
 
+const isFile = computed(() => activeFileType.value === ALLOWED_FILE_TYPES.FILE);
+const isPdf = computed(() =>
+  isPdfAttachment(useCamelCase(activeAttachment.value))
+);
+const isPreviewable = computed(
+  () => isPdf.value && activeAttachment.value.file_size <= PDF_PREVIEW_MAX_BYTES
+);
+const focusBeforeOpen = document.activeElement;
+
 const senderDetails = computed(() => {
   const {
     name,
@@ -111,7 +126,10 @@ const fileNameFromDataUrl = computed(() => {
   return fileName ? decodeURIComponent(fileName) : '';
 });
 
-const onClose = () => emit('close');
+const onClose = () => {
+  emit('close');
+  focusBeforeOpen?.focus();
+};
 
 const setImageAndVideoSrc = attachment => {
   const { file_type: type } = attachment;
@@ -183,12 +201,12 @@ onMounted(() => {
         @click="onClose"
       >
         <header
-          class="z-10 flex items-center justify-between w-full h-16 px-6 py-2 bg-n-background border-b border-n-weak"
+          class="z-10 flex flex-wrap items-center justify-between gap-1 w-full min-h-16 px-3 py-2 bg-n-background border-b border-n-weak"
           @click.stop
         >
           <div
             v-if="senderDetails"
-            class="flex items-center min-w-[15rem] shrink-0"
+            class="hidden md:flex items-center min-w-0 shrink-0"
           >
             <Avatar
               v-if="senderDetails.avatar"
@@ -221,6 +239,21 @@ onMounted(() => {
           </div>
 
           <div class="flex items-center gap-2 ms-2 shrink-0">
+            <span class="text-xs text-n-slate-11">{{
+              t('GALLERY_VIEW.COUNTER', {
+                index: activeImageIndex + 1,
+                total: allAttachments.length,
+              })
+            }}</span>
+            <a
+              :href="activeAttachment.data_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center gap-1 text-xs text-n-slate-12 underline"
+            >
+              <span class="i-lucide-external-link" aria-hidden="true" />
+              {{ t('GALLERY_VIEW.OPEN_ORIGINAL') }}
+            </a>
             <NextButton
               v-if="isImage"
               icon="i-lucide-zoom-in"
@@ -262,7 +295,7 @@ onMounted(() => {
         </header>
 
         <main class="flex items-stretch flex-1 h-full overflow-hidden">
-          <div class="flex items-center justify-center w-16 shrink-0">
+          <div class="flex items-center justify-center w-8 md:w-16 shrink-0">
             <NextButton
               v-if="hasMoreThanOneAttachment"
               icon="ltr:i-lucide-chevron-left rtl:i-lucide-chevron-right"
@@ -280,7 +313,9 @@ onMounted(() => {
             />
           </div>
 
-          <div class="flex-1 flex items-center justify-center overflow-hidden">
+          <div
+            class="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
+          >
             <div
               v-if="isImage"
               :style="imageWrapperStyle"
@@ -297,6 +332,7 @@ onMounted(() => {
                 ref="imageRef"
                 :key="activeAttachment.message_id"
                 :src="activeAttachment.data_url"
+                :alt="fileNameFromDataUrl"
                 :style="imageStyle"
                 class="max-h-full max-w-full object-contain duration-100 ease-in-out transform select-none"
                 @click.stop
@@ -307,6 +343,33 @@ onMounted(() => {
               />
             </div>
 
+            <iframe
+              v-if="isPreviewable"
+              :key="activeAttachment.id"
+              :src="activeAttachment.data_url"
+              :title="fileNameFromDataUrl"
+              class="w-full max-w-[60rem] h-[min(80dvh,60rem)] rounded-lg bg-white"
+              referrerpolicy="no-referrer"
+              @click.stop
+            />
+            <div
+              v-else-if="isFile"
+              class="flex flex-col items-center gap-3 p-4 text-center text-n-slate-12"
+              @click.stop
+            >
+              <FileIcon
+                :file-type="activeAttachment.extension || ''"
+                class="size-9"
+              />
+              <span class="break-all">{{ fileNameFromDataUrl }}</span>
+              <p v-if="isPdf">{{ t('GALLERY_VIEW.PDF_TOO_LARGE') }}</p>
+              <NextButton
+                intent="secondary"
+                :label="t('CONVERSATION.DOWNLOAD')"
+                :is-loading="isDownloading"
+                @click="onClickDownload"
+              />
+            </div>
             <video
               v-if="isVideo"
               :key="activeAttachment.message_id"
@@ -330,7 +393,7 @@ onMounted(() => {
             </audio>
           </div>
 
-          <div class="flex items-center justify-center w-16 shrink-0">
+          <div class="flex items-center justify-center w-8 md:w-16 shrink-0">
             <NextButton
               v-if="hasMoreThanOneAttachment"
               icon="ltr:i-lucide-chevron-right rtl:i-lucide-chevron-left"
@@ -355,7 +418,12 @@ onMounted(() => {
           <div
             class="rounded-md flex items-center justify-center px-3 py-1 bg-n-slate-3 text-n-slate-12 text-sm font-medium"
           >
-            {{ `${activeImageIndex + 1} / ${allAttachments.length}` }}
+            {{
+              t('GALLERY_VIEW.COUNTER', {
+                index: activeImageIndex + 1,
+                total: allAttachments.length,
+              })
+            }}
           </div>
         </footer>
       </div>
