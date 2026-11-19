@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { ref, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
+import settings from 'dashboard/i18n/locale/en/settings.json';
 import conversation from 'dashboard/i18n/locale/en/conversation.json';
 import GalleryView from './GalleryView.vue';
 
@@ -26,7 +27,7 @@ const options = () => ({
       createI18n({
         legacy: false,
         locale: 'en',
-        messages: { en: conversation },
+        messages: { en: { ...conversation, ...settings } },
       }),
     ],
     stubs: { TeleportWithDirection: { template: '<div><slot /></div>' } },
@@ -39,6 +40,21 @@ const options = () => ({
 });
 
 describe('gallery PDF preview', () => {
+  it('allows retrying a failed video without treating it as an image', async () => {
+    const video = { ...pdf, file_type: 'video', data_url: '/clip.mp4' };
+    const wrapper = mount(GalleryView, {
+      ...options(),
+      props: { attachment: video, allAttachments: [video], show: true },
+    });
+    await nextTick();
+    await wrapper.get('video').trigger('error');
+    expect(wrapper.get('[role="status"]').text()).toContain('Could not load');
+    await wrapper.get('[role="status"] button').trigger('click');
+    expect(wrapper.get('video').attributes('src')).toBe('/clip.mp4');
+    await wrapper.get('video').trigger('loadeddata');
+    expect(wrapper.find('[role="status"]').exists()).toBe(false);
+  });
+
   it('embeds only a small application/pdf without sandbox and links to the original', async () => {
     const wrapper = mount(GalleryView, {
       ...options(),

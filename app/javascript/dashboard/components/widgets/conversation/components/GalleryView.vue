@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, useTemplateRef } from 'vue';
+import { ref, computed, onMounted, nextTick, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 
@@ -14,6 +14,7 @@ import {
   PDF_PREVIEW_MAX_BYTES,
 } from 'next/message/media/attachment';
 import FileIcon from 'next/icon/FileIcon.vue';
+import { useMediaState } from 'next/message/media/useMediaState';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'next/avatar/Avatar.vue';
@@ -102,6 +103,15 @@ const isPreviewable = computed(
   () => isPdf.value && activeAttachment.value.file_size <= PDF_PREVIEW_MAX_BYTES
 );
 const focusBeforeOpen = document.activeElement;
+const closeButton = useTemplateRef('closeButton');
+const { isLoaded, hasError, errorText, onLoad, onError } = useMediaState(() =>
+  useCamelCase(activeAttachment.value)
+);
+
+const retryPreview = () => {
+  hasError.value = false;
+  isLoaded.value = false;
+};
 
 const senderDetails = computed(() => {
   const {
@@ -183,8 +193,10 @@ const keyboardEvents = {
 
 useKeyboardEvents(keyboardEvents);
 
-onMounted(() => {
+onMounted(async () => {
   setImageAndVideoSrc(props.attachment);
+  await nextTick();
+  closeButton.value?.$el?.focus();
 });
 </script>
 
@@ -201,7 +213,7 @@ onMounted(() => {
         @click="onClose"
       >
         <header
-          class="z-10 flex flex-wrap items-center justify-between gap-1 w-full min-h-16 px-3 py-2 bg-n-background border-b border-n-weak"
+          class="z-10 flex flex-wrap items-center justify-between gap-2 w-full min-h-16 px-3 py-2 bg-n-background border-b border-n-weak"
           @click.stop
         >
           <div
@@ -233,12 +245,12 @@ onMounted(() => {
           </div>
 
           <div
-            class="flex-1 mx-2 px-2 truncate text-sm font-medium text-center text-n-slate-12"
+            class="min-w-0 flex-1 mx-2 px-2 truncate text-sm font-medium text-center text-n-slate-12"
           >
             <span v-dompurify-html="fileNameFromDataUrl" class="truncate" />
           </div>
 
-          <div class="flex items-center gap-2 ms-2 shrink-0">
+          <div class="flex flex-wrap items-center gap-1 ms-auto shrink-0">
             <span class="text-xs text-n-slate-11">{{
               t('GALLERY_VIEW.COUNTER', {
                 index: activeImageIndex + 1,
@@ -249,7 +261,7 @@ onMounted(() => {
               :href="activeAttachment.data_url"
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-1 text-xs text-n-slate-12 underline"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
             >
               <span class="i-lucide-external-link" aria-hidden="true" />
               {{ t('GALLERY_VIEW.OPEN_ORIGINAL') }}
@@ -257,44 +269,52 @@ onMounted(() => {
             <NextButton
               v-if="isImage"
               icon="i-lucide-zoom-in"
-              slate
-              ghost
+              intent="tertiary"
+              :aria-label="t('GALLERY_VIEW.ZOOM_IN')"
               @click="onZoom(0.1)"
             />
             <NextButton
               v-if="isImage"
               icon="i-lucide-zoom-out"
-              slate
-              ghost
+              intent="tertiary"
+              :aria-label="t('GALLERY_VIEW.ZOOM_OUT')"
               @click="onZoom(-0.1)"
             />
             <NextButton
               v-if="isImage"
               icon="i-lucide-rotate-ccw"
-              slate
-              ghost
+              intent="tertiary"
+              :aria-label="t('GALLERY_VIEW.ROTATE_LEFT')"
               @click="onRotate('counter-clockwise')"
             />
             <NextButton
               v-if="isImage"
               icon="i-lucide-rotate-cw"
-              slate
-              ghost
+              intent="tertiary"
+              :aria-label="t('GALLERY_VIEW.ROTATE_RIGHT')"
               @click="onRotate('clockwise')"
             />
             <NextButton
               icon="i-lucide-download"
-              slate
-              ghost
+              intent="secondary"
+              :aria-label="t('CONVERSATION.DOWNLOAD')"
               :is-loading="isDownloading"
               :disabled="isDownloading"
               @click="onClickDownload"
             />
-            <NextButton icon="i-lucide-x" slate ghost @click="onClose" />
+            <NextButton
+              ref="closeButton"
+              icon="i-lucide-x"
+              intent="tertiary"
+              :aria-label="t('GALLERY_VIEW.CLOSE')"
+              @click="onClose"
+            />
           </div>
         </header>
 
-        <main class="flex items-stretch flex-1 h-full overflow-hidden">
+        <main
+          class="flex items-stretch flex-1 min-h-0 overflow-hidden bg-n-alpha-1"
+        >
           <div class="flex items-center justify-center w-8 md:w-16 shrink-0">
             <NextButton
               v-if="hasMoreThanOneAttachment"
@@ -314,10 +334,29 @@ onMounted(() => {
           </div>
 
           <div
-            class="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
+            class="relative flex-1 min-w-0 flex items-center justify-center overflow-hidden"
           >
             <div
-              v-if="isImage"
+              v-if="hasError"
+              role="status"
+              class="flex flex-col items-center gap-3 p-6 text-center text-n-slate-11"
+              @click.stop
+            >
+              <span class="i-lucide-image-off size-8" aria-hidden="true" />
+              <p class="m-0 text-sm">{{ errorText }}</p>
+              <NextButton
+                intent="secondary"
+                :label="t('COMPONENTS.MEDIA.RETRY')"
+                @click="retryPreview"
+              />
+            </div>
+            <span
+              v-else-if="!isLoaded && (isImage || isVideo || isAudio)"
+              class="absolute size-8 i-lucide-loader-circle animate-spin motion-reduce:animate-none text-n-slate-11"
+              aria-hidden="true"
+            />
+            <div
+              v-if="isImage && !hasError"
               :style="imageWrapperStyle"
               class="flex items-center justify-center origin-center"
               :class="{
@@ -330,12 +369,14 @@ onMounted(() => {
             >
               <img
                 ref="imageRef"
-                :key="activeAttachment.message_id"
+                :key="activeAttachment.id"
                 :src="activeAttachment.data_url"
                 :alt="fileNameFromDataUrl"
                 :style="imageStyle"
-                class="max-h-full max-w-full object-contain duration-100 ease-in-out transform select-none"
+                class="max-h-full max-w-full object-contain duration-100 ease-in-out transform select-none motion-reduce:transition-none"
                 @click.stop
+                @load="onLoad"
+                @error="onError"
                 @dblclick.stop="onDoubleClickZoomImage"
                 @wheel.prevent.stop="onWheelImageZoom"
                 @mousemove="onMouseMove"
@@ -348,7 +389,7 @@ onMounted(() => {
               :key="activeAttachment.id"
               :src="activeAttachment.data_url"
               :title="fileNameFromDataUrl"
-              class="w-full max-w-[60rem] h-[min(80dvh,60rem)] rounded-lg bg-white"
+              class="w-full max-w-[60rem] h-full my-2 rounded-lg bg-white"
               referrerpolicy="no-referrer"
               @click.stop
             />
@@ -371,22 +412,26 @@ onMounted(() => {
               />
             </div>
             <video
-              v-if="isVideo"
-              :key="activeAttachment.message_id"
+              v-if="isVideo && !hasError"
+              :key="activeAttachment.id"
               :src="activeAttachment.data_url"
               controls
               playsInline
               :autoplay="autoPlay"
               class="max-h-full max-w-full object-contain"
+              @loadeddata="onLoad"
+              @error="onError"
               @click.stop
             />
 
             <audio
-              v-if="isAudio"
-              :key="activeAttachment.message_id"
+              v-if="isAudio && !hasError"
+              :key="activeAttachment.id"
               controls
               :autoplay="autoPlay"
               class="w-full max-w-md"
+              @loadeddata="onLoad"
+              @error="onError"
               @click.stop
             >
               <source :src="`${activeAttachment.data_url}?t=${Date.now()}`" />
@@ -411,21 +456,6 @@ onMounted(() => {
             />
           </div>
         </main>
-
-        <footer
-          class="z-10 flex items-center justify-center h-12 border-t border-n-weak"
-        >
-          <div
-            class="rounded-md flex items-center justify-center px-3 py-1 bg-n-slate-3 text-n-slate-12 text-sm font-medium"
-          >
-            {{
-              t('GALLERY_VIEW.COUNTER', {
-                index: activeImageIndex + 1,
-                total: allAttachments.length,
-              })
-            }}
-          </div>
-        </footer>
       </div>
     </woot-modal>
   </TeleportWithDirection>

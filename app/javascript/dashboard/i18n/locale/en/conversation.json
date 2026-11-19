@@ -733,6 +733,11 @@
     "TRY_THESE_PROMPTS": "Try these prompts"
   },
   "GALLERY_VIEW": {
+    "ZOOM_IN": "Zoom in",
+    "ZOOM_OUT": "Zoom out",
+    "ROTATE_LEFT": "Rotate left",
+    "ROTATE_RIGHT": "Rotate right",
+    "CLOSE": "Close preview",
     "ERROR_DOWNLOADING": "Unable to download attachment. Please try again",
     "COUNTER": "{index} of {total}",
     "OPEN_ORIGINAL": "Open original",
