@@ -34,6 +34,44 @@ const options = () => ({
 });
 
 describe('attachment media grid', () => {
+  it('uses a video thumbnail even when it is the only tile', () => {
+    const wrapper = mount(MediaTile, {
+      ...options(),
+      props: {
+        attachment: { ...image, fileType: 'video', dataUrl: '/video.mp4' },
+        index: 0,
+        total: 1,
+      },
+    });
+    expect(wrapper.get('img').attributes('src')).toBe('/thumb.png');
+    expect(wrapper.find('.i-teenyicons-play-small-solid').exists()).toBe(true);
+  });
+
+  it('retries native video without loading its bytes as an image', async () => {
+    const wrapper = mount(MediaTile, {
+      ...options(),
+      props: {
+        attachment: {
+          ...image,
+          fileType: 'video',
+          dataUrl: '/video.mp4',
+          thumbUrl: '',
+        },
+        index: 0,
+        total: 1,
+      },
+    });
+    await wrapper.get('video').trigger('error');
+    expect(wrapper.text()).toContain('Could not load');
+    const retry = wrapper
+      .findAll('button')
+      .find(button => button.text() === 'Retry');
+    await retry.trigger('click');
+    expect(wrapper.find('video').exists()).toBe(true);
+    await wrapper.get('video').trigger('loadeddata');
+    expect(wrapper.find('[role="status"]').exists()).toBe(false);
+  });
+
   it('reserves the single image aspect, keeps it whole and supplies accessible labels', () => {
     const wrapper = mount(MediaGrid, {
       ...options(),

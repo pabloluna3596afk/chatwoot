@@ -5,21 +5,23 @@ import Icon from 'next/icon/Icon.vue';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import { useMessageContext } from '../provider.js';
 import GalleryView from 'dashboard/components/widgets/conversation/components/GalleryView.vue';
+import { useMediaState } from '../media/useMediaState';
 import { ATTACHMENT_TYPES } from '../constants';
 
 const emit = defineEmits(['error']);
-const hasError = ref(false);
 const showGallery = ref(false);
-const { filteredCurrentChatAttachments, attachments } = useMessageContext();
-
-const handleError = () => {
-  hasError.value = true;
-  emit('error');
-};
+const { filteredCurrentChatAttachments, attachments, channelType } =
+  useMessageContext();
 
 const attachment = computed(() => {
   return attachments.value[0];
 });
+
+const { hasError, errorText, onError } = useMediaState(attachment, channelType);
+const handleError = () => {
+  onError();
+  emit('error');
+};
 
 const isReel = computed(() => {
   return attachment.value.fileType === ATTACHMENT_TYPES.IG_REEL;
@@ -30,9 +32,16 @@ const isReel = computed(() => {
   <BaseBubble
     class="overflow-hidden p-3"
     data-bubble-name="video"
-    @click="showGallery = true"
+    @click="!hasError && (showGallery = true)"
   >
-    <div class="relative group rounded-lg overflow-hidden">
+    <div
+      v-if="hasError"
+      role="status"
+      class="flex gap-2 p-3 text-xs text-n-slate-11"
+    >
+      <Icon icon="i-lucide-image-off" />{{ errorText }}
+    </div>
+    <div v-else class="relative group rounded-lg overflow-hidden">
       <div
         v-if="isReel"
         class="absolute p-2 flex items-start justify-end right-0 pointer-events-none"
@@ -57,7 +66,7 @@ const isReel = computed(() => {
     v-model:show="showGallery"
     :attachment="useSnakeCase(attachment)"
     :all-attachments="filteredCurrentChatAttachments"
-    @error="onError"
+    @error="handleError"
     @close="() => (showGallery = false)"
   />
 </template>

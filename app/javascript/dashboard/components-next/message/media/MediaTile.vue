@@ -21,9 +21,10 @@ const single = computed(() => props.total === 1);
 const isVideo = computed(() =>
   ['video', 'ig_reel'].includes(props.attachment.fileType)
 );
+const loadedDimensions = shallowRef(null);
 const dimensions = computed(() => ({
-  width: props.attachment.width,
-  height: props.attachment.height,
+  width: props.attachment.width || loadedDimensions.value?.width,
+  height: props.attachment.height || loadedDimensions.value?.height,
 }));
 const tall = computed(
   () => single.value && dimensions.value.height / dimensions.value.width > 3
@@ -36,7 +37,7 @@ const tiny = computed(
     Math.max(dimensions.value.width, dimensions.value.height) < 120
 );
 const src = computed(() =>
-  single.value
+  single.value && !isVideo.value
     ? props.attachment.dataUrl
     : props.attachment.thumbUrl || props.attachment.dataUrl
 );
@@ -58,6 +59,13 @@ const { isLoaded, hasError, isExpired, errorText, onLoad, onError, retry } =
     () => props.channelType,
     src
   );
+const handleLoad = event => {
+  loadedDimensions.value = {
+    width: event.target.naturalWidth,
+    height: event.target.naturalHeight,
+  };
+  onLoad();
+};
 const isDownloading = shallowRef(false);
 const download = async () => {
   isDownloading.value = true;
@@ -125,7 +133,7 @@ const download = async () => {
         decoding="async"
         class="absolute inset-0 size-full skip-context-menu"
         :class="single && !tall ? 'object-contain' : 'object-cover object-top'"
-        @load="onLoad"
+        @load="handleLoad"
         @error="onError"
       />
       <span
@@ -178,7 +186,7 @@ const download = async () => {
     </div>
     <div
       v-else
-      class="absolute bottom-2 end-2 flex gap-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+      class="absolute bottom-2 end-2 flex gap-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
     >
       <Button
         size="xs"

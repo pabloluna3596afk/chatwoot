@@ -40,6 +40,9 @@ export function useMediaState(attachment, channelType = '', source = null) {
   const retry = async () => {
     hasError.value = false;
     isLoaded.value = false;
+    const item = toValue(attachment);
+    // Retrying a video remounts its native element; Image cannot load video bytes.
+    if (['video', 'ig_reel'].includes(item.fileType) && !item.thumbUrl) return;
     await loadWithRetry(toValue(source) || toValue(attachment).dataUrl);
   };
   watch(

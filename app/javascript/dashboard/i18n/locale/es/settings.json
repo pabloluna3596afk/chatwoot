@@ -330,8 +330,6 @@
       "SUBMIT": "Enviar"
     },
     "MEDIA": {
-      "IMAGE_UNAVAILABLE": "Esta imagen ya no está disponible.",
-      "LOADING_FAILED": "Error al cargar",
       "VIEW_FULL": "Ver completa",
       "PHOTO_N_OF": "Foto {index} de {total}",
       "MORE": "+{count}",
