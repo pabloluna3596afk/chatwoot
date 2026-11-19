@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { ASSISTANT_NAME_MARKER } from 'dashboard/composables/useAssistantName';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -91,7 +93,7 @@ const isSelected = option => {
 const menuItems = computed(() =>
   props.options.map(option => ({
     label: option.label,
-    title: option.label,
+    title: String(option.label ?? '').replaceAll(ASSISTANT_NAME_MARKER, ''),
     value: option.value,
     group: option.group,
     action: 'select',
@@ -185,7 +187,7 @@ defineExpose({
             : 'truncate'
         "
       >
-        {{ item.label }}
+        <AssistantNameText :text="String(item.label ?? '')" />
       </span>
     </template>
     <template #trailing-icon="{ item }">

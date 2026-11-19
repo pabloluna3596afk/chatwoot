@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -30,6 +32,8 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t, locale } = useI18n();
+const { nameRich } = useAssistantName(() => props.assistant);
+
 const { accountScopedRoute } = useAccount();
 
 const CONTACT_FIELDS = ['name', 'phone', 'email'];
@@ -382,7 +386,9 @@ onMounted(loadConnections);
       class="flex flex-col gap-3 rounded-xl border border-n-weak p-4"
     >
       <span class="text-sm text-n-slate-11">
-        {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.NO_CALENDAR') }}
+        <AssistantNameText
+          :text="nameRich('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.NO_CALENDAR')"
+        />
       </span>
       <router-link
         :to="accountScopedRoute('settings_integrations_calendars')"
@@ -395,7 +401,9 @@ onMounted(loadConnections);
       <SettingsToggleSection
         v-model="state.enabled"
         :header="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.TOGGLE')"
-        :description="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.TOGGLE_HELP')"
+        :description="
+          nameRich('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.TOGGLE_HELP')
+        "
       >
         <div
           v-if="state.enabled"
@@ -510,7 +518,11 @@ onMounted(loadConnections);
               }}
             </label>
             <p class="mb-0 text-xs text-n-slate-11">
-              {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.FIELDS_HINT') }}
+              <AssistantNameText
+                :text="
+                  nameRich('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.FIELDS_HINT')
+                "
+              />
             </p>
           </div>
 
@@ -522,11 +534,13 @@ onMounted(loadConnections);
               data-testid="appointments-confirmation-note"
               class="mb-0 text-xs text-n-slate-11"
             >
-              {{
-                t(
-                  'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.CONFIRMATION_NOTE'
-                )
-              }}
+              <AssistantNameText
+                :text="
+                  nameRich(
+                    'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.CONFIRMATION_NOTE'
+                  )
+                "
+              />
             </p>
             <div
               v-for="(reminder, index) in state.reminders"

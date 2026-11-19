@@ -1,4 +1,6 @@
 <script setup>
+import { useAssistantSettings } from 'dashboard/routes/dashboard/captain/assistants/settings/useAssistantSettings';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -22,6 +24,8 @@ import InboxBanner from 'dashboard/components-next/captain/pageComponents/overvi
 import CoverageBanner from 'dashboard/components-next/captain/pageComponents/overview/CoverageBanner.vue';
 
 const { t } = useI18n();
+const { assistant } = useAssistantSettings();
+const { nameTextFrom } = useAssistantName(assistant);
 const route = useRoute();
 const isOverviewV2Enabled =
   LocalStorage.get(LOCAL_STORAGE_KEYS.CAPTAIN_OVERVIEW_V2) === true;
@@ -146,40 +150,40 @@ const metrics = computed(() => [
     key: 'handled',
     metric: 'conversations_handled',
     label: t('CAPTAIN.OVERVIEW.METRICS.HANDLED.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.HANDLED.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HANDLED.HINT')),
     ...metricFor('conversations_handled', v => v.toLocaleString(), 'up'),
   },
   {
     key: 'autoResolution',
     metric: 'auto_resolution_rate',
     label: t('CAPTAIN.OVERVIEW.METRICS.AUTO_RESOLUTION.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.AUTO_RESOLUTION.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.AUTO_RESOLUTION.HINT')),
     ...metricFor('auto_resolution_rate', v => `${v}%`, 'up', 'point'),
   },
   {
     key: 'handoff',
     metric: 'handoff_rate',
     label: t('CAPTAIN.OVERVIEW.METRICS.HANDOFF.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.HANDOFF.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HANDOFF.HINT')),
     ...metricFor('handoff_rate', v => `${v}%`, 'down', 'point'),
   },
   {
     key: 'reopen',
     metric: 'reopen_rate',
     label: t('CAPTAIN.OVERVIEW.METRICS.REOPEN.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.REOPEN.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.REOPEN.HINT')),
     ...metricFor('reopen_rate', v => `${v}%`, 'down', 'point'),
   },
   {
     key: 'hoursSaved',
     label: t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.HOURS_SAVED.HINT')),
     ...metricFor('hours_saved', formatDuration, 'up'),
   },
   {
     key: 'depth',
     label: t('CAPTAIN.OVERVIEW.METRICS.DEPTH.LABEL'),
-    hint: t('CAPTAIN.OVERVIEW.METRICS.DEPTH.HINT'),
+    hint: nameTextFrom(t('CAPTAIN.OVERVIEW.METRICS.DEPTH.HINT')),
     ...metricFor(
       'conversation_depth',
       v => v.toFixed(1),
@@ -228,7 +232,11 @@ const closeDrilldown = () => {
 
         <CoverageBanner :knowledge="faqStats ?? undefined" />
 
-        <WelcomeCard :range="selectedRange" :stats="summaryStats" />
+        <WelcomeCard
+          :assistant="assistant"
+          :range="selectedRange"
+          :stats="summaryStats"
+        />
 
         <div
           class="grid grid-cols-1 gap-px overflow-hidden border rounded-xl sm:grid-cols-2 lg:grid-cols-3 bg-n-weak border-n-weak"

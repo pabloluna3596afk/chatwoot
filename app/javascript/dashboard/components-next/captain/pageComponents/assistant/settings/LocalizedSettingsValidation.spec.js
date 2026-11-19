@@ -1,5 +1,5 @@
 /* eslint-disable @intlify/vue-i18n/no-dynamic-keys -- Validation cases share parameterized message keys. */
-import { nextTick } from 'vue';
+import { computed, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { config, flushPromises, shallowMount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,7 +27,9 @@ vi.mock('dashboard/api/variables', () => ({
 }));
 
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: name => ({ value: name === 'getCurrentAccountId' ? 1 : [] }),
+  useStore: () => ({ dispatch: vi.fn().mockResolvedValue() }),
+  useMapGetter: name =>
+    computed(() => (name === 'getCurrentAccountId' ? 1 : [])),
 }));
 
 const features = vi.hoisted(() => ({ captainV2: true }));
@@ -77,7 +79,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
       },
     });
     const expectedLink =
-      locale === 'es' ? 'Mensajes del sistema' : 'System settings';
+      locale === 'es' ? 'Traspaso y cierre' : 'Handoff and closing';
 
     expect(wrapper.text()).toContain(expectedLink);
     expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);

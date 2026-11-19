@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, ref, watch, useTemplateRef, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'dashboard/composables/store';
@@ -12,6 +14,7 @@ import { useAudienceTree } from './useAudienceTree';
 import { cleanLines, listError, listKeyForInbox } from './inboxAudience';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   inbox: { type: Object, required: true },
   assistantId: { type: Number, required: true },
   canEdit: { type: Boolean, default: false },
@@ -20,6 +23,8 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const { nameText, nameRich } = useAssistantName(() => props.assistant);
+
 const store = useStore();
 const filterTypes = computed(() => props.filterTypes);
 const { defaultRoot, hydrateRoot, serializeNode } =
@@ -131,8 +136,8 @@ const help = computed(() => {
     }[listKey.value],
   };
   return listMode.value === 'allow'
-    ? t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.HELP_ALLOW', params)
-    : t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.HELP_DENY', params);
+    ? nameRich('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.HELP_ALLOW', params)
+    : nameRich('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.HELP_DENY', params);
 });
 const summary = computed(() => {
   const currentMode = props.inbox.audience_mode;
@@ -279,12 +284,14 @@ const save = async () => {
       class="flex min-w-0 flex-col gap-4 px-4 pb-4"
     >
       <p class="text-body-main text-n-slate-12">
-        {{ t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS') }}
+        <AssistantNameText
+          :text="nameRich('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS')"
+        />
       </p>
       <div
         v-if="canEdit"
         role="radiogroup"
-        :aria-label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS')"
+        :aria-label="nameText('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS')"
         data-testid="inbox-audience-mode"
         class="grid h-8 grid-cols-3 gap-0.5 rounded-lg bg-n-alpha-1 p-0.5 max-sm:h-12"
       >
@@ -316,7 +323,7 @@ const save = async () => {
         color="amber"
         role="status"
       >
-        {{ warning }}
+        <AssistantNameText :text="warning" />
       </Banner>
       <div v-if="mode === 'custom'" class="flex min-w-0 flex-col gap-4">
         <fieldset
@@ -345,7 +352,9 @@ const save = async () => {
                 :disabled="!canEdit || saving"
                 custom-text-area-class="min-h-28"
               />
-              <p class="text-sm text-n-slate-11">{{ help }}</p>
+              <p class="text-sm text-n-slate-11">
+                <AssistantNameText :text="help" />
+              </p>
               <p
                 v-if="validationError"
                 role="alert"

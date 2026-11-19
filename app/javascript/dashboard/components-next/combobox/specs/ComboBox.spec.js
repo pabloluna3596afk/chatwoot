@@ -347,3 +347,26 @@ it.each([
     wrapper.unmount();
   }
 );
+
+describe('ComboBox with the assistant name', () => {
+  const M = '\u2063';
+  const named = [
+    { value: 'a', label: `${M}Aurora${M} elige el equipo` },
+    { value: 'b', label: 'Repartir como la bandeja' },
+  ];
+
+  it('styles the name in the help text and keeps the trigger and the search in plain text', async () => {
+    const wrapper = mount(ComboBox, {
+      props: {
+        options: named,
+        modelValue: 'a',
+        help: `${M}Aurora${M} lee la descripción de cada equipo`,
+      },
+    });
+    const help = wrapper.get('p');
+    expect(help.find('.assistant-name').text()).toBe('Aurora');
+    expect(help.text()).toBe('Aurora lee la descripción de cada equipo');
+    expect(wrapper.get('button').text()).toContain('Aurora elige el equipo');
+    expect(wrapper.get('button').text()).not.toContain(M);
+  });
+});

@@ -1,4 +1,5 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 import {
   computed,
   nextTick,
@@ -178,7 +179,7 @@ defineExpose({ open, close });
                   :id="descriptionId"
                   class="mt-1 mb-0 text-sm text-n-slate-11"
                 >
-                  {{ description }}
+                  <AssistantNameText :text="description" />
                 </p>
               </div>
             </slot>

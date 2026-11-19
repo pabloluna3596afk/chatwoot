@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { ASSISTANT_NAME_MARKER } from 'dashboard/composables/useAssistantName';
 import {
   ref,
   computed,
@@ -119,6 +121,8 @@ const showSearchField = computed(() => {
   return props.useApiResults || props.options.length > SEARCH_OPTION_THRESHOLD;
 });
 
+// Labels may carry the assistant-name marker (styled in the list); trigger and search use plain text.
+const plain = text => String(text ?? '').replaceAll(ASSISTANT_NAME_MARKER, '');
 const filteredOptions = computed(() => {
   if (props.useApiResults && search.value) {
     return props.options;
@@ -127,7 +131,7 @@ const filteredOptions = computed(() => {
   const searchTerm = search.value.toLowerCase();
   return props.options.filter(option =>
     [option.label, ...(option.searchTerms || [])].some(term =>
-      term.toLowerCase().includes(searchTerm)
+      plain(term).toLowerCase().includes(searchTerm)
     )
   );
 });
@@ -138,7 +142,7 @@ const selectedLabel = computed(() => {
   if (props.multiple) {
     const labels = props.options
       .filter(option => selectedValue.value.includes(option.value))
-      .map(option => option.label);
+      .map(option => plain(option.label));
     return labels.length
       ? `${labels[0]}${labels.length > 1 ? ` +${labels.length - 1}` : ''}`
       : selectPlaceholder.value;
@@ -146,7 +150,9 @@ const selectedLabel = computed(() => {
   const selected = props.options.find(
     option => option.value === selectedValue.value
   );
-  return selected?.label ?? (props.displayLabel || selectPlaceholder.value);
+  return (
+    plain(selected?.label) || props.displayLabel || selectPlaceholder.value
+  );
 });
 
 const selectOption = option => {
@@ -228,88 +234,95 @@ onClickOutside(
     >
       {{ label }}
     </label>
-    <div ref="triggerRef" class="w-full">
-      <slot name="trigger" :toggle="toggleDropdown" :open="open">
-        <Button
-          :id="uniqueId"
-          :aria-invalid="hasError || undefined"
-          :aria-describedby="
-            [
-              $attrs['aria-describedby'],
-              help ? `${uniqueId}-help` : '',
-              message ? `${uniqueId}-message` : '',
-            ]
-              .filter(Boolean)
-              .join(' ') || undefined
-          "
-          variant="outline"
-          :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
-          :label="selectedLabel"
-          trailing-icon
-          :disabled="disabled"
-          aria-haspopup="listbox"
-          :aria-label="ariaLabel || undefined"
-          :aria-expanded="open"
-          no-animation
-          class="justify-between w-full max-sm:!min-h-11"
-          :class="[
-            triggerClass ||
-              '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
-            {
-              focused: open,
-              '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
-                !triggerClass && !hasError,
-            },
-          ]"
-          :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-          @keydown.down.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
-          @keydown.up.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
-          @click="toggleDropdown"
-        />
-      </slot>
-    </div>
+    <!-- The menu anchors to the field itself, not to the help text under it. -->
+    <div class="relative w-full min-w-0">
+      <div ref="triggerRef" class="w-full">
+        <slot name="trigger" :toggle="toggleDropdown" :open="open">
+          <Button
+            :id="uniqueId"
+            :aria-invalid="hasError || undefined"
+            :aria-describedby="
+              [
+                $attrs['aria-describedby'],
+                help ? `${uniqueId}-help` : '',
+                message ? `${uniqueId}-message` : '',
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            "
+            variant="outline"
+            :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
+            :label="selectedLabel"
+            trailing-icon
+            :disabled="disabled"
+            aria-haspopup="listbox"
+            :aria-label="ariaLabel || undefined"
+            :aria-expanded="open"
+            no-animation
+            class="justify-between w-full max-sm:!min-h-11"
+            :class="[
+              triggerClass ||
+                '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
+              {
+                focused: open,
+                '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
+                  !triggerClass && !hasError,
+              },
+            ]"
+            :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+            @keydown.down.prevent="
+              open ? dropdownRef?.focus() : toggleDropdown()
+            "
+            @keydown.up.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
+            @click="toggleDropdown"
+          />
+        </slot>
+      </div>
 
-    <Teleport :to="teleportTarget" :disabled="!teleport">
-      <ComboBoxDropdown
-        ref="dropdownRef"
-        v-model:search-value="search"
-        class="text-n-slate-12"
-        :open="open"
-        :loading="loading"
-        :search-error="searchError"
-        :options="filteredOptions"
-        :groups="groups"
-        :multiple="multiple"
-        :search-placeholder="searchPlaceholder"
-        :empty-state="emptyState"
-        :selected-values="selectedValue"
-        :portal="teleport"
-        :show-search="showSearchField"
-        :scroll-class="dropdownMaxHeight"
-        :placement="position.class"
-        :style="teleport ? dropdownStyle : position.style"
-        @retry="emit('search', search)"
-        @search="emit('search', $event)"
-        @select="selectOption"
-        @close="
-          open = false;
-          if ($event !== false)
-            triggerRef?.querySelector('button')?.focus({ preventScroll: true });
-          emit('close');
-        "
-      >
-        <template v-if="$slots.footer" #footer="{ close }">
-          <slot name="footer" :close="close" />
-        </template>
-      </ComboBoxDropdown>
-    </Teleport>
+      <Teleport :to="teleportTarget" :disabled="!teleport">
+        <ComboBoxDropdown
+          ref="dropdownRef"
+          v-model:search-value="search"
+          class="text-n-slate-12"
+          :open="open"
+          :loading="loading"
+          :search-error="searchError"
+          :options="filteredOptions"
+          :groups="groups"
+          :multiple="multiple"
+          :search-placeholder="searchPlaceholder"
+          :empty-state="emptyState"
+          :selected-values="selectedValue"
+          :portal="teleport"
+          :show-search="showSearchField"
+          :scroll-class="dropdownMaxHeight"
+          :placement="position.class"
+          :style="teleport ? dropdownStyle : position.style"
+          @retry="emit('search', search)"
+          @search="emit('search', $event)"
+          @select="selectOption"
+          @close="
+            open = false;
+            if ($event !== false)
+              triggerRef
+                ?.querySelector('button')
+                ?.focus({ preventScroll: true });
+            emit('close');
+          "
+        >
+          <template v-if="$slots.footer" #footer="{ close }">
+            <slot name="footer" :close="close" />
+          </template>
+        </ComboBoxDropdown>
+      </Teleport>
+    </div>
 
     <p
       v-if="help"
       :id="`${uniqueId}-help`"
       class="mt-2 mb-0 text-xs text-n-slate-11 whitespace-pre-line break-words"
     >
-      {{ help }}
+      <AssistantNameText :text="help" />
     </p>
     <p
       v-if="message"

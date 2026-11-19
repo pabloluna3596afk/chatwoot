@@ -1,5 +1,6 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import {
@@ -17,6 +18,9 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
+import HandoffRoutingRow from './HandoffRoutingRow.vue';
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 
 const props = defineProps({
   assistant: {
@@ -28,7 +32,25 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
+const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+
 const { isCloudFeatureEnabled } = useAccount();
+const store = useStore();
+const teams = useMapGetter('teams/getTeams');
+const teamsLoading = ref(true);
+const teamsError = ref(false);
+const submitted = ref(false);
+const routingKinds = ['new', 'reopened'];
+const priorityModes = ['off', 'on_signal', 'always'];
+onMounted(async () => {
+  try {
+    await store.dispatch('teams/get');
+  } catch {
+    teamsError.value = true;
+  } finally {
+    teamsLoading.value = false;
+  }
+});
 
 const isCaptainV2Enabled = computed(() =>
   isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_V2)
@@ -43,6 +65,8 @@ const initialState = {
   instructions: '',
   sendInactivityResolutionMessage: true,
   maxReplies: DEFAULT_MAX_REPLIES,
+  handoffRouting: {},
+  handoffPriority: 'off',
 };
 
 const state = reactive({ ...initialState });
@@ -97,6 +121,14 @@ const updateStateFromAssistant = assistant => {
   state.sendInactivityResolutionMessage =
     config.send_inactivity_resolution_message ?? true;
   state.maxReplies = config.max_replies_per_conversation ?? DEFAULT_MAX_REPLIES;
+  state.handoffRouting = Object.fromEntries(
+    routingKinds.map(kind => [
+      kind,
+      { mode: 'inbox', team_id: null, ...config.handoff_routing?.[kind] },
+    ])
+  );
+  state.handoffPriority = config.handoff_priority ?? 'off';
+  submitted.value = false;
 };
 
 const fieldsToValidate = () => {
@@ -115,16 +147,32 @@ const fieldsToValidate = () => {
 };
 
 const handleSystemMessagesUpdate = async () => {
+  submitted.value = true;
   const isValid = await Promise.all(
     fieldsToValidate().map(field => v$.value[field].$validate())
   ).then(results => results.every(Boolean));
   if (!isValid) return;
+  if (
+    routingKinds.some(kind => {
+      const row = state.handoffRouting[kind];
+      return (
+        row.mode === 'team' &&
+        (teamsLoading.value ||
+          teamsError.value ||
+          !teams.value.some(team => team.id === row.team_id))
+      );
+    })
+  )
+    return;
 
   const payload = {
     config: {
-      ...props.assistant.config,
       handoff_message: state.handoffMessage,
       max_replies_per_conversation: Number(state.maxReplies),
+      handoff_routing: Object.fromEntries(
+        routingKinds.map(kind => [kind, { ...state.handoffRouting[kind] }])
+      ),
+      handoff_priority: state.handoffPriority,
     },
   };
 
@@ -161,8 +209,10 @@ watch(
         )
       "
       :description="
-        t(
-          'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.DESCRIPTION'
+        nameRichFrom(
+          t(
+            'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.DESCRIPTION'
+          )
         )
       "
     >
@@ -200,8 +250,70 @@ watch(
 
     <SettingsToggleSection
       hide-toggle
+      :header="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_ROUTING.TITLE')"
+      :description="
+        nameRich('CAPTAIN.ASSISTANTS.FORM.HANDOFF_ROUTING.DESCRIPTION')
+      "
+    >
+      <template #editor>
+        <div class="flex flex-col gap-4">
+          <HandoffRoutingRow
+            v-for="kind in routingKinds"
+            :key="kind"
+            v-model="state.handoffRouting[kind]"
+            :kind="kind"
+            :assistant="assistant"
+            :teams="teams"
+            :eligible-team-ids="assistant.eligible_team_ids ?? []"
+            :loading="teamsLoading"
+            :load-error="teamsError"
+            :submitted="submitted"
+          />
+        </div>
+      </template>
+    </SettingsToggleSection>
+
+    <SettingsToggleSection
+      hide-toggle
+      :header="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_PRIORITY.TITLE')"
+    >
+      <template #editor>
+        <div
+          role="radiogroup"
+          :aria-label="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_PRIORITY.TITLE')"
+          class="flex flex-col gap-2"
+        >
+          <label
+            v-for="mode in priorityModes"
+            :key="mode"
+            class="inline-flex cursor-pointer items-center gap-2 text-sm text-n-slate-12"
+          >
+            <input
+              v-model="state.handoffPriority"
+              type="radio"
+              name="handoff-priority"
+              :value="mode"
+              class="size-4 accent-n-blue-9 text-n-blue-9"
+            />
+            {{
+              t(
+                `CAPTAIN.ASSISTANTS.FORM.HANDOFF_PRIORITY.${mode.toUpperCase()}`
+              )
+            }}
+          </label>
+          <p class="m-0 text-xs text-n-slate-11">
+            <AssistantNameText
+              :text="nameRich('CAPTAIN.ASSISTANTS.FORM.HANDOFF_PRIORITY.HELP')"
+            />
+          </p>
+        </div>
+      </template>
+    </SettingsToggleSection>
+
+    <SettingsToggleSection
+      hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.TITLE')"
-      :description="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.DESCRIPTION')"
+      :description="nameRich('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.DESCRIPTION')"
     >
       <div class="flex w-full flex-col gap-2 px-4 pb-1 pt-3">
         <Input

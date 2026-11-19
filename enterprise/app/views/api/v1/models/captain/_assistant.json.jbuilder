@@ -6,8 +6,11 @@ json.config resource.config.merge(
   'send_inactivity_resolution_message' => resource.send_inactivity_resolution_message?,
   'appointments' => resource.appointments.to_h,
   'followup' => resource.followup.to_h,
-  'allow_paid_templates' => resource.allow_paid_templates?
+  'allow_paid_templates' => resource.allow_paid_templates?,
+  'handoff_routing' => resource.handoff_routing,
+  'handoff_priority' => resource.handoff_priority
 )
+json.eligible_team_ids Captain::HandoffRouter.eligible_teams(resource).ids
 json.created_at resource.created_at.to_i
 json.description resource.description
 json.guardrails resource.guardrails

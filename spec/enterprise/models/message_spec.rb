@@ -210,6 +210,15 @@ RSpec.describe Message do
       expect(conversation.reload).to have_attributes(
         status: 'pending', assignee_id: nil, ai_assignee_type: 'Captain::Assistant', assignee_agent_bot_id: captain_assistant.id, team_id: team.id
       )
+      expect(conversation.additional_attributes['captain_reopened_at']).to be_present
+      expect(conversation.additional_attributes['captain_previous_assignee_id']).to eq(agent.id)
+      routing = Captain::HandoffRouter.new(conversation: conversation, assistant: captain_assistant).plan
+      expect(routing.kind).to eq(:reopened)
+      conversation.bot_handoff!(routing: routing)
+      expect(conversation.additional_attributes).not_to have_key('captain_previous_assignee_id')
+      expect(conversation.additional_attributes).to have_key('captain_reopened_at')
+      conversation.resolved!
+      expect(conversation.reload.additional_attributes).not_to have_key('captain_reopened_at')
     end
 
     it 'leaves a single assignment activity naming the assistant when a person was assigned' do

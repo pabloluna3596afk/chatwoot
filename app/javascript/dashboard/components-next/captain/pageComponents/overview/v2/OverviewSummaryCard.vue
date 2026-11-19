@@ -1,9 +1,13 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useI18n } from 'vue-i18n';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import MetricCard from 'dashboard/components-next/captain/pageComponents/overview/MetricCard.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   userName: { type: String, default: '' },
   points: { type: Array, default: () => [] },
   featuredMetrics: { type: Array, default: () => [] },
@@ -56,6 +60,8 @@ watch(
 );
 
 onUnmounted(stopAutoRotation);
+const { t } = useI18n();
+const { nameRichFrom } = useAssistantName(() => props.assistant);
 </script>
 
 <template>
@@ -124,7 +130,9 @@ onUnmounted(stopAutoRotation);
             {{ activePoint }}
           </p>
           <p v-else class="m-0 text-body-para text-n-slate-11">
-            {{ $t('CAPTAIN.OVERVIEW.V2.SUMMARY.EMPTY') }}
+            <AssistantNameText
+              :text="nameRichFrom(t('CAPTAIN.OVERVIEW.V2.SUMMARY.EMPTY'))"
+            />
           </p>
         </div>
       </div>
