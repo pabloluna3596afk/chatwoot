@@ -7,7 +7,7 @@ import {
   onBeforeUnmount,
   useTemplateRef,
 } from 'vue';
-import { useMediaQuery, useEventListener } from '@vueuse/core';
+import { useEventListener } from '@vueuse/core';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 
@@ -16,8 +16,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['collapse']);
-
-const isPhone = useMediaQuery('(max-width: 767px)');
 
 const DEFAULT_HEIGHT = 64;
 const MIN_HEIGHT = 48;
@@ -184,17 +182,16 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     }"
   >
     <div
-      v-if="!isPhone"
-      class="group absolute inset-x-0 -top-2 z-10 flex h-4 cursor-row-resize select-none items-center justify-center"
+      class="group absolute inset-x-0 -top-4 z-10 flex h-4 cursor-row-resize select-none items-center justify-center bg-gradient-to-b from-transparent from-10% dark:to-n-surface-1/80 to-n-surface-1/90 backdrop-blur-[0.01875rem]"
       @mousedown="onResizeStart"
       @touchstart.prevent="onResizeStart"
       @dblclick="resetEditorHeight"
     >
       <div
-        class="w-8 h-0.5 opacity-0 group-hover:opacity-100 rounded-full bg-n-slate-6 group-hover:bg-n-slate-8 transition-all duration-200 motion-safe:group-hover:animate-bounce"
+        class="w-8 h-0.5 mt-1 rounded-full bg-n-slate-6 group-hover:bg-n-slate-8 transition-all duration-200 motion-safe:group-hover:animate-bounce"
         :class="{
-          '!opacity-100 bg-n-slate-8 animate-bounce': isResizing,
-          '!opacity-100 !bg-n-brand w-12': collapseProgress > 0,
+          'bg-n-slate-8 animate-bounce': isResizing,
+          '!bg-n-brand w-12': collapseProgress > 0,
         }"
       />
     </div>

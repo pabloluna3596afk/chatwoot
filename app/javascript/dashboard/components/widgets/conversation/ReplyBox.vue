@@ -1540,7 +1540,7 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="reply-box__editor input popover-prosemirror-menu rounded-2xl bg-n-alpha-1 px-3 py-2 max-md:[&_.resizable-editor-body]:!h-auto max-md:[&_.resizable-editor-body]:!min-h-6 max-md:[&_.resizable-editor-body]:!max-h-[7.5rem] max-md:[&_.resizable-editor-body]:overflow-y-auto"
+          class="reply-box__editor input popover-prosemirror-menu rounded-2xl bg-n-alpha-1 px-3 py-2 max-md:[&_.resizable-editor-body]:!h-auto max-md:[&_.resizable-editor-body]:!min-h-[max(1.5rem,calc(var(--editor-height)-4rem))] max-md:[&_.resizable-editor-body]:!max-h-[max(7.5rem,var(--editor-height))] max-md:[&_.resizable-editor-body]:overflow-y-auto"
           :class="{
             '!bg-n-amber-12/5': isPrivate,
             'text-n-slate-11': isEditorDisabled,

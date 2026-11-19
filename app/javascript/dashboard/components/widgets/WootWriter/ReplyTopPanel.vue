@@ -239,7 +239,8 @@ export default {
       </div>
       <NextButton
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.HIDE_COMPOSER')"
-        intent="tertiary"
+        slate
+        faded
         sm
         icon="i-lucide-chevron-down"
         class="max-md:hidden"
@@ -247,8 +248,8 @@ export default {
         @click="$emit('collapse')"
       />
       <NextButton
-        ghost
-        class="text-n-slate-11"
+        slate
+        faded
         sm
         icon="i-lucide-maximize-2"
         @click="$emit('toggleEditorSize')"
