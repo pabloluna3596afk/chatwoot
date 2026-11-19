@@ -17,7 +17,7 @@ const visibleItems = computed(() => props.items.slice(0, 4));
 <template>
   <div
     v-if="items.length"
-    class="max-w-[20rem] w-full min-w-0"
+    class="w-[min(20rem,100%)] min-w-0"
     :class="
       items.length > 1
         ? 'grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg'

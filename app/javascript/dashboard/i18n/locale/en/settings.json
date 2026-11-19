@@ -334,7 +334,7 @@
       "PHOTO_N_OF": "Photo {index} of {total}",
       "MORE": "+{count}",
       "RETRY": "Retry",
-      "OPEN_LINK": "Open link",
+      "OPEN_LINK": "Open original",
       "LOAD_FAILED": "Could not load",
       "EXPIRED": "This file is no longer available on {channel}.",
       "EXPIRED_GENERIC": "This file is no longer available on the channel.",

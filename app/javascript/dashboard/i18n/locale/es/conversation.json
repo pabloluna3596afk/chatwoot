@@ -736,7 +736,7 @@
     "ERROR_DOWNLOADING": "No se pudo descargar el archivo adjunto. Por favor, inténtelo de nuevo",
     "COUNTER": "{index} de {total}",
     "OPEN_ORIGINAL": "Abrir original",
-    "PDF_TOO_LARGE": "Este PDF es grande. Desc?rgalo para verlo."
+    "PDF_TOO_LARGE": "Este PDF es grande. Descárgalo para verlo."
   },
   "AUDIO_TRANSCRIPTION": {
     "BUTTON": "Transcribir audio",

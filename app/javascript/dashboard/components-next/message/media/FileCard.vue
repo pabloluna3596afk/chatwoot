@@ -52,6 +52,7 @@ const type = computed(() => {
 });
 const size = computed(() => {
   if (props.attachment.fileSize == null) return '';
+  if (props.attachment.fileSize < 1024) return `${props.attachment.fileSize} B`;
   const megabytes = props.attachment.fileSize >= 1024 * 1024;
   const value = props.attachment.fileSize / (megabytes ? 1024 * 1024 : 1024);
   return `${new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)} ${megabytes ? 'MB' : 'KB'}`;

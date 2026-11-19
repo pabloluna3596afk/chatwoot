@@ -78,7 +78,11 @@ const download = async () => {
   <figure
     class="relative group overflow-hidden bg-n-alpha-1 m-0 min-w-0"
     :class="[
-      single ? 'rounded-lg max-w-[20rem] max-h-[22rem] w-full' : 'h-full',
+      single
+        ? tall
+          ? 'rounded-lg w-[20rem] max-w-full h-[22rem]'
+          : 'rounded-lg w-fit max-w-[20rem] max-h-[22rem]'
+        : 'h-full',
       {
         'row-span-2': total === 3 && index === 0,
         'p-3 grid place-items-center': tiny,
@@ -86,10 +90,15 @@ const download = async () => {
     ]"
   >
     <button
+      v-if="!hasError"
       type="button"
-      class="relative block overflow-hidden max-w-full w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
+      class="relative block overflow-hidden max-w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
       :class="[
-        single ? 'max-h-[22rem]' : 'h-full',
+        single
+          ? tall
+            ? 'w-full h-full'
+            : 'w-auto max-h-[22rem]'
+          : 'w-full h-full',
         {
           'aspect-[4/3]': single && !dimensions.width,
           'aspect-square': !single && !(total === 3 && index === 0),
@@ -106,7 +115,7 @@ const download = async () => {
         :height="dimensions.height"
         aria-hidden="true"
         class="invisible max-h-[22rem] max-w-full"
-        :class="tiny ? 'mx-auto' : 'w-full h-auto'"
+        :class="tiny ? 'mx-auto' : tall ? 'w-full h-full' : 'w-auto h-auto'"
       />
       <span
         v-if="!isLoaded && !hasError"
@@ -142,21 +151,21 @@ const download = async () => {
       >
         <Icon
           icon="i-teenyicons-play-small-solid"
-          class="size-7 rounded-full bg-n-slate-1/60 text-n-slate-12/80"
+          class="size-7 rounded-full bg-black/50 text-white"
         />
       </span>
       <span
         v-if="tall && !hasError"
-        class="absolute inset-x-0 bottom-0 h-16 flex items-end justify-center pb-2 bg-gradient-to-t from-n-slate-12/50"
+        class="absolute inset-x-0 bottom-0 h-16 flex items-end justify-center pb-2 bg-gradient-to-t from-black/50"
       >
         <span
-          class="rounded-full bg-n-slate-12/50 px-2.5 py-1 text-xs font-medium text-white"
+          class="rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white"
           >{{ t('COMPONENTS.MEDIA.VIEW_FULL') }}</span
         >
       </span>
       <span
         v-if="more && !hasError"
-        class="absolute inset-0 grid place-items-center bg-n-slate-12/45 text-white text-xl font-semibold"
+        class="absolute inset-0 grid place-items-center bg-black/55 text-white text-xl font-semibold"
       >
         {{ t('COMPONENTS.MEDIA.MORE', { count: more }) }}
       </span>
@@ -185,7 +194,7 @@ const download = async () => {
       </div>
     </div>
     <div
-      v-else
+      v-else-if="single"
       class="absolute bottom-2 end-2 flex gap-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
     >
       <Button

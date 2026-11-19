@@ -102,6 +102,7 @@ const handleSeeOriginal = () => {
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>
       <AttachmentChips part="media" :attachments="attachments" />
+      <AttachmentChips part="files" :attachments="attachments" class="gap-2" />
       <FormattedContent v-if="renderContent" :content="renderContent" />
       <span
         v-if="contactInfoRequestState === 'pending'"
@@ -134,7 +135,6 @@ const handleSeeOriginal = () => {
         :showing-original="renderOriginal"
         @toggle="handleSeeOriginal"
       />
-      <AttachmentChips part="files" :attachments="attachments" class="gap-2" />
       <SuggestedAttributeChips :suggestions="suggestedAttributes" />
       <div
         v-if="templateButtons.length"

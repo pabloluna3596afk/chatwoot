@@ -211,7 +211,7 @@ describe('attachment composition', () => {
     expect(wrapper.findComponent({ name: 'MediaGrid' }).exists()).toBe(true);
   });
 
-  it('renders media before text and documents after text, with part defaulting to all', () => {
+  it('renders media and documents before the text, with part defaulting to all', () => {
     const wrapper = mount(Message, {
       props: {
         id: 1,
@@ -228,9 +228,9 @@ describe('attachment composition', () => {
     });
     const text = wrapper.getComponent(TextBubble);
     const html = text.html();
-    expect(html.indexOf('<figure')).toBeLessThan(html.indexOf('Caption</p>'));
-    expect(html.indexOf('Caption</p>')).toBeLessThan(
-      html.indexOf('quotation.pdf')
+    expect(html.indexOf('<figure')).toBeLessThan(html.indexOf('quotation.pdf'));
+    expect(html.indexOf('quotation.pdf')).toBeLessThan(
+      html.indexOf('Caption</p>')
     );
     expect(
       text.findAllComponents(AttachmentChips).map(item => item.props('part'))
