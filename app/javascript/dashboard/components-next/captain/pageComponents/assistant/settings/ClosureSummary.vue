@@ -1,21 +1,18 @@
 <script setup>
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   config: { type: Object, default: () => ({}) },
-  linkToFollowup: { type: Boolean, default: false },
 });
 const { t } = useI18n();
-const route = useRoute();
 const summary = computed(() => {
   const followup = props.config.followup || {};
   const nudges =
     followup.inactivity_enabled !== false && (followup.max_nudges ?? 1) > 0;
   const mode = props.config.auto_resolve_mode ?? 'evaluated';
   const params = {
-    after: followup.inactivity_after_minutes ?? 30,
+    interval: followup.inactivity_after_minutes ?? 30,
     count: followup.max_nudges ?? 1,
     minutes: props.config.auto_resolve_after ?? 60,
   };
@@ -36,15 +33,5 @@ const summary = computed(() => {
   >
     <p class="m-0">{{ summary }}</p>
     <p class="m-0">{{ t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.SILENCE_HELP') }}</p>
-    <RouterLink
-      v-if="linkToFollowup"
-      :to="{
-        name: 'captain_assistants_settings_followup_index',
-        params: route.params,
-      }"
-      class="text-n-brand underline"
-    >
-      {{ t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.FOLLOWUP_LINK') }}
-    </RouterLink>
   </div>
 </template>

@@ -20,9 +20,6 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import HandoffRoutingRow from './HandoffRoutingRow.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-import DurationSelect from './DurationSelect.vue';
-import ClosureSummary from './ClosureSummary.vue';
 import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 
 const props = defineProps({
@@ -35,9 +32,7 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
-const { nameRich, nameRichFrom, nameTextFrom } = useAssistantName(
-  () => props.assistant
-);
+const { nameRich } = useAssistantName(() => props.assistant);
 
 const { isCloudFeatureEnabled } = useAccount();
 const store = useStore();
@@ -65,14 +60,8 @@ const DEFAULT_MAX_REPLIES = 20;
 const MAX_REPLIES_LIMIT = 1000;
 
 const initialState = {
-  completionSignalEnabled: false,
-  completionGraceMinutes: 5,
-  autoResolveMode: 'evaluated',
-  inactivityThresholdMinutes: 60,
   handoffMessage: '',
-  resolutionMessage: '',
   instructions: '',
-  sendInactivityResolutionMessage: true,
   maxReplies: DEFAULT_MAX_REPLIES,
   handoffRouting: {},
   handoffPriority: 'off',
@@ -90,7 +79,6 @@ const minLengthMessage = helpers.withMessage(
 );
 const validationRules = {
   handoffMessage: { minLength: minLengthMessage },
-  resolutionMessage: { minLength: minLengthMessage },
   instructions: { minLength: minLengthMessage },
   maxReplies: {
     required: requiredMessage,
@@ -117,77 +105,14 @@ const getErrorMessage = field => {
 
 const formErrors = computed(() => ({
   handoffMessage: getErrorMessage('handoffMessage'),
-  resolutionMessage: getErrorMessage('resolutionMessage'),
   instructions: getErrorMessage('instructions'),
   maxReplies: getErrorMessage('maxReplies'),
 }));
 
-const autoResolveOptions = computed(() => [
-  {
-    value: 'evaluated',
-    label: nameTextFrom(
-      t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.LABEL')
-    ),
-  },
-  {
-    value: 'legacy',
-    label: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.LABEL'
-    ),
-  },
-  {
-    value: 'disabled',
-    label: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.LABEL'
-    ),
-  },
-]);
-
-const graceOptions = computed(() =>
-  [5, 10, 15].map(value => ({
-    value,
-    label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.MINUTES', { count: value }),
-  }))
-);
-
-const closureConfig = computed(() => ({
-  ...props.assistant.config,
-  auto_resolve_mode: state.autoResolveMode,
-  auto_resolve_after: state.inactivityThresholdMinutes,
-}));
-const inactivityThresholdError = computed(() => {
-  if (!submitted.value || state.autoResolveMode === 'disabled') return '';
-  const value = state.inactivityThresholdMinutes;
-  if (value === null || value === undefined || value === '')
-    return t('GENERAL.VALIDATION.REQUIRED');
-  const threshold = Number(value);
-  if (!Number.isInteger(threshold)) return t('GENERAL.VALIDATION.INTEGER');
-  if (threshold < 5) return t('GENERAL.VALIDATION.MIN_VALUE', { min: 5 });
-  if (threshold > 1440) return t('GENERAL.VALIDATION.MAX_VALUE', { max: 1440 });
-  return '';
-});
-const followupTimingError = computed(() => {
-  const followup = props.assistant.config?.followup || {};
-  return (
-    state.autoResolveMode !== 'disabled' &&
-    followup.inactivity_enabled !== false &&
-    (followup.max_nudges ?? 1) > 0 &&
-    (followup.inactivity_after_minutes ?? 30) >=
-      Number(state.inactivityThresholdMinutes)
-  );
-});
-
 const updateStateFromAssistant = assistant => {
   const { config = {} } = assistant;
-  state.completionSignalEnabled = config.completion_signal_enabled ?? false;
-  state.completionGraceMinutes = config.completion_grace_minutes ?? 5;
-  state.autoResolveMode = config.auto_resolve_mode ?? 'evaluated';
-  state.inactivityThresholdMinutes = config.auto_resolve_after ?? 60;
   state.handoffMessage = config.handoff_message;
-  state.resolutionMessage = config.resolution_message;
   state.instructions = config.instructions;
-  state.sendInactivityResolutionMessage =
-    config.send_inactivity_resolution_message ?? true;
   state.maxReplies = config.max_replies_per_conversation ?? DEFAULT_MAX_REPLIES;
   state.handoffRouting = Object.fromEntries(
     routingKinds.map(kind => [
@@ -199,20 +124,10 @@ const updateStateFromAssistant = assistant => {
   submitted.value = false;
 };
 
-const fieldsToValidate = () => {
-  if (!isCaptainV2Enabled.value) {
-    return [
-      'handoffMessage',
-      'resolutionMessage',
-      'instructions',
-      'maxReplies',
-    ];
-  }
-
-  const fields = ['handoffMessage', 'maxReplies'];
-  if (state.sendInactivityResolutionMessage) fields.push('resolutionMessage');
-  return fields;
-};
+const fieldsToValidate = () =>
+  isCaptainV2Enabled.value
+    ? ['handoffMessage', 'maxReplies']
+    : ['handoffMessage', 'instructions', 'maxReplies'];
 
 const handleSystemMessagesUpdate = async () => {
   submitted.value = true;
@@ -220,11 +135,6 @@ const handleSystemMessagesUpdate = async () => {
     fieldsToValidate().map(field => v$.value[field].$validate())
   ).then(results => results.every(Boolean));
   if (!isValid) return;
-  if (
-    isCaptainV2Enabled.value &&
-    (inactivityThresholdError.value || followupTimingError.value)
-  )
-    return;
   if (
     routingKinds.some(kind => {
       const row = state.handoffRouting[kind];
@@ -249,19 +159,8 @@ const handleSystemMessagesUpdate = async () => {
     },
   };
 
-  if (isCaptainV2Enabled.value) {
-    Object.assign(payload.config, {
-      completion_signal_enabled: state.completionSignalEnabled,
-      completion_grace_minutes: state.completionGraceMinutes,
-      auto_resolve_mode: state.autoResolveMode,
-      auto_resolve_after: Number(state.inactivityThresholdMinutes),
-      send_inactivity_resolution_message: state.sendInactivityResolutionMessage,
-      resolution_message: state.resolutionMessage,
-    });
-  } else {
-    payload.config.resolution_message = state.resolutionMessage;
+  if (!isCaptainV2Enabled.value)
     payload.config.instructions = state.instructions;
-  }
 
   emit('submit', payload);
 };
@@ -277,108 +176,9 @@ watch(
 
 <template>
   <div class="flex flex-col gap-6">
-    <SettingsToggleSection
-      v-if="isCaptainV2Enabled"
-      hide-toggle
-      :header="t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.TITLE')"
-      :description="nameRichFrom(t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.HELP'))"
-    >
-      <div class="flex w-full flex-col gap-4 px-4 pt-3">
-        <ComboBox
-          v-model="state.autoResolveMode"
-          data-testid="closure-mode"
-          :options="autoResolveOptions"
-          :allow-deselect="false"
-          :aria-label="
-            t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODE_LABEL')
-          "
-        />
-        <SettingsToggleSection
-          v-if="state.autoResolveMode === 'evaluated'"
-          v-model="state.completionSignalEnabled"
-          data-testid="completion-signal"
-          :header="t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.DETECT')"
-          :description="nameRich('CAPTAIN.ASSISTANTS.FORM.CLOSURE.DETECT_HELP')"
-        >
-          <div
-            v-if="state.completionSignalEnabled"
-            class="flex w-full flex-col gap-2 px-4 pt-3"
-          >
-            <span class="text-body-main font-medium text-n-slate-12">{{
-              t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.GRACE')
-            }}</span>
-            <ComboBox
-              v-model="state.completionGraceMinutes"
-              data-testid="completion-grace"
-              :options="graceOptions"
-              :allow-deselect="false"
-              :aria-label="t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.GRACE')"
-            />
-          </div>
-        </SettingsToggleSection>
-        <div
-          v-if="state.autoResolveMode !== 'disabled'"
-          class="flex flex-col gap-2"
-        >
-          <span class="text-body-main font-medium text-n-slate-12">{{
-            t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.INACTIVITY')
-          }}</span>
-          <DurationSelect
-            v-model="state.inactivityThresholdMinutes"
-            :error="inactivityThresholdError"
-            :hours-aria-label="
-              t(
-                'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_HOURS_ARIA_LABEL'
-              )
-            "
-            :minutes-aria-label="
-              t(
-                'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_MINUTES_ARIA_LABEL'
-              )
-            "
-          />
-          <p class="m-0 text-xs text-n-slate-11">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.INACTIVITY_HELP') }}
-          </p>
-        </div>
-        <p
-          v-if="submitted && followupTimingError"
-          role="alert"
-          class="m-0 text-xs text-n-ruby-9"
-        >
-          {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR') }}
-        </p>
-        <ClosureSummary :config="closureConfig" link-to-followup />
-      </div>
-    </SettingsToggleSection>
-    <SettingsToggleSection
-      v-if="isCaptainV2Enabled"
-      v-model="state.sendInactivityResolutionMessage"
-      :header="
-        t(
-          'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
-        )
-      "
-      :description="
-        nameRichFrom(
-          t(
-            'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.DESCRIPTION'
-          )
-        )
-      "
-    >
-      <template v-if="state.sendInactivityResolutionMessage" #editor>
-        <Editor
-          v-model="state.resolutionMessage"
-          :placeholder="
-            t('CAPTAIN.ASSISTANTS.FORM.RESOLUTION_MESSAGE.PLACEHOLDER')
-          "
-          :message="formErrors.resolutionMessage"
-          :message-type="formErrors.resolutionMessage ? 'error' : 'info'"
-          class="z-0 [&_.editor-wrapper]:!min-h-32 [&_.editor-wrapper]:!border-0 [&_.editor-wrapper]:!bg-transparent [&_.editor-wrapper]:!p-0"
-        />
-      </template>
-    </SettingsToggleSection>
+    <h3 class="m-0 text-heading-3 text-n-slate-12">
+      {{ t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_TITLE') }}
+    </h3>
     <SettingsToggleSection
       hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.LABEL')"
@@ -482,16 +282,6 @@ watch(
         />
       </div>
     </SettingsToggleSection>
-
-    <Editor
-      v-if="!isCaptainV2Enabled"
-      v-model="state.resolutionMessage"
-      :label="t('CAPTAIN.ASSISTANTS.FORM.RESOLUTION_MESSAGE.LABEL')"
-      :placeholder="t('CAPTAIN.ASSISTANTS.FORM.RESOLUTION_MESSAGE.PLACEHOLDER')"
-      :message="formErrors.resolutionMessage"
-      :message-type="formErrors.resolutionMessage ? 'error' : 'info'"
-      class="z-0"
-    />
 
     <Editor
       v-if="!isCaptainV2Enabled"

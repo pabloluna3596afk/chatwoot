@@ -43,6 +43,11 @@ const tabs = computed(() => {
       label: t('CAPTAIN.ASSISTANTS.SETTINGS.BASIC_SETTINGS.TITLE'),
     },
     {
+      id: 'captain_assistants_settings_followup_index',
+      icon: 'i-lucide-message-circle-question',
+      label: t('CAPTAIN.ASSISTANTS.SETTINGS.FOLLOWUP.TITLE'),
+    },
+    {
       id: 'captain_assistants_settings_system_index',
       icon: 'i-lucide-sliders-horizontal',
       label: t('CAPTAIN.ASSISTANTS.SETTINGS.SYSTEM_SETTINGS.TITLE'),
@@ -61,11 +66,6 @@ const tabs = computed(() => {
       id: 'captain_assistants_settings_appointments_index',
       icon: 'i-lucide-calendar-check',
       label: t('CAPTAIN.ASSISTANTS.SETTINGS.APPOINTMENTS.TITLE'),
-    },
-    {
-      id: 'captain_assistants_settings_followup_index',
-      icon: 'i-lucide-message-circle-question',
-      label: t('CAPTAIN.ASSISTANTS.SETTINGS.FOLLOWUP.TITLE'),
     },
   ];
 

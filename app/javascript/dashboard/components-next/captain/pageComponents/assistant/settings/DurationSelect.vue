@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 
 defineProps({
@@ -73,20 +74,40 @@ const minuteOptions = computed(() =>
 </script>
 
 <template>
-  <div class="flex shrink-0 gap-2">
-    <Select
-      v-model="hours"
-      :options="hourOptions"
-      :error="error"
-      :aria-label="hoursAriaLabel"
-      class="[&>select]:min-w-24"
-    />
-    <Select
-      v-model="minutes"
-      :options="minuteOptions"
-      :error="error"
-      :aria-label="minutesAriaLabel"
-      class="[&>select]:min-w-28"
-    />
+  <div class="flex flex-col gap-1">
+    <div class="hidden shrink-0 gap-2 sm:flex" data-testid="duration-desktop">
+      <ComboBox
+        v-model="hours"
+        :options="hourOptions"
+        :allow-deselect="false"
+        :aria-label="hoursAriaLabel"
+        :has-error="!!error"
+        class="min-w-24"
+      />
+      <ComboBox
+        v-model="minutes"
+        :options="minuteOptions"
+        :allow-deselect="false"
+        :aria-label="minutesAriaLabel"
+        :has-error="!!error"
+        class="min-w-28"
+      />
+    </div>
+    <div class="flex shrink-0 gap-2 sm:hidden" data-testid="duration-mobile">
+      <Select
+        v-model="hours"
+        :options="hourOptions"
+        :error="error"
+        :aria-label="hoursAriaLabel"
+        class="[&>select]:min-w-24"
+      />
+      <Select
+        v-model="minutes"
+        :options="minuteOptions"
+        :error="error"
+        :aria-label="minutesAriaLabel"
+        class="[&>select]:min-w-28"
+      />
+    </div>
   </div>
 </template>
