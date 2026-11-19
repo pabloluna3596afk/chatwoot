@@ -9,14 +9,16 @@ class Captain::Followup::Closer
   end
 
   def perform
-    Current.executed_by = assistant
-    conversation.with_captain_activity_context(reason: 'no reply to the follow-up', reason_type: :inference) do
-      create_note
-      create_resolution_message if send_resolution_message
-      conversation.resolved!
-      mark_closed
+    Captain::Conversation::ResolutionTransition.perform(conversation, assistant) do
+      Current.executed_by = assistant
+      conversation.with_captain_activity_context(reason: 'no reply to the follow-up', reason_type: :inference) do
+        create_note
+        create_resolution_message if send_resolution_message
+        conversation.resolved!
+        mark_closed
+      end
+      :closed
     end
-    :closed
   end
 
   private

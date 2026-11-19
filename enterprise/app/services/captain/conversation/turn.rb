@@ -10,6 +10,13 @@ class Captain::Conversation::Turn
 
   def self.awaiting_customer?(conversation, assistant)
     message = last_message(conversation)
+    return false if no_customer_reply_expected?(conversation, message)
+
     message.present? && message.outgoing? && message.sender_type == 'Captain::Assistant' && message.sender_id == assistant.id
+  end
+
+  def self.no_customer_reply_expected?(conversation, message)
+    signal = conversation.additional_attributes[Captain::Conversation::CompletionSignal::KEY]
+    signal && signal['reply_id'] == message&.id && signal['expects_customer_reply'] == false
   end
 end

@@ -12,6 +12,8 @@ RSpec.describe Captain::Assistant, type: :model do
     expect(assistant.followup.inactivity_after_minutes).to eq(10)
     expect(assistant.followup.max_nudges).to eq(1)
     expect(assistant.send_inactivity_resolution_message?).to be(false)
+    expect(assistant.completion_signal_enabled?).to be(true)
+    expect(assistant.completion_grace_minutes).to eq(5)
   end
 
   it 'keeps an existing assistant with a saved 120 minute timer and its other values' do
@@ -37,6 +39,8 @@ RSpec.describe Captain::Assistant, type: :model do
     expect(assistant.followup.inactivity_after_minutes).to eq(30)
     expect(assistant.send_inactivity_resolution_message?).to be(true)
     expect(assistant.config).not_to have_key('auto_resolve_after')
+    expect(assistant.completion_signal_enabled?).to be(false)
+    expect(assistant.completion_grace_minutes).to eq(5)
   end
 
   [false, true].each do |enabled|
@@ -58,4 +62,24 @@ RSpec.describe Captain::Assistant, type: :model do
     expect(assistant).to be_valid
   end
 
+  [5, 10, 15].each do |minutes|
+    it "accepts the grace of #{minutes} minutes" do
+      assistant = build(:captain_assistant, account: account, config: { completion_grace_minutes: minutes })
+      expect(assistant).to be_valid
+    end
+  end
+
+  [nil, '5', 5.0, 6, 0, [], {}].each do |minutes|
+    it "rejects the malformed grace #{minutes.inspect}" do
+      assistant = build(:captain_assistant, account: account, config: { completion_grace_minutes: minutes })
+      expect(assistant).not_to be_valid
+    end
+  end
+
+  [nil, 'true', 1, [], {}].each do |enabled|
+    it "rejects the malformed detection flag #{enabled.inspect}" do
+      assistant = build(:captain_assistant, account: account, config: { completion_signal_enabled: enabled })
+      expect(assistant).not_to be_valid
+    end
+  end
 end

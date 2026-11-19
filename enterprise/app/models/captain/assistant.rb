@@ -87,6 +87,7 @@ class Captain::Assistant < ApplicationRecord
   validate :validate_response_window
   validate :validate_max_replies_per_conversation
   validate :validate_reply_delay_seconds
+  validate :validate_completion_settings
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
   validates :auto_resolve_after,
@@ -243,6 +244,14 @@ class Captain::Assistant < ApplicationRecord
     send_inactivity_resolution_message
   end
 
+  def completion_signal_enabled?
+    account.feature_enabled?('captain_integration_v2') && config['completion_signal_enabled'] == true
+  end
+
+  def completion_grace_minutes
+    config.fetch('completion_grace_minutes', 5)
+  end
+
   def available_agent_tools
     tools = self.class.built_in_agent_tools.dup
 
@@ -353,6 +362,16 @@ class Captain::Assistant < ApplicationRecord
     errors.add(:config, 'invalid response_window') unless RESPONSE_WINDOWS.include?(response_window)
   end
 
+  def validate_completion_settings
+    if config.key?('completion_signal_enabled') && [true, false].exclude?(config['completion_signal_enabled'])
+      errors.add(:config, 'completion_signal_enabled must be true or false')
+    end
+    return unless config.key?('completion_grace_minutes')
+
+    value = config['completion_grace_minutes']
+    errors.add(:config, 'completion_grace_minutes must be 5, 10 or 15') unless value.is_a?(Integer) && [5, 10, 15].include?(value)
+  end
+
   def validate_reply_delay_seconds
     return unless config.key?('reply_delay_seconds')
 
@@ -368,7 +387,9 @@ class Captain::Assistant < ApplicationRecord
 
     self.config = {
       'auto_resolve_after' => 30,
-      'send_inactivity_resolution_message' => false
+      'send_inactivity_resolution_message' => false,
+      'completion_signal_enabled' => true,
+      'completion_grace_minutes' => 5
     }.merge(config)
     return unless config['followup'].nil? || config['followup'].is_a?(Hash)
 

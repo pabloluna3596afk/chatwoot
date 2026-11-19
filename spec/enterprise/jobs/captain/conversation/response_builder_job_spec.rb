@@ -37,6 +37,22 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    it 'records a completion candidate only after the final response is persisted' do
+      account.enable_features!('captain_integration_v2')
+      assistant.update!(config: assistant.config.merge('auto_resolve_mode' => 'evaluated', 'completion_signal_enabled' => true))
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+      conversation.update!(ai_assignee: assistant)
+      allow(mock_agent_runner_service).to receive(:generate_response).and_return(
+        'response_parts' => v2_response_parts, 'probable_complete' => true, 'expects_customer_reply' => false
+      )
+
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+      message = conversation.messages.where(private: false, message_type: :outgoing).sole
+      state = conversation.reload.additional_attributes[Captain::Conversation::CompletionSignal::KEY]
+      expect(state).to include('status' => 'pending', 'reply_id' => message.id, 'incoming_id' => responding_to_message.id)
+    end
+
     it 'routes the v1 token handoff and appends routing to its existing note' do
       account.disable_features!(:captain_integration_v2)
       assistant.update!(config: assistant.config.merge('handoff_priority' => 'always'))

@@ -1,6 +1,8 @@
 module Enterprise::Message
   def self.prepended(base)
     base.class_eval do
+      after_create :cancel_captain_completion_signal
+
       has_one :call, class_name: 'Call', foreign_key: :message_id, dependent: :nullify, inverse_of: :message
 
       scope :with_call, -> { includes(call: [:contact, { inbox: :channel }]) }
@@ -28,6 +30,16 @@ module Enterprise::Message
   end
 
   private
+
+  def cancel_captain_completion_signal
+    return unless incoming? || (outgoing? && !private? && sender_type == 'User')
+    return unless conversation.additional_attributes.key?(::Captain::Conversation::CompletionSignal::KEY)
+
+    conversation.with_lock do
+      ::Captain::Conversation::CompletionSignal.cancel(conversation)
+      conversation.save! if conversation.changed?
+    end
+  end
 
   def reopen_resolved_conversation
     assistant = conversation.inbox.captain_assistant

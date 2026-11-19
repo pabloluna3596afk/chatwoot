@@ -29,6 +29,20 @@ RSpec.describe Captain::Assistant::ResponseRewriter do
     expect(result.context[:conversation_history].last[:content]).to eq(result.output)
   end
 
+  it 'preserves the structured turn intent instead of accepting a classification from the shortener' do
+    result.output = { 'probable_complete' => false, 'expects_customer_reply' => true }
+    rewritten.merge!('probable_complete' => true, 'expects_customer_reply' => false)
+    rewriter.rewrite(result, response_parts: parts, response_text_limit: 10)
+    expect(result.output).to include('probable_complete' => false, 'expects_customer_reply' => true)
+  end
+
+  it 'does not invent turn intent for an output that did not contain it' do
+    rewritten.merge!('probable_complete' => true, 'expects_customer_reply' => false)
+    rewriter.rewrite(result, response_parts: parts, response_text_limit: 10)
+    expect(result.output).not_to have_key('probable_complete')
+    expect(result.output).not_to have_key('expects_customer_reply')
+  end
+
   it 'rejects an invalid response part count without modifying the original' do
     allow(rewrite_result).to receive(:output).and_return({ 'response_parts' => [] })
     expect { rewriter.rewrite(result, response_parts: parts, response_text_limit: 10) }.to raise_error(/number of response parts/)

@@ -53,4 +53,22 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants follow-up settings', type
     expect(assistant.config).to include('messaging' => messaging, 'auto_resolve_after' => 120)
   end
 
+  describe 'completion detection' do
+    before { account.enable_features!('captain_integration_v2') }
+
+    it 'saves explicit activation with one of the allowed grace periods' do
+      patch url, params: { assistant: { config: { completion_signal_enabled: true, completion_grace_minutes: 10 } } },
+                 headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:success)
+      expect(assistant.reload.config).to include('completion_signal_enabled' => true, 'completion_grace_minutes' => 10)
+    end
+
+    [{ completion_signal_enabled: {} }, { completion_signal_enabled: 'true' }, { completion_grace_minutes: [] },
+     { completion_grace_minutes: '5' }, { completion_grace_minutes: 6 }].each do |config|
+      it "rejects invalid input at the request boundary: #{config.inspect}" do
+        patch url, params: { assistant: { config: config } }, headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+  end
 end

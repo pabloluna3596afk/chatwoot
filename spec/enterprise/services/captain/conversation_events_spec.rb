@@ -25,10 +25,20 @@ RSpec.describe Captain::ConversationEvents do
       expect(Rails.configuration.dispatcher).to receive(:dispatch).with(
         Events::Types::CAPTAIN_CONVERSATION_RESOLVED,
         timestamp,
-        { conversation: conversation, assistant: assistant, source: 'inference' }
+        { conversation: conversation, assistant: assistant, source: 'inference', reason: 'evaluated_completion' }
       )
 
       described_class.resolved(conversation: conversation, assistant: assistant, source: 'inference', at: timestamp)
+    end
+  end
+
+  [%w[time_based no_response], %w[inference customer_confirmation], ['tool', nil]].each do |source, reason|
+    it "preserves the resolution contract for #{source} with reason #{reason.inspect}" do
+      expected = { conversation: conversation, assistant: assistant, source: source }
+      expected[:reason] = reason if reason
+      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(Events::Types::CAPTAIN_CONVERSATION_RESOLVED, timestamp, expected)
+      described_class.resolved(conversation: conversation, assistant: assistant, source: source, at: timestamp,
+                               **(source == 'inference' ? { reason: reason } : {}))
     end
   end
 

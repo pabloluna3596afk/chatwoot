@@ -2,7 +2,7 @@ class Captain::Conversation::ResolutionMessageService
   pattr_initialize [:conversation!, :assistant!]
 
   def perform(use_default_message: false)
-    return unless assistant.send_inactivity_resolution_message?
+    return unless assistant.send_inactivity_resolution_message? && conversation.can_reply?
 
     I18n.with_locale(conversation.account.locale) do
       resolution_message = assistant.config['resolution_message'].presence

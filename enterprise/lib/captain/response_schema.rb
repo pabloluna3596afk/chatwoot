@@ -2,6 +2,9 @@
 # So we can extend it as Agents::Schema
 class Captain::ResponseSchema < Schematist::Schema
   string :reasoning, description: 'Brief basis for the answer'
+  boolean :probable_complete, description: 'True only when the request is fully addressed with no pending question, action, promise, or handoff.'
+  boolean :expects_customer_reply,
+          description: 'True when the customer must answer a question or supply information. False for a farewell or a completed request.'
   array :response_parts,
         description: 'Ordered parts of the message to send to the user. Keep all customer-visible text within each part text field.',
         min_items: 1 do

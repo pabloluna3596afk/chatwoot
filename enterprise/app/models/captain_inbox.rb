@@ -24,6 +24,8 @@ class CaptainInbox < ApplicationRecord
   validates :inbox_id, uniqueness: true
   validates_with Captain::InboxAudienceValidator
   validate :captain_assistant_must_be_customer_visible
+  before_update :cancel_completion_signals, if: :will_save_change_to_captain_assistant_id?
+  before_destroy :cancel_completion_signals
   after_commit -> { inbox.update_account_cache }, on: [:create, :destroy]
   after_commit :snapshot_messaging_review, on: :create
 
@@ -34,6 +36,16 @@ class CaptainInbox < ApplicationRecord
   end
 
   private
+
+  def cancel_completion_signals
+    inbox.conversations.where("additional_attributes -> 'captain_completion' ->> 'status' IN (?)",
+                              Captain::Conversation::CompletionSignal::ACTIVE_STATUSES).find_each do |conversation|
+      conversation.with_lock do
+        Captain::Conversation::CompletionSignal.cancel(conversation)
+        conversation.save!
+      end
+    end
+  end
 
   def snapshot_messaging_review
     @activation_notices = Captain::Messaging::Snapshotter.perform!(captain_assistant, inbox: inbox)

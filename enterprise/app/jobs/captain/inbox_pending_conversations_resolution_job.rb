@@ -45,7 +45,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       next unless still_resolvable_after_evaluation?(conversation)
 
       if evaluation[:complete]
-        resolve_conversation(conversation, inbox, evaluation[:reason])
+        resolve_conversation(conversation, inbox, evaluation[:reason], customer_confirmed: evaluation[:customer_confirmed])
       else
         handoff_conversation(conversation, evaluation)
       end
@@ -80,7 +80,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def with_unanswered_conversation_lock(conversation)
-    conversation.with_lock do
+    Captain::Conversation::ResolutionTransition.perform(conversation, captain_assistant) do
       conversation.reload
       next unless conversation.captain_attended? && conversation.ai_assignee == captain_assistant
       next unless inactive_for_initial_action?(conversation) && customer_owes_reply?(conversation)
@@ -99,6 +99,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   def resolvable_pending_conversations(inbox)
     inbox.conversations.pending
          .where(assignee_id: nil)
+         .where("COALESCE(additional_attributes -> 'captain_completion' ->> 'status', '') NOT IN (?)",
+                Captain::Conversation::CompletionSignal::ACTIVE_STATUSES)
          .where('last_activity_at < ?', inactivity_cutoff_time)
          .limit(Limits::BULK_ACTIONS_LIMIT)
   end
@@ -116,7 +118,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
 
   def resolve_time_based_conversation(conversation, _inbox)
     resolved = false
-    conversation.with_lock do
+    Captain::Conversation::ResolutionTransition.perform(conversation, captain_assistant) do
       conversation.reload
       next unless conversation.pending? && inactive_for_initial_action?(conversation)
 
@@ -136,7 +138,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     nil
   end
 
-  def resolve_conversation(conversation, _inbox, reason)
+  def resolve_conversation(conversation, _inbox, reason, customer_confirmed: false)
     resolved = with_inference_activity_context(conversation, activity_reason(conversation, 'no_outstanding_questions')) do
       perform_locked_transition(conversation) do
         conversation.resolved!
@@ -144,17 +146,18 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
         create_resolution_message(conversation)
       end
     end
-    record_inference_resolution(conversation) if resolved
+    record_inference_resolution(conversation, customer_confirmed: customer_confirmed) if resolved
   rescue ActiveRecord::RecordNotFound
     nil
   end
 
-  def record_inference_resolution(conversation)
+  def record_inference_resolution(conversation, customer_confirmed: false)
     Captain::ConversationEvents.resolved(
       conversation: conversation,
       assistant: captain_assistant,
       source: Captain::ConversationEvents::Sources::INFERENCE,
-      at: Time.current
+      at: Time.current,
+      **(customer_confirmed ? { reason: 'customer_confirmation' } : {})
     )
   end
 
@@ -182,7 +185,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def perform_locked_transition(conversation)
-    conversation.with_lock do
+    Captain::Conversation::ResolutionTransition.perform(conversation, captain_assistant) do
       conversation.reload
       next false unless conversation.pending? && inactive_for_initial_action?(conversation)
 
