@@ -635,7 +635,7 @@ export default {
       </template>
     </MessageList>
     <div
-      class="flex relative shrink-0 flex-col bg-n-surface-1 z-10 max-md:pb-[env(safe-area-inset-bottom)]"
+      class="flex relative shrink-0 flex-col bg-n-surface-1 z-10 border-t border-n-weak max-md:pb-[env(safe-area-inset-bottom)]"
     >
       <div
         v-if="isAnyoneTyping"

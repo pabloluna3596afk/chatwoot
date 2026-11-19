@@ -3668,3 +3668,8 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** `Followup::Reengager` y spec de concurrencia.
 - **Arreglo:** bloqueo asesor transaccional PostgreSQL por contacto, dentro del lock existente de conversacion, antes de leer elegibilidad/cooldown. Cubre conversaciones distintas y libera al confirmar o revertir la transaccion.
 - **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.
+
+
+## B-NEW-280 - Composer full-bleed chrome (PR 2)
+
+ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.

@@ -36,6 +36,7 @@ export default {
       type: String,
       default: '',
     },
+    sendButtonShortcut: { type: String, default: '' },
     recordingAudioDurationText: {
       type: String,
       default: '00:00',
@@ -431,14 +432,19 @@ export default {
     </div>
     <div class="right-wrap">
       <NextButton
-        :label="sendButtonText"
+        :aria-label="sendButtonText"
         type="submit"
         sm
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
         class="flex-shrink-0"
         @click="onSend"
-      />
+      >
+        <span>{{ sendButtonText }}</span>
+        <kbd class="max-md:hidden [@media(hover:none)]:hidden">{{
+          sendButtonShortcut
+        }}</kbd>
+      </NextButton>
     </div>
   </div>
 </template>

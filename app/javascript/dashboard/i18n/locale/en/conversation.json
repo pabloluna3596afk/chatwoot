@@ -346,7 +346,9 @@
       "COPILOT_MSG_INPUT": "Give copilot additional prompts, or ask anything else... Press enter to send follow-up",
       "CLICK_HERE": "Click here to update",
       "WHATSAPP_TEMPLATES": "Whatsapp Templates",
-      "CANNED_RESPONSES": "Canned responses"
+      "CANNED_RESPONSES": "Canned responses",
+      "MSG_INPUT_TOUCH": "Type a message · / for canned replies",
+      "PRIVATE_MSG_INPUT_TOUCH": "Private note · only agents see it"
     },
     "REPLYBOX": {
       "REPLY": "Reply",

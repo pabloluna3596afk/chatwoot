@@ -125,6 +125,48 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  it('uses full-bleed chrome, keeps note amber and separates the send hint', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const bar = wrapper.get('.reply-box');
+    expect(bar.classes()).toContain('bg-n-surface-1');
+    expect(bar.classes()).not.toEqual(
+      expect.arrayContaining(['mx-2', 'rounded-xl'])
+    );
+    expect(bottomPanel(wrapper).sendButtonText).toBe(
+      'CONVERSATION.REPLYBOX.SEND'
+    );
+    expect(bottomPanel(wrapper).sendButtonShortcut).toBeTruthy();
+    await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    expect(bar.classes()).toContain('bg-n-solid-amber');
+    wrapper.unmount();
+  });
+
+  it('uses touch placeholders in both modes', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(query => ({
+        matches: query === '(hover: none)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    expect(editor(wrapper).placeholder).toBe(
+      'CONVERSATION.FOOTER.MSG_INPUT_TOUCH'
+    );
+    await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    expect(editor(wrapper).placeholder).toBe(
+      'CONVERSATION.FOOTER.PRIVATE_MSG_INPUT_TOUCH'
+    );
+    wrapper.unmount();
+    vi.unstubAllGlobals();
+  });
+
   it('opens the shared center on Cloud with no templates and removes the loose Flow entry', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },
