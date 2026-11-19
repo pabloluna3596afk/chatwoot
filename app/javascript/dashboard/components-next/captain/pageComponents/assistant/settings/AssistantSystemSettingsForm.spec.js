@@ -20,6 +20,10 @@ beforeEach(() => {
   teamsState.dispatch.mockReset().mockResolvedValue();
 });
 
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '1', assistantId: '2' } }),
+}));
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
@@ -58,28 +62,43 @@ const submitForm = async wrapper => {
 };
 
 describe('AssistantSystemSettingsForm', () => {
+  it('omits messaging from the patch even when the assistant includes it', async () => {
+    const wrapper = mountComponent({
+      assistant: {
+        ...assistant,
+        config: { ...assistant.config, messaging: { version: 2, revision: 4 } },
+      },
+    });
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config).not.toHaveProperty(
+      'messaging'
+    );
+  });
+
   it('explains which message is sent outside business hours', () => {
     expect(mountComponent().text()).toContain(
       'CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.OUTSIDE_HOURS_HELP'
     );
   });
 
-  it('keeps only the goodbye message control in system settings', () => {
+  it('edits the only inactivity timer alongside the goodbye control', () => {
     const wrapper = mountComponent();
     expect(wrapper.findAllComponents(RadioCard)).toHaveLength(0);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
+    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
     expect(wrapper.findAllComponents(Switch)).toHaveLength(1);
     expect(wrapper.text()).toContain(
       'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
     );
   });
 
-  it('saves system messages without changing the mode or the inactivity timer', async () => {
+  it('saves the mode and timer together with system messages', async () => {
     const wrapper = mountComponent();
     await submitForm(wrapper);
 
     expect(wrapper.emitted('submit')[0][0]).toEqual({
       config: {
+        auto_resolve_mode: 'evaluated',
+        auto_resolve_after: 75,
         handoff_message: assistant.config.handoff_message,
         resolution_message: assistant.config.resolution_message,
         send_inactivity_resolution_message: true,
@@ -91,6 +110,38 @@ describe('AssistantSystemSettingsForm', () => {
         max_replies_per_conversation: 20,
       },
     });
+  });
+
+  it('hides the inactivity timer when automatic closing is disabled', async () => {
+    const wrapper = mountComponent();
+    wrapper
+      .findAllComponents(ComboBox)[0]
+      .vm.$emit('update:modelValue', 'disabled');
+    await nextTick();
+    expect(wrapper.findComponent(DurationSelect).exists()).toBe(false);
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config.auto_resolve_mode).toBe(
+      'disabled'
+    );
+  });
+
+  it('blocks an incompatible reduction and accepts it with reminders disabled', async () => {
+    const wrapper = mountComponent();
+    wrapper.findComponent(DurationSelect).vm.$emit('update:modelValue', 30);
+    await nextTick();
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')).toBeUndefined();
+    expect(wrapper.find('[role="alert"]').text()).toContain('AFTER_ERROR');
+    await wrapper.setProps({
+      assistant: {
+        config: {
+          auto_resolve_after: 30,
+          followup: { inactivity_enabled: false, inactivity_after_minutes: 30 },
+        },
+      },
+    });
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(30);
   });
 
   it('saves the reply limit, 20 by default and 0 for no limit', async () => {

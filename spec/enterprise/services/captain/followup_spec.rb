@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Captain::Followup do
   let(:account) { create(:account, locale: 'es', reporting_timezone: 'America/Guayaquil') }
-  let(:followup_config) { {} }
+  let(:followup_config) { { 'inactivity_after_minutes' => 30 } }
   let(:assistant_config) { { 'auto_resolve_after' => 120, 'followup' => followup_config } }
   let(:assistant) { create(:captain_assistant, account: account, name: 'Asistente de Ventas', config: assistant_config) }
   let(:inbox) { create(:inbox, account: account) }
@@ -202,6 +202,7 @@ RSpec.describe Captain::Followup do
       end
 
       it 'says goodbye to the customer when the assistant sends that message (inside the window)' do
+        assistant.update!(send_inactivity_resolution_message: true)
         nudge(now + 121.minutes)
 
         expect(public_messages.order(:id).last.content).to eq(I18n.t('conversations.activity.auto_resolution_message', locale: 'es'))

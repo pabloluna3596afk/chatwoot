@@ -1024,19 +1024,19 @@
           "PENDING_INFO": "The conversation remains pending until the customer replies.",
           "RESOLUTION_MESSAGE": {
             "TITLE": "Send a goodbye message when closing",
-            "DESCRIPTION": "Captain sends this message before closing the conversation for inactivity."
+            "DESCRIPTION": "Send a goodbye only when the channel allows a reply. A confirmed ending closes without another message."
           },
           "MODES": {
             "DISABLED": {
-              "LABEL": "Wait for the customer",
+              "LABEL": "Do not close automatically",
               "DESCRIPTION": "Captain does not close the conversation; it stays pending until the customer replies. It can hand it off if the customer asks."
             },
             "LEGACY": {
-              "LABEL": "Always resolve",
+              "LABEL": "Close only by time",
               "DESCRIPTION": "Captain resolves every conversation after the selected time."
             },
             "EVALUATED": {
-              "LABEL": "Let Captain review it (recommended)",
+              "LABEL": "Let Captain evaluate it (recommended)",
               "DESCRIPTION": "Captain decides whether to resolve the conversation or hand it off."
             }
           },
@@ -1245,8 +1245,8 @@
           "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows.",
           "TEMPLATE": "Re-engagement template",
           "GOODBYE_LINK": "Handoff and closing",
-          "AFTER_ERROR": "It must be shorter than the waiting time above.",
-          "GOODBYE_SENTENCE": "The goodbye message is edited in {link}."
+          "AFTER_ERROR": "The reminder interval must be shorter than the time without activity in Handoff and closing.",
+          "GOODBYE_SENTENCE": "Configure automatic closing in {link}."
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Fill in every variable of the template before saving.",
@@ -1377,6 +1377,18 @@
           "ON_SIGNAL": "High if the customer is upset or in a hurry",
           "ALWAYS": "Always high",
           "HELP": "{assistantName} never lowers a priority that is already set."
+        },
+        "CLOSURE": {
+          "TITLE": "When to close",
+          "HELP": "Only applies while Captain handles the conversation. An assigned person stays in control.",
+          "INACTIVITY": "Time without activity",
+          "INACTIVITY_HELP": "Without a completion signal, the conversation is reviewed after this time. If reminders are enabled, the time starts again after the last reminder. There may be a few minutes of delay.",
+          "SUMMARY": "Review after {minutes} minutes without activity.",
+          "NUDGES_SUMMARY": "First reminder after {after} min, up to {count} reminder(s) → close for no reply {minutes} min after the last reminder.",
+          "SILENCE_HELP": "Closing for no reply does not mean the request was solved.",
+          "FOLLOWUP_LINK": "Configure follow-up",
+          "DISABLED": "Automatic closing is off.",
+          "DISABLED_NUDGES": "Automatic closing is off. Follow-up will still send reminders."
         }
       },
       "EDIT": {

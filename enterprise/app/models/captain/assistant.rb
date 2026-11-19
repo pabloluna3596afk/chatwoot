@@ -68,6 +68,7 @@ class Captain::Assistant < ApplicationRecord
                  :max_replies_per_conversation, :reply_delay_seconds
 
   before_validation :set_default_auto_resolve_mode, on: :create
+  before_validation :set_new_closure_defaults, on: :create
   before_validation :normalize_auto_resolve_after
   before_validation :normalize_appointments_config
   before_validation :normalize_followup_config
@@ -359,6 +360,19 @@ class Captain::Assistant < ApplicationRecord
     return if value.is_a?(Integer) && value.between?(0, MAX_REPLY_DELAY_SECONDS)
 
     errors.add(:config, "reply_delay_seconds must be an integer between 0 and #{MAX_REPLY_DELAY_SECONDS}")
+  end
+
+  # Persist new defaults at creation; missing keys on existing assistants keep their historical fallback.
+  def set_new_closure_defaults
+    return if internal?
+
+    self.config = {
+      'auto_resolve_after' => 30,
+      'send_inactivity_resolution_message' => false
+    }.merge(config)
+    return unless config['followup'].nil? || config['followup'].is_a?(Hash)
+
+    config['followup'] = { 'inactivity_after_minutes' => 10 }.merge(config['followup'] || {})
   end
 
   def set_default_auto_resolve_mode

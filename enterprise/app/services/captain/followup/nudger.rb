@@ -2,7 +2,7 @@
 #
 # The customer owes a reply when the last public message (nudges aside) is Captain's. After
 # inactivity_after_minutes Captain sends one short message with [Sí, sigo aquí] [Ya no, gracias]: free, inside
-# the 24 h window and never outside it. After max_nudges (0-2) nudges, close_after_minutes after the last one with
+# the 24 h window and never outside it. After max_nudges (0-2) nudges, auto_resolve_after after the last one with
 # no answer, the conversation is resolved with a private note. Everything is derived from the messages, so a
 # customer reply (a new last message) starts over and running it twice sends nothing twice.
 class Captain::Followup::Nudger

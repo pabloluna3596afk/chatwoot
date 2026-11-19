@@ -2,7 +2,6 @@ import catalog from 'dashboard/components-next/variable-picker/specs/catalog.jso
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantFollowupForm from './AssistantFollowupForm.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import DurationSelect from './DurationSelect.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
@@ -73,6 +72,17 @@ describe('AssistantFollowupForm', () => {
     inboxes.value = [];
   });
 
+  it('saves only follow-up fields without forwarding messaging or closure settings', async () => {
+    const wrapper = mountForm({
+      messaging: { version: 2, revision: 4 },
+      auto_resolve_after: 120,
+      completion_signal_enabled: true,
+    });
+    await save(wrapper);
+    expect(Object.keys(submitted(wrapper))).toEqual(['followup']);
+    expect(submitted(wrapper)).not.toHaveProperty('messaging');
+  });
+
   it('warns about a saved non-utility template without offering it', async () => {
     inboxes.value = [
       {
@@ -112,9 +122,6 @@ describe('AssistantFollowupForm', () => {
     await save(wrapper);
 
     expect(submitted(wrapper)).toEqual({
-      response_window: 'always',
-      auto_resolve_mode: 'evaluated',
-      auto_resolve_after: 60,
       followup: {
         inactivity_enabled: true,
         inactivity_after_minutes: 30,
@@ -130,14 +137,14 @@ describe('AssistantFollowupForm', () => {
     const wrapper = mountForm();
     const html = wrapper.html();
 
-    expect(html.indexOf('followup-inactivity-resolution')).toBeLessThan(
+    expect(html.indexOf('closure-summary')).toBeLessThan(
       html.indexOf('followup-fields')
     );
     expect(html.indexOf('followup-fields')).toBeLessThan(
       html.indexOf('followup-reengagement')
     );
-    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(3);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
+
+    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
     expect(select(wrapper, 'followup-close')).toBeUndefined();
     expect(select(wrapper, 'followup-nudges').props('options')).toHaveLength(2);
     expect(wrapper.text()).toContain(
@@ -159,10 +166,9 @@ describe('AssistantFollowupForm', () => {
 
     expect(select(wrapper, 'followup-after').props('modelValue')).toBe(60);
     expect(select(wrapper, 'followup-nudges').props('modelValue')).toBe(2);
-    expect(wrapper.findAllComponents(RadioCard)[1].props('isActive')).toBe(
-      true
+    expect(wrapper.get('[data-testid="closure-summary"]').text()).toContain(
+      '90'
     );
-    expect(wrapper.findComponent(DurationSelect).props('modelValue')).toBe(90);
     expect(select(wrapper, 'followup-close')).toBeUndefined();
   });
 
@@ -297,7 +303,7 @@ describe('AssistantFollowupForm', () => {
           },
         },
       });
-      expect(submitted(wrapper).allow_paid_templates).toBe(true);
+      expect(submitted(wrapper)).not.toHaveProperty('allow_paid_templates');
     });
 
     it('offers only what the customer and the assistant can fill in, with samples for the preview', async () => {

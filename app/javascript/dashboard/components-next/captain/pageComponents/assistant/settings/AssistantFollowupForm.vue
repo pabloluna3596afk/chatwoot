@@ -6,15 +6,13 @@ import { useRoute } from 'vue-router';
 import { I18nT, useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import Banner from 'dashboard/components-next/banner/Banner.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
-import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
-import DurationSelect from './DurationSelect.vue';
+import ClosureSummary from './ClosureSummary.vue';
 import { useTemplateVariables } from './useTemplateVariables';
 import {
   useApprovedTemplates,
@@ -32,7 +30,7 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
-const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+const { nameRich } = useAssistantName(() => props.assistant);
 
 const route = useRoute();
 const { isCloudFeatureEnabled } = useAccount();
@@ -82,42 +80,6 @@ const afterOptions = computed(() =>
   }))
 );
 
-const autoResolveOptions = computed(() => [
-  {
-    value: 'evaluated',
-    label: nameRichFrom(
-      t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.LABEL')
-    ),
-    description: nameRichFrom(
-      t(
-        'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.DESCRIPTION'
-      )
-    ),
-  },
-  {
-    value: 'legacy',
-    label: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.LABEL'
-    ),
-    description: nameRichFrom(
-      t(
-        'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.DESCRIPTION'
-      )
-    ),
-  },
-  {
-    value: 'disabled',
-    label: t(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.LABEL'
-    ),
-    description: nameRichFrom(
-      t(
-        'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.DESCRIPTION'
-      )
-    ),
-  },
-]);
-
 const nudgeOptions = computed(() => [
   { value: 1, label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES_ONE') },
   { value: 2, label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES_TWO') },
@@ -152,21 +114,15 @@ const templateComplete = computed(
     isWhatsAppComplete(templateEntry(state.template), state.params)
 );
 
-const inactivityThresholdError = computed(() => {
-  if (!showErrors.value || state.autoResolveMode === 'disabled') return '';
-  if (
-    state.inactivityThresholdMinutes === null ||
-    state.inactivityThresholdMinutes === undefined ||
-    state.inactivityThresholdMinutes === ''
-  )
-    return t('GENERAL.VALIDATION.REQUIRED');
-
-  const threshold = Number(state.inactivityThresholdMinutes);
-  if (!Number.isInteger(threshold)) return t('GENERAL.VALIDATION.INTEGER');
-  if (threshold < 5) return t('GENERAL.VALIDATION.MIN_VALUE', { min: 5 });
-  if (threshold > 1440) return t('GENERAL.VALIDATION.MAX_VALUE', { max: 1440 });
-  return '';
-});
+const closureConfig = computed(() => ({
+  ...props.assistant.config,
+  followup: {
+    ...props.assistant.config?.followup,
+    inactivity_enabled: state.inactivityEnabled,
+    inactivity_after_minutes: state.afterMinutes,
+    max_nudges: state.maxNudges,
+  },
+}));
 
 const afterError = computed(
   () =>
@@ -187,22 +143,10 @@ const setInactivityEnabled = enabled => {
 
 const handleSubmit = () => {
   showErrors.value = true;
-  if (
-    !templateComplete.value ||
-    inactivityThresholdError.value ||
-    afterError.value
-  )
-    return;
+  if (!templateComplete.value || afterError.value) return;
 
   emit('submit', {
     config: {
-      ...props.assistant.config,
-      ...(isCaptainV2Enabled.value
-        ? {
-            auto_resolve_mode: state.autoResolveMode,
-            auto_resolve_after: Number(state.inactivityThresholdMinutes),
-          }
-        : {}),
       followup: {
         inactivity_enabled: state.inactivityEnabled,
         inactivity_after_minutes: Number(state.afterMinutes),
@@ -227,114 +171,24 @@ watch(
 
 <template>
   <div class="flex flex-col gap-6">
-    <SettingsToggleSection
-      v-if="isCaptainV2Enabled"
-      hide-toggle
-      data-testid="followup-inactivity-resolution"
-      :header="
-        nameRichFrom(t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.TITLE'))
-      "
-      :description="
-        t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DESCRIPTION')
-      "
+    <ClosureSummary v-if="isCaptainV2Enabled" :config="closureConfig" />
+    <I18nT
+      keypath="CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_SENTENCE"
+      tag="p"
+      class="mb-0 text-body-main text-n-slate-11"
     >
-      <div class="flex w-full flex-col gap-4 pt-3">
-        <div
-          class="flex flex-col gap-3 px-4"
-          role="radiogroup"
-          :aria-label="
-            t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODE_LABEL')
-          "
+      <template #link>
+        <RouterLink
+          :to="{
+            name: 'captain_assistants_settings_system_index',
+            params: route.params,
+          }"
+          class="text-n-brand underline"
         >
-          <RadioCard
-            v-for="option in autoResolveOptions"
-            :id="`auto-resolve-${option.value}`"
-            :key="option.value"
-            :label="option.label"
-            :description="option.description"
-            name="auto-resolve-mode"
-            :is-active="state.autoResolveMode === option.value"
-            @select="state.autoResolveMode = option.value"
-          />
-        </div>
-        <div
-          v-if="state.autoResolveMode !== 'disabled'"
-          class="flex flex-col gap-3 border-t border-n-weak px-4 pt-4"
-        >
-          <div
-            class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-          >
-            <span class="text-body-main font-medium text-n-slate-12">{{
-              t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.REVIEW_AFTER')
-            }}</span>
-            <DurationSelect
-              v-model="state.inactivityThresholdMinutes"
-              :error="inactivityThresholdError"
-              :hours-aria-label="
-                t(
-                  'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_HOURS_ARIA_LABEL'
-                )
-              "
-              :minutes-aria-label="
-                t(
-                  'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_MINUTES_ARIA_LABEL'
-                )
-              "
-            />
-          </div>
-        </div>
-        <Banner
-          v-if="state.autoResolveMode === 'legacy'"
-          color="amber"
-          class="mx-4"
-        >
-          <div class="flex items-start gap-2">
-            <span
-              class="i-lucide-triangle-alert mt-0.5 size-4 shrink-0"
-            /><AssistantNameText
-              :text="
-                nameRichFrom(
-                  t(
-                    'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.ALWAYS_WARNING'
-                  )
-                )
-              "
-            />
-          </div>
-        </Banner>
-        <Banner
-          v-if="state.autoResolveMode === 'disabled'"
-          color="blue"
-          class="mx-4"
-        >
-          <div class="flex items-start gap-2">
-            <span class="i-lucide-info mt-0.5 size-4 shrink-0" />{{
-              t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.PENDING_INFO')
-            }}
-          </div>
-        </Banner>
-        <I18nT
-          keypath="CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_SENTENCE"
-          tag="p"
-          class="mx-4 mb-0 text-body-main text-n-slate-11"
-        >
-          <template #link>
-            <RouterLink
-              :to="{
-                name: 'captain_assistants_settings_system_index',
-                params: {
-                  accountId: route.params.accountId,
-                  assistantId: route.params.assistantId,
-                },
-              }"
-              class="text-n-brand underline"
-            >
-              {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_LINK') }}
-            </RouterLink>
-          </template>
-        </I18nT>
-      </div>
-    </SettingsToggleSection>
+          {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_LINK') }}
+        </RouterLink>
+      </template>
+    </I18nT>
 
     <SettingsToggleSection
       :model-value="state.inactivityEnabled"

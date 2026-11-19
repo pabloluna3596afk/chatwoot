@@ -82,7 +82,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
       locale === 'es' ? 'Traspaso y cierre' : 'Handoff and closing';
 
     expect(wrapper.text()).toContain(expectedLink);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
+    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
     wrapper.unmount();
   });
 
@@ -157,14 +157,14 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     [1441, 'MAX_VALUE', { max: 1440 }],
     [null, 'REQUIRED', {}],
   ])('shows the inactivity error for %j', async (value, key, params) => {
-    const wrapper = shallowMount(AssistantFollowupForm, {
+    const wrapper = shallowMount(AssistantSystemSettingsForm, {
       props: {
         assistant: { config: { auto_resolve_after: 60 } },
       },
       global: { stubs: { SettingsToggleSection: false } },
     });
-    wrapper.vm.state.inactivityThresholdMinutes = value;
-    await wrapper.get('[data-testid="followup-save"]').trigger('click');
+    wrapper.findComponent(DurationSelect).vm.$emit('update:modelValue', value);
+    wrapper.findComponent(Button).vm.$emit('click');
     await flushPromises();
     expect(wrapper.findComponent(DurationSelect).props('error')).toBe(
       i18n.global.t(`GENERAL.VALIDATION.${key}`, params)
@@ -208,7 +208,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
   it.each([5, 1440, 60])(
     'preserves accepted inactivity timer boundary %s',
     async minutes => {
-      const wrapper = shallowMount(AssistantFollowupForm, {
+      const wrapper = shallowMount(AssistantSystemSettingsForm, {
         props: {
           assistant: {
             config: {
@@ -218,7 +218,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
           },
         },
       });
-      await wrapper.get('[data-testid="followup-save"]').trigger('click');
+      wrapper.findComponent(Button).vm.$emit('click');
       await flushPromises();
       expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(
         minutes
@@ -300,8 +300,9 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     });
     await wrapper.get('[data-testid="followup-save"]').trigger('click');
     await flushPromises();
-    expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(
-      1441
+    expect(wrapper.emitted('submit')).toHaveLength(1);
+    expect(wrapper.emitted('submit')[0][0].config).not.toHaveProperty(
+      'auto_resolve_after'
     );
     wrapper.unmount();
   });

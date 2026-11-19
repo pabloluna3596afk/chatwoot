@@ -20,6 +20,9 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import HandoffRoutingRow from './HandoffRoutingRow.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import DurationSelect from './DurationSelect.vue';
+import ClosureSummary from './ClosureSummary.vue';
 import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 
 const props = defineProps({
@@ -32,7 +35,9 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
-const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+const { nameRich, nameRichFrom, nameTextFrom } = useAssistantName(
+  () => props.assistant
+);
 
 const { isCloudFeatureEnabled } = useAccount();
 const store = useStore();
@@ -60,6 +65,8 @@ const DEFAULT_MAX_REPLIES = 20;
 const MAX_REPLIES_LIMIT = 1000;
 
 const initialState = {
+  autoResolveMode: 'evaluated',
+  inactivityThresholdMinutes: 60,
   handoffMessage: '',
   resolutionMessage: '',
   instructions: '',
@@ -113,8 +120,58 @@ const formErrors = computed(() => ({
   maxReplies: getErrorMessage('maxReplies'),
 }));
 
+const autoResolveOptions = computed(() => [
+  {
+    value: 'evaluated',
+    label: nameTextFrom(
+      t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.LABEL')
+    ),
+  },
+  {
+    value: 'legacy',
+    label: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.LABEL'
+    ),
+  },
+  {
+    value: 'disabled',
+    label: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.LABEL'
+    ),
+  },
+]);
+
+const closureConfig = computed(() => ({
+  ...props.assistant.config,
+  auto_resolve_mode: state.autoResolveMode,
+  auto_resolve_after: state.inactivityThresholdMinutes,
+}));
+const inactivityThresholdError = computed(() => {
+  if (!submitted.value || state.autoResolveMode === 'disabled') return '';
+  const value = state.inactivityThresholdMinutes;
+  if (value === null || value === undefined || value === '')
+    return t('GENERAL.VALIDATION.REQUIRED');
+  const threshold = Number(value);
+  if (!Number.isInteger(threshold)) return t('GENERAL.VALIDATION.INTEGER');
+  if (threshold < 5) return t('GENERAL.VALIDATION.MIN_VALUE', { min: 5 });
+  if (threshold > 1440) return t('GENERAL.VALIDATION.MAX_VALUE', { max: 1440 });
+  return '';
+});
+const followupTimingError = computed(() => {
+  const followup = props.assistant.config?.followup || {};
+  return (
+    state.autoResolveMode !== 'disabled' &&
+    followup.inactivity_enabled !== false &&
+    (followup.max_nudges ?? 1) > 0 &&
+    (followup.inactivity_after_minutes ?? 30) >=
+      Number(state.inactivityThresholdMinutes)
+  );
+});
+
 const updateStateFromAssistant = assistant => {
   const { config = {} } = assistant;
+  state.autoResolveMode = config.auto_resolve_mode ?? 'evaluated';
+  state.inactivityThresholdMinutes = config.auto_resolve_after ?? 60;
   state.handoffMessage = config.handoff_message;
   state.resolutionMessage = config.resolution_message;
   state.instructions = config.instructions;
@@ -153,6 +210,11 @@ const handleSystemMessagesUpdate = async () => {
   ).then(results => results.every(Boolean));
   if (!isValid) return;
   if (
+    isCaptainV2Enabled.value &&
+    (inactivityThresholdError.value || followupTimingError.value)
+  )
+    return;
+  if (
     routingKinds.some(kind => {
       const row = state.handoffRouting[kind];
       return (
@@ -178,6 +240,8 @@ const handleSystemMessagesUpdate = async () => {
 
   if (isCaptainV2Enabled.value) {
     Object.assign(payload.config, {
+      auto_resolve_mode: state.autoResolveMode,
+      auto_resolve_after: Number(state.inactivityThresholdMinutes),
       send_inactivity_resolution_message: state.sendInactivityResolutionMessage,
       resolution_message: state.resolutionMessage,
     });
@@ -200,6 +264,57 @@ watch(
 
 <template>
   <div class="flex flex-col gap-6">
+    <SettingsToggleSection
+      v-if="isCaptainV2Enabled"
+      hide-toggle
+      :header="t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.TITLE')"
+      :description="nameRichFrom(t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.HELP'))"
+    >
+      <div class="flex w-full flex-col gap-4 px-4 pt-3">
+        <ComboBox
+          v-model="state.autoResolveMode"
+          data-testid="closure-mode"
+          :options="autoResolveOptions"
+          :allow-deselect="false"
+          :aria-label="
+            t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODE_LABEL')
+          "
+        />
+        <div
+          v-if="state.autoResolveMode !== 'disabled'"
+          class="flex flex-col gap-2"
+        >
+          <span class="text-body-main font-medium text-n-slate-12">{{
+            t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.INACTIVITY')
+          }}</span>
+          <DurationSelect
+            v-model="state.inactivityThresholdMinutes"
+            :error="inactivityThresholdError"
+            :hours-aria-label="
+              t(
+                'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_HOURS_ARIA_LABEL'
+              )
+            "
+            :minutes-aria-label="
+              t(
+                'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_MINUTES_ARIA_LABEL'
+              )
+            "
+          />
+          <p class="m-0 text-xs text-n-slate-11">
+            {{ t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.INACTIVITY_HELP') }}
+          </p>
+        </div>
+        <p
+          v-if="submitted && followupTimingError"
+          role="alert"
+          class="m-0 text-xs text-n-ruby-9"
+        >
+          {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR') }}
+        </p>
+        <ClosureSummary :config="closureConfig" link-to-followup />
+      </div>
+    </SettingsToggleSection>
     <SettingsToggleSection
       v-if="isCaptainV2Enabled"
       v-model="state.sendInactivityResolutionMessage"

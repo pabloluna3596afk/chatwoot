@@ -1024,15 +1024,15 @@
           "PENDING_INFO": "La conversación queda pendiente hasta que el cliente responda.",
           "RESOLUTION_MESSAGE": {
             "TITLE": "Enviar un mensaje de despedida al cerrar",
-            "DESCRIPTION": "Captain envía este mensaje antes de cerrar la conversación por inactividad."
+            "DESCRIPTION": "Enviar una despedida solo si el canal permite responder. Un final confirmado se cierra sin otro mensaje."
           },
           "MODES": {
             "DISABLED": {
-              "LABEL": "Esperar al cliente",
+              "LABEL": "No cerrar automáticamente",
               "DESCRIPTION": "Captain no cierra la conversación; queda pendiente hasta que el cliente responda. Puede transferirla si el cliente lo pide."
             },
             "LEGACY": {
-              "LABEL": "Resolver siempre",
+              "LABEL": "Cerrar solo por tiempo",
               "DESCRIPTION": "Captain resuelve toda conversación después del tiempo elegido."
             },
             "EVALUATED": {
@@ -1245,8 +1245,8 @@
           "PAID_HINT": "Para enviar plantillas, activa «Permitir plantillas con costo» en Plantillas y Flows.",
           "TEMPLATE": "Plantilla de reenganche",
           "GOODBYE_LINK": "Traspaso y cierre",
-          "AFTER_ERROR": "Debe ser menor que el tiempo de espera de arriba.",
-          "GOODBYE_SENTENCE": "El mensaje de despedida se edita en {link}."
+          "AFTER_ERROR": "El intervalo de recordatorio debe ser menor que el tiempo sin actividad de Traspaso y cierre.",
+          "GOODBYE_SENTENCE": "Configura el cierre automático en {link}."
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Completa todas las variables de la plantilla antes de guardar.",
@@ -1377,6 +1377,18 @@
           "ON_SIGNAL": "Alta si el cliente está molesto o tiene prisa",
           "ALWAYS": "Alta siempre",
           "HELP": "{assistantName} nunca baja una prioridad que ya está puesta."
+        },
+        "CLOSURE": {
+          "TITLE": "Cuándo cerrar",
+          "HELP": "Solo se aplica mientras Captain atiende la conversación. Una persona asignada conserva el control.",
+          "INACTIVITY": "Tiempo sin actividad",
+          "INACTIVITY_HELP": "Sin señal de cierre, se revisa al vencer este tiempo. Si hay recordatorios, el plazo vuelve a contar desde el último. Puede haber unos minutos de demora.",
+          "SUMMARY": "Revisar después de {minutes} minutos sin actividad.",
+          "NUDGES_SUMMARY": "Primer recordatorio a los {after} min, hasta {count} recordatorio(s) → cierre por falta de respuesta {minutes} min después del último.",
+          "SILENCE_HELP": "Cerrar por falta de respuesta no significa que la consulta quedó solucionada.",
+          "FOLLOWUP_LINK": "Configurar seguimiento",
+          "DISABLED": "El cierre automático está desactivado.",
+          "DISABLED_NUDGES": "El cierre automático está desactivado. Seguimiento aún enviará recordatorios."
         }
       },
       "EDIT": {
