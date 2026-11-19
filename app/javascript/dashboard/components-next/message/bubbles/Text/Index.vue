@@ -71,6 +71,12 @@ const contactInfoRequestState = computed(() => {
   return contentAttributes.value?.whatsappContactInfo?.state;
 });
 
+const hasMedia = computed(() =>
+  attachments.value?.some(item =>
+    ['image', 'video', 'ig_reel'].includes(item.fileType)
+  )
+);
+
 const isEmpty = computed(() => {
   return !content.value && !attachments.value?.length;
 });
@@ -101,7 +107,11 @@ const handleSeeOriginal = () => {
       <span v-if="isEmpty" class="text-n-slate-11">
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>
-      <AttachmentChips part="media" :attachments="attachments" />
+      <AttachmentChips
+        part="media"
+        :attachments="attachments"
+        :class="hasMedia ? '-mx-2 -mt-1' : ''"
+      />
       <AttachmentChips part="files" :attachments="attachments" class="gap-2" />
       <FormattedContent v-if="renderContent" :content="renderContent" />
       <span

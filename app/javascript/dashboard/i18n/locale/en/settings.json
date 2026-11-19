@@ -331,6 +331,7 @@
     },
     "MEDIA": {
       "VIEW_FULL": "View full",
+      "VIDEO_N_OF": "Video {index} of {total}",
       "PHOTO_N_OF": "Photo {index} of {total}",
       "MORE": "+{count}",
       "RETRY": "Retry",

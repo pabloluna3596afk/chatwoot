@@ -185,7 +185,7 @@ describe('attachment composition', () => {
       },
       global: globalOptions(),
     });
-    await reel.get('video').trigger('error');
+    await reel.get('img').trigger('error');
     expect(reel.text()).toContain(
       'This file is no longer available on Instagram.'
     );

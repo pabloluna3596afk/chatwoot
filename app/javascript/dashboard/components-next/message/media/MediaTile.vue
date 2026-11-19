@@ -14,17 +14,17 @@ const props = defineProps({
   total: { type: Number, required: true },
   more: { type: Number, default: 0 },
   channelType: { type: String, default: '' },
+  transparent: { type: Boolean, default: false },
 });
-const emit = defineEmits(['open']);
+const emit = defineEmits(['open', 'error']);
 const { t } = useI18n();
 const single = computed(() => props.total === 1);
 const isVideo = computed(() =>
   ['video', 'ig_reel'].includes(props.attachment.fileType)
 );
-const loadedDimensions = shallowRef(null);
 const dimensions = computed(() => ({
-  width: props.attachment.width || loadedDimensions.value?.width,
-  height: props.attachment.height || loadedDimensions.value?.height,
+  width: props.attachment.width,
+  height: props.attachment.height,
 }));
 const tall = computed(
   () => single.value && dimensions.value.height / dimensions.value.width > 3
@@ -48,10 +48,15 @@ const alt = computed(
     t('CONVERSATION.REPLY_PREVIEW.PHOTO')
 );
 const label = computed(() =>
-  t('COMPONENTS.MEDIA.PHOTO_N_OF', {
-    index: props.index + 1,
-    total: props.total,
-  })
+  t(
+    isVideo.value
+      ? 'COMPONENTS.MEDIA.VIDEO_N_OF'
+      : 'COMPONENTS.MEDIA.PHOTO_N_OF',
+    {
+      index: props.index + 1,
+      total: props.total,
+    }
+  )
 );
 const { isLoaded, hasError, isExpired, errorText, onLoad, onError, retry } =
   useMediaState(
@@ -59,12 +64,14 @@ const { isLoaded, hasError, isExpired, errorText, onLoad, onError, retry } =
     () => props.channelType,
     src
   );
-const handleLoad = event => {
-  loadedDimensions.value = {
-    width: event.target.naturalWidth,
-    height: event.target.naturalHeight,
-  };
-  onLoad();
+const videoDuration = shallowRef(0);
+const durationLabel = computed(() => {
+  const seconds = Math.floor(videoDuration.value);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+});
+const onMetadata = event => {
+  const { duration } = event.target;
+  videoDuration.value = Number.isFinite(duration) ? duration : 0;
 };
 const isDownloading = shallowRef(false);
 const download = async () => {
@@ -76,8 +83,9 @@ const download = async () => {
 
 <template>
   <figure
-    class="relative group overflow-hidden bg-n-alpha-1 m-0 min-w-0"
+    class="relative group overflow-hidden m-0 min-w-0"
     :class="[
+      transparent ? 'bg-transparent' : 'bg-n-alpha-1',
       single
         ? tall
           ? 'rounded-lg w-[20rem] max-w-full h-[22rem]'
@@ -100,7 +108,7 @@ const download = async () => {
             : 'w-auto max-h-[22rem]'
           : 'w-full h-full',
         {
-          'aspect-[4/3]': single && !dimensions.width,
+          'aspect-[4/3] w-[20rem]': single && !dimensions.width,
           'aspect-square': !single && !(total === 3 && index === 0),
         },
       ]"
@@ -129,8 +137,12 @@ const download = async () => {
         muted
         playsinline
         preload="metadata"
+        @loadedmetadata="onMetadata"
         @loadeddata="onLoad"
-        @error="onError"
+        @error="
+          onError();
+          emit('error');
+        "
       />
       <img
         v-else-if="!hasError"
@@ -140,10 +152,16 @@ const download = async () => {
         :height="dimensions.height"
         loading="lazy"
         decoding="async"
-        class="absolute inset-0 size-full skip-context-menu"
-        :class="single && !tall ? 'object-contain' : 'object-cover object-top'"
-        @load="handleLoad"
-        @error="onError"
+        class="absolute inset-0 size-full skip-context-menu transition-opacity duration-200 motion-reduce:transition-none"
+        :class="[
+          { 'opacity-0': !isLoaded },
+          single && !tall ? 'object-contain' : 'object-cover object-top',
+        ]"
+        @load="onLoad"
+        @error="
+          onError();
+          emit('error');
+        "
       />
       <span
         v-if="isVideo && !hasError"
@@ -151,9 +169,14 @@ const download = async () => {
       >
         <Icon
           icon="i-teenyicons-play-small-solid"
-          class="size-7 rounded-full bg-black/50 text-white"
+          class="size-12 p-2.5 rounded-full bg-black/60 text-white ring-1 ring-white/30 backdrop-blur-sm transition-transform group-hover:scale-105 motion-reduce:transform-none"
         />
       </span>
+      <span
+        v-if="isVideo && videoDuration > 0"
+        class="absolute bottom-2 start-2 rounded-full bg-black/60 px-2 py-0.5 text-xs tabular-nums text-white"
+        >{{ durationLabel }}</span
+      >
       <span
         v-if="tall && !hasError"
         class="absolute inset-x-0 bottom-0 h-16 flex items-end justify-center pb-2 bg-gradient-to-t from-black/50"
@@ -172,10 +195,13 @@ const download = async () => {
     </button>
     <div
       v-if="hasError"
-      class="relative flex flex-col items-start gap-2 p-3 text-xs text-n-slate-11"
+      class="relative flex flex-col items-center justify-center gap-3 min-h-32 p-4 text-center text-sm leading-5 text-n-slate-11"
       role="status"
     >
-      <Icon icon="i-lucide-image-off" />
+      <Icon
+        icon="i-lucide-image-off"
+        class="size-10 p-2.5 rounded-full bg-n-alpha-2 text-n-slate-11"
+      />
       <span>{{ errorText }}</span>
       <div v-if="!isExpired" class="flex flex-wrap gap-1">
         <Button
@@ -195,7 +221,7 @@ const download = async () => {
     </div>
     <div
       v-else-if="single"
-      class="absolute bottom-2 end-2 flex gap-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+      class="absolute top-2 end-2 flex gap-1 rounded-lg bg-n-solid-1 p-0.5 shadow-sm [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
     >
       <Button
         size="xs"

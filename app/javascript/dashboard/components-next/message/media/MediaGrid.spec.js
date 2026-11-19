@@ -34,6 +34,41 @@ const options = () => ({
 });
 
 describe('attachment media grid', () => {
+  it('keeps the reserved frame after loading an image without dimensions', async () => {
+    const wrapper = mount(MediaTile, {
+      ...options(),
+      props: {
+        attachment: { ...image, width: null, height: null },
+        index: 0,
+        total: 1,
+      },
+    });
+    expect(wrapper.get('button').classes()).toContain('aspect-[4/3]');
+    await wrapper.get('img').trigger('load');
+    expect(wrapper.get('button').classes()).toContain('aspect-[4/3]');
+    expect(wrapper.get('img').classes()).not.toContain('opacity-0');
+  });
+
+  it('shows duration only after native video metadata is available', async () => {
+    const wrapper = mount(MediaTile, {
+      ...options(),
+      props: {
+        attachment: {
+          ...image,
+          fileType: 'video',
+          thumbUrl: '',
+          dataUrl: '/video.mp4',
+        },
+        index: 0,
+        total: 1,
+      },
+    });
+    const video = wrapper.get('video');
+    Object.defineProperty(video.element, 'duration', { value: 83 });
+    await video.trigger('loadedmetadata');
+    expect(wrapper.text()).toContain('1:23');
+  });
+
   it('uses a video thumbnail even when it is the only tile', () => {
     const wrapper = mount(MediaTile, {
       ...options(),

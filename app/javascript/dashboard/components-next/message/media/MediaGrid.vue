@@ -9,7 +9,13 @@ const props = defineProps({
   items: { type: Array, required: true },
   caption: { type: String, default: '' },
 });
-const { filteredCurrentChatAttachments, channelType } = useMessageContext();
+
+const emit = defineEmits(['error']);
+
+defineOptions({ inheritAttrs: false });
+
+const { filteredCurrentChatAttachments, channelType, contentType } =
+  useMessageContext();
 const selected = shallowRef(null);
 const visibleItems = computed(() => props.items.slice(0, 4));
 </script>
@@ -17,11 +23,12 @@ const visibleItems = computed(() => props.items.slice(0, 4));
 <template>
   <div
     v-if="items.length"
-    class="w-[min(20rem,100%)] min-w-0"
+    v-bind="$attrs"
+    class="max-w-full min-w-0"
     :class="
       items.length > 1
-        ? 'grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg'
-        : ''
+        ? 'w-[20rem] grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg'
+        : 'w-fit'
     "
   >
     <MediaTile
@@ -33,6 +40,8 @@ const visibleItems = computed(() => props.items.slice(0, 4));
       :total="items.length"
       :more="index === 3 ? Math.max(0, items.length - 4) : 0"
       :channel-type="channelType"
+      :transparent="contentType === 'sticker'"
+      @error="emit('error')"
       @open="selected = $event"
     />
   </div>

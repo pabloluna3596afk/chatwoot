@@ -6,7 +6,11 @@ const { attachments, content } = useMessageContext();
 </script>
 
 <template>
-  <BaseBubble class="overflow-hidden p-3" data-bubble-name="image">
+  <BaseBubble
+    overlay-meta
+    class="overflow-hidden p-1 [&>button]:mx-0 [&>button]:w-auto"
+    data-bubble-name="image"
+  >
     <MediaGrid :items="attachments" :caption="content || ''" />
   </BaseBubble>
 </template>

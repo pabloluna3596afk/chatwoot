@@ -82,6 +82,7 @@ const files = computed(() => {
     v-if="part !== 'files' && mediaAttachments.length"
     :items="mediaAttachments"
     :caption="content || ''"
+    :class="attrs.class"
   />
   <div v-if="part !== 'media' && recordings.length" :class="classToApply">
     <div v-for="attachment in recordings" :key="attachment.id">
