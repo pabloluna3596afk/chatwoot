@@ -161,8 +161,9 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   def handoff_conversation(conversation, evaluation)
     handed_off = with_inference_activity_context(conversation, activity_reason(conversation, 'pending_clarification')) do
       perform_locked_transition(conversation) do
-        conversation.bot_handoff!(dispatch_event: false)
-        create_private_note(conversation, handoff_note(conversation, evaluation),
+        routing = Captain::HandoffRouter.new(conversation: conversation, assistant: captain_assistant).plan
+        conversation.bot_handoff!(dispatch_event: false, routing: routing)
+        create_private_note(conversation, [handoff_note(conversation, evaluation), routing.note].compact.join("\n"),
                             captain_handoff: { reason_category: 'pending_clarification', source: 'inference' })
         create_handoff_message(conversation)
       end
@@ -171,8 +172,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
 
     conversation.dispatch_bot_handoff_event
     Captain::ConversationEvents.handed_off(
-      conversation: conversation,
-      assistant: captain_assistant,
+      conversation: conversation, assistant: captain_assistant,
       source: Captain::ConversationEvents::Sources::INFERENCE,
       reason_category: :pending_clarification,
       at: Time.current

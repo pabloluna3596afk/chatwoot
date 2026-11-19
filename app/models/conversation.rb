@@ -239,12 +239,13 @@ class Conversation < ApplicationRecord
     save
   end
 
-  def bot_handoff!(dispatch_event: true)
+  def bot_handoff!(dispatch_event: true, routing: nil)
     # Best-effort eligibility check, not a lock against concurrent takeovers.
     # The dashboard checks assignment/status again before playing the alert.
     return false unless pending?
 
     update(waiting_since: Time.current) if waiting_since.blank?
+    apply_handoff_routing(routing) if routing
     # Set before open! so the mark and the status change travel in the same save and event.
     self.captain_handed_off_at = Time.current if captain_attended? && assignee_id.blank?
     self.ai_assignee = nil
@@ -370,6 +371,17 @@ class Conversation < ApplicationRecord
 
   private
 
+  def apply_handoff_routing(routing)
+    if routing.team
+      self.team = routing.team
+      self.assignee = routing.assignee || find_assignee_from_team
+    elsif routing.assignee
+      self.assignee = routing.assignee
+    end
+    self.priority = routing.priority if routing.priority && !high? && !urgent?
+    self.additional_attributes = additional_attributes.except('captain_previous_assignee_id')
+  end
+
   def execute_after_update_commit_callbacks
     handle_resolved_status_change
     notify_status_change
@@ -478,6 +490,7 @@ class Conversation < ApplicationRecord
 
   def clear_captain_handoff_mark
     self.captain_handed_off_at = nil if captain_handed_off_at.present? && (assignee_id.present? || resolved? || pending?)
+    self.additional_attributes = additional_attributes.except('captain_reopened_at', 'captain_previous_assignee_id') if resolved?
   end
 
   def determine_conversation_status

@@ -406,6 +406,20 @@ RSpec.describe Conversation do
       allow(Rails.configuration.dispatcher).to receive(:dispatch)
     end
 
+    it 'saves routing and the open status together and emits one opened event' do
+      agent = create(:user, account: conversation.account)
+      create(:inbox_member, inbox: conversation.inbox, user: agent)
+      team = create(:team, account: conversation.account)
+      create(:team_member, team: team, user: agent)
+      routing = Struct.new(:assignee, :team, :priority).new(agent, team, :high)
+      expect(conversation).to receive(:save!).once.and_call_original
+      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(
+        'conversation.opened', anything, hash_including(conversation: conversation)
+      ).once
+      conversation.bot_handoff!(routing: routing)
+      expect(conversation.reload).to have_attributes(status: 'open', team: team, assignee: agent, priority: 'high')
+    end
+
     context 'when waiting_since is blank' do
       before { conversation.update(waiting_since: nil) }
 

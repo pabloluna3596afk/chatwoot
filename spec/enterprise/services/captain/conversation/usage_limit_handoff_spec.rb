@@ -26,6 +26,14 @@ RSpec.describe Captain::Conversation::UsageLimitHandoff do
     )
   end
 
+  it 'uses routing on usage-limit handoff without changing the customer reply' do
+    assistant.update!(config: assistant.config.merge('handoff_priority' => 'always'))
+    expect(Captain::HandoffRouter).to receive(:new).with(conversation: conversation, assistant: assistant).and_call_original
+    service.perform
+    expect(conversation.reload).to be_high
+    expect(conversation.messages.where(private: true).sole.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high', locale: 'es'))
+  end
+
   it 'sends only the out-of-office message outside hours and leaves one handoff note' do
     inbox.update!(working_hours_enabled: true, out_of_office_message: 'Cerrado')
     inbox.working_hours.each { |hours| hours.update!(closed_all_day: true, open_all_day: false) }

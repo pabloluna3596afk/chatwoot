@@ -1244,7 +1244,7 @@
           "REENGAGEMENT_HELP": "Cuando Captain cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Viene desactivado. Sale entre las 08:00 y las 21:00.",
           "PAID_HINT": "Para enviar plantillas, activa «Permitir plantillas con costo» en Plantillas y Flows.",
           "TEMPLATE": "Plantilla de reenganche",
-          "GOODBYE_LINK": "Mensajes del sistema",
+          "GOODBYE_LINK": "Traspaso y cierre",
           "AFTER_ERROR": "Debe ser menor que el tiempo de espera de arriba.",
           "GOODBYE_SENTENCE": "El mensaje de despedida se edita en {link}."
         },
@@ -1331,6 +1331,52 @@
           "UNAVAILABLE_FLOW": "Ya no está publicado: Captain no lo envía.",
           "TEMPLATES_TOGGLE": "Permitir plantillas con costo",
           "TEMPLATES_TOGGLE_HELP": "Las plantillas son mensajes aprobados por Meta y pueden enviarse aunque el cliente no haya escrito en 24 h. Meta cobra cada plantilla. Si está apagado, Captain no envía ninguna."
+        },
+        "HANDOFF_ROUTING": {
+          "TITLE": "A quién va el traspaso",
+          "DESCRIPTION": "Captain nunca asigna a alguien desconectado ni a quien no está en la bandeja. Si nadie está disponible, la conversación queda sin asignar y el cliente recibe el mensaje de traspaso.",
+          "NEW": "Conversación nueva",
+          "REOPENED": "Conversación reabierta",
+          "REOPENED_HELP": "El cliente vuelve a escribir después de que se resolvió.",
+          "MODES": {
+            "INBOX": {
+              "LABEL": "Repartir como la bandeja",
+              "HELP": "Usa la asignación automática de la bandeja. Si está apagada o no hay nadie conectado, queda sin asignar."
+            },
+            "LAST_AGENT_NEW": {
+              "LABEL": "La persona que atendió a este cliente la última vez"
+            },
+            "LAST_AGENT_REOPENED": {
+              "LABEL": "La persona que la atendió antes"
+            },
+            "LAST_AGENT": {
+              "HELP": "Si esa persona está conectada y está en la bandeja, se la asigna a ella. Si no, se reparte como la bandeja."
+            },
+            "TEAM": {
+              "LABEL": "Un equipo fijo",
+              "HELP": "Se reparte entre las personas conectadas del equipo. Si nadie está conectado, queda en el equipo sin asignar."
+            },
+            "AI_TEAM": {
+              "LABEL": "Captain elige el equipo",
+              "HELP": "Captain lee la descripción de cada equipo (Ajustes → Equipos) y elige el que encaja. Si ninguno encaja, se reparte como la bandeja."
+            }
+          },
+          "TEAM_PLACEHOLDER": "Elige un equipo",
+          "TEAM_REQUIRED": "Elige un equipo.",
+          "TEAMS_LOADING": "Cargando equipos…",
+          "TEAMS_ERROR": "No se pudieron cargar los equipos.",
+          "NO_TEAMS": "Crea un equipo en Ajustes → Equipos para usar esta opción.",
+          "TEAM_NO_MEMBERS": "Nadie de este equipo está en las bandejas de este asistente. Las conversaciones quedarán en el equipo sin asignar.",
+          "AI_TEAM_NONE": "Ningún equipo tiene personas en las bandejas de este asistente. Mientras tanto se repartirá como la bandeja.",
+          "TEAM_DELETED": "Equipo eliminado",
+          "TEAM_DELETED_HELP": "Ese equipo ya no existe. Elige otro; mientras tanto se reparte como la bandeja."
+        },
+        "HANDOFF_PRIORITY": {
+          "TITLE": "Prioridad al traspasar",
+          "OFF": "No cambiar la prioridad",
+          "ON_SIGNAL": "Alta si el cliente está molesto o tiene prisa",
+          "ALWAYS": "Alta siempre",
+          "HELP": "Captain nunca baja una prioridad que ya está puesta."
         }
       },
       "EDIT": {
@@ -1347,9 +1393,9 @@
           "DESCRIPTION": "Personaliza lo que dice el asistente al terminar una conversación o al transferirla a una persona."
         },
         "SYSTEM_SETTINGS": {
-          "TITLE": "Mensajes del sistema",
-          "DESCRIPTION": "Personaliza lo que dice el asistente al terminar una conversación o al transferirla a una persona.",
-          "DESCRIPTION_V2": "Los mensajes que Captain envía al transferir o al cerrar una conversación, y sus límites."
+          "TITLE": "Traspaso y cierre",
+          "DESCRIPTION": "Qué hace Captain al pasar una conversación a una persona o al cerrarla.",
+          "DESCRIPTION_V2": "Qué hace Captain al pasar una conversación a una persona o al cerrarla."
         },
         "AUDIENCE": {
           "TITLE": "Audiencia",

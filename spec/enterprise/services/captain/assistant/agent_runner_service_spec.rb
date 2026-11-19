@@ -1089,6 +1089,19 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
       expect(service.handoff_completed?).to be true
     end
 
+    it 'recognizes the configured handoff variant and its completion marker' do
+      assistant.update!(config: assistant.config.merge('handoff_priority' => 'on_signal'))
+      service = described_class.new(assistant: assistant, conversation: conversation)
+      callback = nil
+      allow(ChatwootApp).to receive(:otel_enabled?).and_return(false)
+      allow(mock_runner).to receive(:on_tool_complete) { |&block| callback = block }
+      service.send(:add_usage_metadata_callback, mock_runner)
+      context = Struct.new(:context).new({ state: { captain_v2_handoff_tool_completed: true } })
+      callback.call(Captain::Tools::HandoffTool.for_assistant(assistant).name, 'ok', context)
+      expect(context.context[:captain_v2_handoff_tool_called]).to be true
+      expect(service.handoff_completed?).to be true
+    end
+
     it 'tracks discarded responses when OTEL is disabled' do
       responding_to_message = create(:message, conversation: conversation, message_type: :incoming)
       service = described_class.new(

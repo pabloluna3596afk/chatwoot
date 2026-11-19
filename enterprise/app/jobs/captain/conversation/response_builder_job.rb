@@ -240,12 +240,13 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
         "source=#{@response&.dig('action_source') || 'legacy'} reason=#{@response&.dig('action_reason')}"
       )
       create_handoff_message
-      @conversation.bot_handoff!
+      routing = Captain::HandoffRouter.new(conversation: @conversation, assistant: @assistant).plan
+      @conversation.bot_handoff!(routing: routing)
       return report_v1_handoff_not_executed if conversation_pending?
 
       @conversation.messages.create!(
         message_type: :outgoing, private: true, sender: @assistant, account: account, inbox: inbox,
-        content: I18n.t("captain.notes.#{note_key}", assistant: @assistant.name),
+        content: [I18n.t("captain.notes.#{note_key}", assistant: @assistant.name), routing.note].compact.join("\n"),
         content_attributes: { captain_handoff: { reason_category: reason_category, source: source } }
       )
     end

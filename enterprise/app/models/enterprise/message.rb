@@ -52,7 +52,9 @@ module Enterprise::Message
     return unless conversation.pending?
     return if conversation.ai_assignee == assistant && conversation.assignee_id.blank?
 
-    conversation.update!(assignee_id: nil, ai_assignee: assistant)
+    attributes = conversation.additional_attributes.merge('captain_reopened_at' => Time.current.iso8601)
+    attributes['captain_previous_assignee_id'] = conversation.assignee_id if conversation.assignee_id
+    conversation.update!(assignee_id: nil, ai_assignee: assistant, additional_attributes: attributes)
   end
 
   def mark_pending_conversation_as_open_for_human_response
