@@ -105,54 +105,54 @@ const mountForm = async ({
 } = {}) => {
   linkedInboxes.value = inboxes.map(inbox => ({ ...inbox }));
   inboxRecords.value = inboxes.map(inbox => ({ ...inbox }));
-  const wrapper = mount(AssistantMessagingForm, {
-    props: {
-      assistant: {
-        id: 3,
-        config: {
-          allow_paid_templates: true,
-          messaging: {
-            version: 2,
-            revision: 4,
-            inboxes: inboxes
-              .filter(item => item.channel_type === 'Channel::Whatsapp')
-              .map(item => ({
-                inbox_id: item.id,
-                enabled: true,
-                mode: 'auto',
-                excluded: { templates: [], flows: [] },
-                included_marketing: [],
-                reviewed: { templates: {}, flows: {} },
-                notes: {},
-              })),
-          },
-        },
-        envios: {
-          template_cap: { cap: 50, used: 12 },
-          inboxes: inboxes
-            .filter(item => item.channel_type === 'Channel::Whatsapp')
-            .map(item => ({
-              inbox_id: item.id,
-              waba_id: `waba-${item.id}`,
-              counts: { available: 1 },
-              resources: [
-                {
-                  resource: {
-                    name: 'pedido_listo',
-                    language: 'es',
-                    category: 'UTILITY',
-                  },
-                  state: 'available',
-                  can_send: true,
-                  note: 'Confirmar el pedido',
-                  processed_params: { body: { nombre: '{{ contact.name }}' } },
-                },
-              ],
-            })),
-        },
-        ...assistant,
+  const assistantRecord = {
+    id: 3,
+    config: {
+      allow_paid_templates: true,
+      messaging: {
+        version: 2,
+        revision: 4,
+        inboxes: inboxes
+          .filter(item => item.channel_type === 'Channel::Whatsapp')
+          .map(item => ({
+            inbox_id: item.id,
+            enabled: true,
+            mode: 'auto',
+            excluded: { templates: [], flows: [] },
+            included_marketing: [],
+            reviewed: { templates: {}, flows: {} },
+            notes: {},
+          })),
       },
     },
+    envios: {
+      template_cap: { cap: 50, used: 12 },
+      inboxes: inboxes
+        .filter(item => item.channel_type === 'Channel::Whatsapp')
+        .map(item => ({
+          inbox_id: item.id,
+          waba_id: `waba-${item.id}`,
+          counts: { available: 1 },
+          resources: [
+            {
+              resource: {
+                name: 'pedido_listo',
+                language: 'es',
+                category: 'UTILITY',
+              },
+              state: 'available',
+              can_send: true,
+              note: 'Confirmar el pedido',
+              processed_params: { body: { nombre: '{{ contact.name }}' } },
+            },
+          ],
+        })),
+    },
+    ...assistant,
+  };
+  AssistantAPI.show.mockImplementation(async () => ({ data: assistantRecord }));
+  const wrapper = mount(AssistantMessagingForm, {
+    props: { assistant: assistantRecord },
     global: {
       mocks: { $t: key => key },
       stubs: {
@@ -524,6 +524,55 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
     ).toBe(false);
   });
 
+  it('saves the revision and permissions loaded by show, without resending unrelated config', async () => {
+    const messaging = {
+      version: 2,
+      revision: 12,
+      inboxes: [
+        {
+          inbox_id: 10,
+          enabled: false,
+          mode: 'auto',
+          excluded: { templates: ['123:offer|es'], flows: [] },
+          included_marketing: ['123:offer|es'],
+          notes: { 'template:123:offer|es': 'Keep this note' },
+        },
+      ],
+    };
+    AssistantAPI.show.mockResolvedValueOnce({
+      data: {
+        config: {
+          messaging,
+          allow_paid_templates: true,
+          reply_delay_seconds: 5,
+        },
+      },
+    });
+    const wrapper = await mountForm();
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    await flushPromises();
+    expect(AssistantAPI.update).toHaveBeenCalledWith(3, {
+      config: { allow_paid_templates: true, messaging },
+    });
+  });
+
+  it('does not revert the loaded revision when a stale store record is renamed', async () => {
+    AssistantAPI.show.mockResolvedValueOnce({
+      data: {
+        config: { messaging: { version: 2, revision: 12, inboxes: [] } },
+      },
+    });
+    const wrapper = await mountForm();
+    await wrapper.setProps({
+      assistant: { ...wrapper.props('assistant'), name: 'Renamed' },
+    });
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    await flushPromises();
+    expect(AssistantAPI.update.mock.lastCall[1].config.messaging.revision).toBe(
+      12
+    );
+  });
+
   it('saves the versioned messaging payload through the existing save action', async () => {
     const wrapper = await mountForm();
     await wrapper.get('[data-testid="messaging-save"]').trigger('click');
@@ -608,6 +657,59 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       });
     }
   );
+
+  it('keeps confirmed reviews when retrying a partially failed save', async () => {
+    const wrapper = await mountForm();
+    const entry = wrapper.props('assistant').config.messaging.inboxes[0];
+    const response = revision => ({
+      data: {
+        config: {
+          allow_paid_templates: true,
+          messaging: {
+            version: 2,
+            revision,
+            inboxes: [
+              {
+                ...entry,
+                reviewed: {
+                  templates: { '123:first|es': 'fingerprint' },
+                  flows: {},
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+    wrapper.vm.pendingAllows.first = {
+      assistantId: 3,
+      inboxId: 10,
+      kind: 'template',
+      key: '123:first|es',
+    };
+    wrapper.vm.pendingAllows.second = {
+      assistantId: 3,
+      inboxId: 10,
+      kind: 'template',
+      key: '123:second|es',
+    };
+    AssistantAPI.update.mockResolvedValueOnce(response(5));
+    AssistantAPI.allowResource
+      .mockResolvedValueOnce(response(6))
+      .mockRejectedValueOnce({
+        response: { status: 422, data: { error: 'Resource changed' } },
+      });
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    await flushPromises();
+    expect(AssistantAPI.update.mock.lastCall[1].config.messaging).toEqual(
+      response(6).data.config.messaging
+    );
+    expect(
+      AssistantAPI.allowResource.mock.calls.map(([request]) => request.key)
+    ).toEqual(['123:first|es', '123:second|es', '123:second|es']);
+  });
 
   it('renders all server review states when Ver y excluir is expanded', async () => {
     const states = [
@@ -1074,7 +1176,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
     ).toHaveLength(1);
     expect(wrapper.find('[data-testid="unsaved"]').exists()).toBe(false);
   });
-  it('keeps the complete permission queue if a later request fails', async () => {
+  it('keeps only unconfirmed permissions queued if a later request fails', async () => {
     AssistantAPI.allowResource
       .mockResolvedValueOnce({
         data: { config: { messaging: { revision: 5 } } },
@@ -1104,7 +1206,9 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
     await wrapper.get('[data-testid="messaging-save"]').trigger('click');
     await flushPromises();
     expect(wrapper.find('[data-testid="unsaved"]').exists()).toBe(true);
-    expect(Object.values(wrapper.vm.pendingAllows)).toHaveLength(2);
+    expect(Object.values(wrapper.vm.pendingAllows)).toEqual([
+      { assistantId: 3, inboxId: 10, kind: 'template', key: 'waba-10:two|es' },
+    ]);
     expect(
       dispatch.mock.calls.filter(([name]) => name === 'captainAssistants/show')
     ).toHaveLength(0);

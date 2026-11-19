@@ -100,7 +100,8 @@ const serverInbox = computed(() =>
     item => item.inbox_id === selectedInboxId.value
   )
 );
-const savedMessaging = computed(() => props.assistant?.config?.messaging || {});
+// Keep permissions and their revision from the same show response, not the cached list record.
+const savedMessaging = ref({});
 const currentEntry = computed(
   () =>
     permissionEntries[selectedInboxId.value] || {
@@ -415,6 +416,7 @@ const openPreview = row => {
 };
 const hydrate = (assistant = props.assistant) => {
   const messaging = assistant.config?.messaging || {};
+  savedMessaging.value = messaging;
   messagingRevision.value = messaging.revision || 0;
   paidTemplates.value = assistant.config?.allow_paid_templates === true;
   capValue.value = envios.value?.template_cap?.cap ?? 50;
@@ -447,7 +449,6 @@ const save = async () => {
     }));
   const payload = {
     config: {
-      ...props.assistant.config,
       allow_paid_templates: paidTemplates.value,
       messaging: {
         ...savedMessaging.value,
@@ -461,16 +462,21 @@ const save = async () => {
   conflict.value = false;
   try {
     const { data } = await AssistantAPI.update(props.assistant.id, payload);
-    messagingRevision.value = data.config.messaging.revision;
+    hydrate(data);
     // Reviews update the same revision: serialize them after the config PATCH.
-    await Object.values(pendingAllows).reduce(async (previous, request) => {
-      await previous;
-      const response = await AssistantAPI.allowResource({
-        ...request,
-        revision: messagingRevision.value,
-      });
-      messagingRevision.value = response.data.config.messaging.revision;
-    }, Promise.resolve());
+    await Object.entries(pendingAllows).reduce(
+      async (previous, [key, request]) => {
+        await previous;
+        const response = await AssistantAPI.allowResource({
+          ...request,
+          revision: messagingRevision.value,
+        });
+        // Keep each confirmed config with its revision, even if the next request fails.
+        hydrate(response.data);
+        delete pendingAllows[key];
+      },
+      Promise.resolve()
+    );
     await reload();
     useAlert(t('CAPTAIN.ASSISTANTS.EDIT.SUCCESS_MESSAGE'));
   } catch (error) {
@@ -485,16 +491,6 @@ const save = async () => {
   }
 };
 watch(
-  () => props.assistant,
-  assistant => {
-    if (!baseline.value || (!dirty.value && !saving.value)) {
-      hydrate(assistant);
-      baseline.value = draftSnapshot();
-    }
-  },
-  { immediate: true }
-);
-watch(
   () => envios.value.template_cap,
   cap => {
     capValue.value = cap?.cap ?? 50;
@@ -502,8 +498,8 @@ watch(
   }
 );
 watch(
-  orderedInboxes,
-  list => {
+  [orderedInboxes, savedMessaging],
+  ([list]) => {
     list.forEach(inbox => {
       if (!permissionEntries[inbox.id]) {
         const saved = (savedMessaging.value.inboxes || []).find(
@@ -537,7 +533,9 @@ const flowEditRoute = row => ({
 
 onMounted(async () => {
   try {
-    await loadEnvios();
+    const assistant = await loadEnvios();
+    hydrate(assistant);
+    baseline.value = draftSnapshot();
     await store.dispatch('captainInboxes/get', {
       assistantId: route.params.assistantId,
     });
