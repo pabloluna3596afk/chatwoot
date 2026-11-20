@@ -60,6 +60,7 @@ RSpec.describe Message do
 
     before do
       create(:captain_inbox, inbox: conversation.inbox, captain_assistant: captain_assistant)
+      conversation.reload
     end
 
     it 'opens the conversation and clears Captain ownership when a human sends a public outgoing message' do
@@ -72,7 +73,8 @@ RSpec.describe Message do
 
     it 'creates an activity message when a human sends a public outgoing message' do
       expect do
-        create(:message, message_type: :outgoing, conversation: conversation)
+        create(:message, message_type: :outgoing, conversation: conversation, account: conversation.account, inbox: conversation.inbox,
+                         sender: create(:user, account: conversation.account))
       end.to have_enqueued_job(Conversations::ActivityMessageJob).with(
         conversation,
         hash_including(
@@ -91,6 +93,8 @@ RSpec.describe Message do
         :message,
         message_type: :outgoing,
         conversation: conversation,
+        account: conversation.account,
+        inbox: conversation.inbox,
         content_attributes: { external_echo: true }
       )
       message.sender = nil
@@ -104,7 +108,7 @@ RSpec.describe Message do
           inbox_id: conversation.inbox_id,
           message_type: :activity,
           content: auto_open_activity_content,
-          content_attributes: hash_including(activity: hash_including(event: 'human_control'))
+          content_attributes: hash_including(activity: hash_including(event: 'disengage', source: { type: 'external_echo' }))
         ),
         kind_of(String)
       )

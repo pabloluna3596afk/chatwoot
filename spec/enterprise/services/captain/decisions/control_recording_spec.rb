@@ -70,6 +70,16 @@ RSpec.describe Captain::Decisions::ControlRecording do
     expect(Current.executed_by).to eq(rule)
   end
 
+  it 'records external echo without inventing a human author' do
+    echo = build(:message, account: account, inbox: inbox, conversation: conversation, message_type: :outgoing,
+                           content_attributes: { external_echo: true })
+    echo.sender = nil
+    perform_enqueued_jobs(only: Conversations::ActivityMessageJob) { echo.save! }
+    decision = conversation.captain_decisions.find_by!(kind: 'disengage')
+    expect(decision.anchor_message.content_attributes.dig('activity', 'source')).to eq('type' => 'external_echo')
+    expect(conversation.captain_decisions.where(kind: 'human_control')).to be_empty
+  end
+
   it 'records engagement exclusion on its existing activity without another note' do
     conversation.record_captain_skip(assistant, engages: false, reason: 'audience_denied', condition: { attribute_key: 'phone_number' })
     conversation.open!

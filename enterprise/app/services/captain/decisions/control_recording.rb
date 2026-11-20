@@ -45,7 +45,7 @@ class Captain::Decisions::ControlRecording
     previous_user = Current.user
     previous_executed_by = Current.executed_by
     conversation.captain_control_source = response_source(message, previous_executed_by)
-    conversation.captain_control_event = %w[user external_echo].include?(conversation.captain_control_source[:type]) ? 'human_control' : 'disengage'
+    conversation.captain_control_event = conversation.captain_control_source[:type] == 'user' ? 'human_control' : 'disengage'
     Current.user = nil
     Current.executed_by = nil
     yield
