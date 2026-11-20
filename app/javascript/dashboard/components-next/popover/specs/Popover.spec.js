@@ -92,6 +92,45 @@ describe('Popover', () => {
     expect(document.activeElement).toBe(trigger.element);
   });
 
+  it('restores focus when the mobile sheet is cancelled', async () => {
+    belowMd.value = true;
+    mountPopover({ mobileSheet: true, focusContent: true });
+    // jsdom has no layout; expose the control to the shared dialog focus helper.
+    const rects = vi
+      .spyOn(HTMLElement.prototype, 'getClientRects')
+      .mockReturnValue([{}]);
+    const trigger = wrapper.get('[data-test="trigger"]');
+    trigger.element.focus();
+    await openPopover();
+    rects.mockRestore();
+    expect(document.activeElement).toBe(
+      wrapper.get('[data-test="panel-action"]').element
+    );
+    await mobileBackdrop().trigger('cancel');
+    expect(mobileBackdrop().exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
+    expect(wrapper.emitted('hide')).toHaveLength(1);
+  });
+
+  it('closes the native dialog when its anchor is unmounted', async () => {
+    belowMd.value = true;
+    mountPopover({ mobileSheet: true, focusContent: true });
+    await openPopover();
+    const dialog = mobileBackdrop().element;
+    wrapper.unmount();
+    expect(dialog.close).toHaveBeenCalledOnce();
+    expect(dialog.open).toBe(false);
+    expect(document.querySelector('[data-popover-content]')).toBeNull();
+  });
+
+  it('preserves the default desktop focus behavior', async () => {
+    mountPopover();
+    const trigger = wrapper.get('[data-test="trigger"]');
+    trigger.element.focus();
+    await openPopover();
+    expect(document.activeElement).toBe(trigger.element);
+  });
+
   describe('rendering and toggling', () => {
     it('renders the trigger slot and keeps the content hidden initially', () => {
       mountPopover();
