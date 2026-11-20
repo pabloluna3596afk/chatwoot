@@ -846,6 +846,8 @@
     "TRY_THESE_PROMPTS": "Prueba estas sugerencias"
   },
   "GALLERY_VIEW": {
+    "PREVIOUS": "Adjunto anterior",
+    "NEXT": "Siguiente adjunto",
     "ZOOM_IN": "Acercar",
     "ZOOM_OUT": "Alejar",
     "ROTATE_LEFT": "Girar a la izquierda",

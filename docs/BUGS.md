@@ -34,6 +34,13 @@
 - **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
 
 - **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
+### B-NEW-292 - Zoom, movimiento y teclado del visor de im?genes (2026-11-20)
+
+- **Archivos:** `dashboard/composables/useImageZoom.js`, sus specs, `conversation/components/GalleryView.vue`, su spec y locales `en/es/conversation.json`.
+- **Problema:** el origen solo se calculaba al comenzar el zoom; no hab?a arrastre ni pellizco; la rotaci?n dimensionaba con la ventana en lugar del ?rea ?til; la transici?n de transform retrasaba los gestos; una rueda con delta cero ampliaba; faltaban zoom/restablecimiento por teclado y etiquetas de navegaci?n.
+- **Arreglo:** transforma desde el centro con traslaci?n en coordenadas del visor, conserva el punto bajo el cursor en cada paso y limita el pan al tama?o escalado/rotado. Pointer capture para mouse/t?ctil, pellizco y cancelaci?n; ajuste por tama?o natural/?rea disponible y ResizeObserver; sin transici?n durante gestos. Mantiene zoom 1?3 y reset al rotar/cambiar foto. Teclas +, =, -, 0, flechas y Escape; etiquetas anterior/siguiente en ingl?s/espa?ol. No agrega herramientas a la barra.
+- **C?mo probar:** pruebas de regresi?n rojas sobre HEAD original y verdes con el arreglo; panoramas, im?genes peque?as, giro, resize a 390 px, arrastre, pellizco y teclado. Suites vecinas en UTC/America/Guayaquil (557 aprobadas, una omitida preexistente) y galer?a final en ambas zonas (14 aprobadas, incluidas tres adicionales de distribuci?n de teclado). ESLint sin errores. Informe detallado en `docs-crm/codex/chat-lote-construccion.md` fuera del worktree; interacci?n real, capturas y aprobaci?n visual pendientes del PM. Sin Docker, preview, push, PR ni despliegue.
+
 ### B-NEW-291 - Flecha al ?ltimo mensaje centrada y opaca (2026-11-20)
 
 - **Archivos:** `components/widgets/conversation/MessagesView.vue` y `specs/MessagesView.spec.js`.

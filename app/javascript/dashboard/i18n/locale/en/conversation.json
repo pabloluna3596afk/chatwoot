@@ -846,6 +846,8 @@
     "TRY_THESE_PROMPTS": "Try these prompts"
   },
   "GALLERY_VIEW": {
+    "PREVIOUS": "Previous attachment",
+    "NEXT": "Next attachment",
     "ZOOM_IN": "Zoom in",
     "ZOOM_OUT": "Zoom out",
     "ROTATE_LEFT": "Rotate left",

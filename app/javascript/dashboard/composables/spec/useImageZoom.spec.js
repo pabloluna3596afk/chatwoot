@@ -17,11 +17,11 @@ describe('useImageZoom', () => {
   });
 
   it('should initialize with default values', () => {
-    const { zoomScale, imgTransformOriginPoint, activeImageRotation } =
+    const { zoomScale, imageStyle, activeImageRotation } =
       useImageZoom(imageRef);
 
     expect(zoomScale.value).toBe(1);
-    expect(imgTransformOriginPoint.value).toBe('center center');
+    expect(imageStyle.value.transformOrigin).toBe('center center');
     expect(activeImageRotation.value).toBe(0);
   });
 
@@ -118,24 +118,5 @@ describe('useImageZoom', () => {
     event.deltaY = 10;
     onWheelImageZoom(event);
     expect(zoomScale.value).toBe(1);
-  });
-
-  it('should correctly compute zoom origin', () => {
-    const { getZoomOrigin } = useImageZoom(imageRef);
-
-    // Test center point
-    const centerOrigin = getZoomOrigin(200, 200);
-    expect(centerOrigin.x).toBeCloseTo(50);
-    expect(centerOrigin.y).toBeCloseTo(50);
-
-    // Test top-left corner
-    const topLeftOrigin = getZoomOrigin(100, 100);
-    expect(topLeftOrigin.x).toBeCloseTo(0);
-    expect(topLeftOrigin.y).toBeCloseTo(0);
-
-    // Test bottom-right corner
-    const bottomRightOrigin = getZoomOrigin(300, 300);
-    expect(bottomRightOrigin.x).toBeCloseTo(100);
-    expect(bottomRightOrigin.y).toBeCloseTo(100);
   });
 });

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick, useTemplateRef } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 
@@ -58,19 +59,21 @@ const attachmentIndex = props.allAttachments.findIndex(
 const activeImageIndex = ref(Math.max(0, attachmentIndex));
 
 const imageRef = useTemplateRef('imageRef');
+const viewportRef = useTemplateRef('viewportRef');
 
 const {
-  imageWrapperStyle,
   imageStyle,
   onRotate,
-  activeImageRotation,
   onZoom,
   onDoubleClickZoomImage,
   onWheelImageZoom,
-  onMouseMove,
-  onMouseLeave,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  updateImageBounds,
   resetZoomAndRotation,
-} = useImageZoom(imageRef);
+} = useImageZoom(imageRef, viewportRef);
+useResizeObserver(viewportRef, updateImageBounds);
 
 const currentUser = computed(() => getters.getCurrentUser.value);
 const hasMoreThanOneAttachment = computed(
@@ -173,6 +176,11 @@ const onClickDownload = async () => {
 
 const keyboardEvents = {
   Escape: { action: onClose },
+  '=': { action: () => isImage.value && onZoom(0.1) },
+  '+': { action: () => isImage.value && onZoom(0.1) },
+  'Shift++': { action: () => isImage.value && onZoom(0.1) },
+  '-': { action: () => isImage.value && onZoom(-0.1) },
+  Digit0: { action: resetZoomAndRotation },
   ArrowLeft: {
     action: () => {
       onClickChangeAttachment(
@@ -323,6 +331,7 @@ onMounted(async () => {
               blue
               faded
               lg
+              :aria-label="t('GALLERY_VIEW.PREVIOUS')"
               :disabled="activeImageIndex === 0"
               @click.stop="
                 onClickChangeAttachment(
@@ -334,6 +343,7 @@ onMounted(async () => {
           </div>
 
           <div
+            ref="viewportRef"
             class="relative flex-1 min-w-0 flex items-center justify-center overflow-hidden"
           >
             <div
@@ -357,15 +367,7 @@ onMounted(async () => {
             />
             <div
               v-if="isImage && !hasError"
-              :style="imageWrapperStyle"
-              class="flex items-center justify-center origin-center"
-              :class="{
-                // Adjust dimensions when rotated 90/270 degrees to maintain visibility
-                // and prevent image from overflowing container in different aspect ratios
-                'w-[calc(100dvh-8rem)] h-[calc(100dvw-7rem)]':
-                  activeImageRotation % 180 !== 0,
-                'size-full': activeImageRotation % 180 === 0,
-              }"
+              class="flex size-full items-center justify-center"
             >
               <img
                 ref="imageRef"
@@ -373,14 +375,21 @@ onMounted(async () => {
                 :src="activeAttachment.data_url"
                 :alt="fileNameFromDataUrl"
                 :style="imageStyle"
-                class="max-h-full max-w-full object-contain duration-100 ease-in-out transform select-none motion-reduce:transition-none"
+                class="shrink-0 max-w-none object-contain select-none touch-none"
+                draggable="false"
                 @click.stop
-                @load="onLoad"
+                @load="
+                  onLoad();
+                  updateImageBounds();
+                "
                 @error="onError"
                 @dblclick.stop="onDoubleClickZoomImage"
                 @wheel.prevent.stop="onWheelImageZoom"
-                @mousemove="onMouseMove"
-                @mouseleave="onMouseLeave"
+                @pointerdown="onPointerDown"
+                @pointermove="onPointerMove"
+                @pointerup="onPointerUp"
+                @pointercancel="onPointerUp"
+                @lostpointercapture="onPointerUp"
               />
             </div>
 
@@ -446,6 +455,7 @@ onMounted(async () => {
               blue
               faded
               lg
+              :aria-label="t('GALLERY_VIEW.NEXT')"
               :disabled="activeImageIndex === allAttachments.length - 1"
               @click.stop="
                 onClickChangeAttachment(
