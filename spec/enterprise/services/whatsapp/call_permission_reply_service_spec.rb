@@ -40,6 +40,11 @@ describe Whatsapp::CallPermissionReplyService do
     attrs = conversation.reload.additional_attributes
     expect(attrs).not_to include('call_permission_requested_at')
     expect(attrs).not_to include('call_permission_request_message_id')
+    expect(Conversations::ActivityMessageJob).to have_been_enqueued.with do |_record, params|
+      names = params.dig(:content_attributes, :activity, :names)
+      expect(names).to eq([contact.name])
+      names.each { |name| expect(params[:content]).to include(name) }
+    end
     expect(ActionCable.server).to have_received(:broadcast).with(
       "account_#{account.id}",
       hash_including(event: 'voice_call.permission_granted',

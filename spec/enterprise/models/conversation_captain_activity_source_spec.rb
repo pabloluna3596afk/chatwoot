@@ -13,18 +13,33 @@ RSpec.describe Conversation do
       conversation,
       hash_including(content_attributes: {
                        activity: { type: 'conversation_status_changed', status: 'resolved', previous_status: 'pending',
-                                   source: { type: 'captain', name: assistant.name } }
+                                   names: [assistant.name], source: { type: 'captain', name: assistant.name } }
                      })
     )
   end
 
-  it 'preserves human activity metadata' do
+  %i[resolved open].product([nil, :tool, :inactivity]).each do |status, reason_type|
+    it "keeps Captain's literal name for #{status} with reason #{reason_type.inspect}" do
+      conversation
+      Current.executed_by = assistant
+      conversation.captain_activity_reason = reason_type && 'Customer requested closure'
+      conversation.captain_activity_reason_type = reason_type
+
+      perform_enqueued_jobs(only: Conversations::ActivityMessageJob) { conversation.update!(status: status) }
+
+      message = conversation.messages.activity.last
+      expect(message.content_attributes.dig('activity', 'names')).to eq([assistant.name])
+      expect(message.content).to include(assistant.name)
+    end
+  end
+
+  it 'preserves human activity metadata'  do
     conversation
     Current.user = create(:user, account: conversation.account)
     expect { conversation.resolved! }.to have_enqueued_job(Conversations::ActivityMessageJob).with(
       conversation,
       hash_including(content_attributes: {
-                       activity: { type: 'conversation_status_changed', status: 'resolved', previous_status: 'pending' }
+                       activity: { type: 'conversation_status_changed', status: 'resolved', previous_status: 'pending', names: [Current.user.name] }
                      })
     )
   end

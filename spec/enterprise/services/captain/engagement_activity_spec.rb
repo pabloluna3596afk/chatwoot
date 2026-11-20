@@ -42,6 +42,7 @@ RSpec.describe Captain::EngagementActivity do
           note = described_class.new(conversation, assistant).perform
 
           expect(note).to be_activity
+          expect(note.content_attributes.dig('activity', 'names')).to eq([assistant.name])
           expect(note.content).to start_with('Aurora ')
           expect(note.content).not_to include('Translation missing', '%{', 'translation missing')
           expect(note.additional_attributes['captain_skip_reason']).to eq('reason' => reason, 'condition' => condition)
@@ -64,7 +65,10 @@ RSpec.describe Captain::EngagementActivity do
                                captain_skip_reason: { reason: 'audience_denied', condition: { attribute_key: 'phone_number' } }
                              })
 
-        expect(described_class.new(conversation, assistant).perform.content).to include('&lt;b&gt;Aurora&lt;/b&gt;')
+        note = described_class.new(conversation, assistant).perform
+
+        expect(note.content).to include('&lt;b&gt;Aurora&lt;/b&gt;')
+        expect(note.content_attributes.dig('activity', 'names')).to eq(['&lt;b&gt;Aurora&lt;/b&gt;'])
       end
     end
   end

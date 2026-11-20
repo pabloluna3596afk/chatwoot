@@ -1,3 +1,12 @@
+### B-NEW-291 - Nombres estructurados en actividades (2026-11-20)
+
+- **Archivos:** concerns `activity_message_handler`, `assignee`, `team`, `label`, `priority`, `sla`; overlay Enterprise; `lib/activity_message_names.rb`; emisores de Linear, Calendar, permisos de llamadas WhatsApp y elegibilidad Captain.
+- **Problema:** las actividades guardaban nombres solo dentro de la frase, sin identificar qué nombres podía resaltar la conversación.
+- **Cambio:** `content_attributes.activity.names` conserva los nombres interpolados con su escritura exacta, únicos y ordenados por aparición en `content`. No cambia frases, argumentos existentes del job, mensajes normales ni historial. Los nombres también viajan en eventos/webhooks; son datos que ya constaban en el texto.
+- **Cómo probar:** ejecutar los specs de actividades/conversaciones, mensajes, listeners, webhooks e integraciones con `rspec-local.sh`; comprobar nombres literales, actores humanos/automáticos, Captain, etiquetas, SLA y citas. Ver autoevaluación en `docs-crm/codex/nombres-actividad-construccion.md` del directorio padre.
+- **Verificación:** corrida ampliada de 1258 ejemplos (5 TODO previos), dos expectativas de payload corregidas y archivo de Captain repetido con 48/48; cierre focal normal de 167/167. RuboCop inspeccionó 32 archivos, sin infracciones nuevas frente a `develop`. El informe distingue la corrida ampliada con código estable del cierre focal sin ajustes de recarga.
+- **Entrega:** solo backend, sin migraciones, frontend, push, PR ni despliegue.
+
 ### B-NEW-290 - Detalles de decisiones de Captain y metadatos de mensajes (2026-11-20)
 
 - **Archivos:** `components-next/message/`, `components-next/popover/`, `store/captain/decisions.js`, `composables/useActivityTime.js`, `enterprise/app/models/enterprise/activity_message_handler.rb`, `lib/seeders/captain_decisions_demo.rb` y tarea rake.

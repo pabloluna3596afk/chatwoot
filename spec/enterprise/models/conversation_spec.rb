@@ -313,7 +313,9 @@ RSpec.describe Conversation, type: :model do
 
     describe 'the status activity message' do
       def activity_content(conversation)
-        have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: yield))
+        have_enqueued_job(Conversations::ActivityMessageJob).with(
+          conversation, hash_including(content: yield, content_attributes: hash_including(activity: hash_including(names: [assistant.name])))
+        )
       end
 
       it 'says Captain is taking care of the conversation, not that it was marked pending' do
@@ -334,7 +336,7 @@ RSpec.describe Conversation, type: :model do
             conversation,
             hash_including(content: "Pablo assigned the conversation to #{assistant.name}, who is now handling it",
                            content_attributes: { activity: { type: 'conversation_status_changed', status: 'pending', previous_status: 'open',
-                                                             source: { type: 'user', name: 'Pablo' } } })
+                                                             names: ['Pablo', assistant.name], source: { type: 'user', name: 'Pablo' } } })
           )
       ensure
         Current.reset
@@ -350,7 +352,7 @@ RSpec.describe Conversation, type: :model do
             conversation,
             hash_including(content_attributes: hash_including(
               activity: { type: 'conversation_status_changed', status: 'pending', previous_status: 'open',
-                          source: { type: 'automation_rule', name: 'Derivar a Aurora' } }
+                          names: ['Derivar a Aurora', assistant.name], source: { type: 'automation_rule', name: 'Derivar a Aurora' } }
             ))
           )
       ensure
@@ -364,7 +366,7 @@ RSpec.describe Conversation, type: :model do
           .to have_enqueued_job(Conversations::ActivityMessageJob).with(
             conversation,
             hash_including(content: "#{I18n.t('automation.system_name')} assigned the conversation to #{assistant.name}",
-                           content_attributes: { activity: { type: 'ai_assignee_changed', source: { type: 'system' } } })
+                           content_attributes: { activity: { type: 'ai_assignee_changed', names: [assistant.name], source: { type: 'system' } } })
           )
       end
 
