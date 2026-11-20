@@ -7,6 +7,8 @@
 - **Preparación de pruebas:** el shared spec de autoasignación selecciona V1 explícitamente y su contexto V2 lo vuelve a habilitar; el valor por defecto V2 causaba seis fallos también en la base anterior a PR 2. Sin cambios al motor de asignación de producción.
 - **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
 
+- **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
+
 ### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
