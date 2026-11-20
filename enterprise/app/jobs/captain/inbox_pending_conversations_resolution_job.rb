@@ -119,16 +119,16 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def resolve_time_based_conversation(conversation, _inbox)
-    resolved = false
-    Captain::Conversation::ResolutionTransition.perform(conversation, captain_assistant) do
-      conversation.reload
-      next unless conversation.pending? && inactive_for_initial_action?(conversation)
+    key = "resolve:time:#{conversation.id}:#{conversation.messages.maximum(:id)}"
+    resolved = conversation.with_captain_activity_context(reason: nil, reason_type: :time, decision_key: key) do
+      Captain::Conversation::ResolutionTransition.perform(conversation, captain_assistant) do
+        conversation.reload
+        next unless conversation.pending? && inactive_for_initial_action?(conversation)
 
-      create_resolution_message(conversation)
-      key = "resolve:time:#{conversation.id}:#{conversation.messages.maximum(:id)}"
-      record_inactivity_decision(conversation, key: key, code: 'time_resolve', kind: 'resolve', origin: 'time')
-      conversation.with_captain_activity_context(reason: nil, reason_type: :time, decision_key: key) { conversation.resolved! }
-      resolved = true
+        create_resolution_message(conversation)
+        record_inactivity_decision(conversation, key: key, code: 'time_resolve', kind: 'resolve', origin: 'time')
+        conversation.resolved!
+      end
     end
     return unless resolved
 

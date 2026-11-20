@@ -31,6 +31,8 @@ RSpec.describe Captain::Conversation::MessageBuilder do
 
       def captain_v2_enabled? = true
 
+      def job_id = 'message-builder-spec'
+
       def build = create_messages
     end
   end
