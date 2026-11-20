@@ -38,7 +38,7 @@ describe('assistant name translation boundary', () => {
       )
     );
     const uniqueKeys = [...new Set(keys)].sort();
-    expect(uniqueKeys).toHaveLength(38);
+    expect(uniqueKeys).toHaveLength(30);
     expect(uniqueKeys).toMatchSnapshot();
     const spanish = flatten(es);
     const english = flatten(en);
