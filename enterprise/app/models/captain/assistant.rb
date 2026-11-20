@@ -58,6 +58,7 @@ class Captain::Assistant < ApplicationRecord
   has_many :copilot_threads, dependent: :destroy_async
   has_many :custom_tools, class_name: 'Captain::CustomTool', dependent: :destroy_async
   has_many :scenarios, class_name: 'Captain::Scenario', dependent: :destroy_async
+  has_many :decisions, class_name: 'Captain::Decision', dependent: :nullify
   has_many :agent_sessions, class_name: 'Captain::AgentSession', dependent: :destroy_async
   has_many :conversation_outcomes, dependent: :destroy_async
   has_many :assigned_conversations, as: :ai_assignee, class_name: '::Conversation', foreign_key: :assignee_agent_bot_id,

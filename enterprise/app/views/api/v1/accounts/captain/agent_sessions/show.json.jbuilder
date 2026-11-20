@@ -1,8 +1,11 @@
 json.id @agent_session.id
 json.message_id @agent_session.result_id
-json.llm_model @agent_session.llm_model
-json.credits_consumed @agent_session.credits_consumed
-json.run_context @agent_session.run_context.is_a?(Array) ? @agent_session.run_context : []
+technical = Captain::Decisions::TechnicalSummary.build(
+  user: Current.user, account_user: Current.account_user,
+  details: Captain::Decisions::TechnicalSummary.session_details(@agent_session)
+)
+json.technical technical
+json.summary Captain::Decisions::SessionSummary.build(@agent_session)
 json.citations @citations do |citation|
   json.id citation.id
   json.title citation.name
@@ -10,7 +13,7 @@ json.citations @citations do |citation|
   # "PDF: ..." placeholder for those. Guard on scheme so placeholders render as
   # plain text instead of dead anchors.
   link = citation.display_url
-  json.link link&.match?(%r{\Ahttps?://}) ? link : nil
+  json.link Captain::Decisions::Sources.safe_link(link)
 end
 json.used_faqs @used_faqs do |faq|
   json.id faq.id

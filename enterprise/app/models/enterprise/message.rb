@@ -1,7 +1,10 @@
 module Enterprise::Message
+  COMPLETION_CANCEL_CAUSES = { 'incoming' => 'new_incoming', 'outgoing' => 'human_reply' }.freeze
+
   def self.prepended(base)
     base.class_eval do
       after_create :cancel_captain_completion_signal
+      has_many :captain_decisions, class_name: 'Captain::Decision', foreign_key: :anchor_message_id, dependent: :nullify, inverse_of: :anchor_message
 
       has_one :call, class_name: 'Call', foreign_key: :message_id, dependent: :nullify, inverse_of: :message
 
@@ -36,7 +39,8 @@ module Enterprise::Message
     return unless conversation.additional_attributes.key?(::Captain::Conversation::CompletionSignal::KEY)
 
     conversation.with_lock do
-      ::Captain::Conversation::CompletionSignal.cancel(conversation)
+      cause = COMPLETION_CANCEL_CAUSES.fetch(message_type)
+      ::Captain::Conversation::CompletionSignal.cancel(conversation, cause: cause)
       conversation.save! if conversation.changed?
     end
   end

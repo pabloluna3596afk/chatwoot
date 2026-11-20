@@ -65,10 +65,12 @@ RSpec.describe 'Api::V1::Accounts::Captain::AgentSessions', type: :request do
         aggregate_failures do
           expect(json_response[:id]).to eq(agent_session.id)
           expect(json_response[:message_id]).to eq(message.id)
-          expect(json_response[:llm_model]).to eq('openai-gpt-5.2')
-          expect(json_response[:credits_consumed]).to eq(1.0)
-          expect(json_response[:run_context].length).to eq(4)
-          expect(json_response[:run_context].second[:tool_calls].first[:arguments][:query]).to eq('refund')
+          expect(json_response).not_to have_key(:llm_model)
+          expect(json_response).not_to have_key(:credits_consumed)
+          expect(json_response).not_to have_key(:run_context)
+          expect(json_response[:technical]).to eq({})
+          expect(json_response[:summary]).to eq(actions: [{ type: 'tool', name: 'faq_lookup' }])
+          expect(response.body).not_to include('I want a refund', 'Refunds take 5 days', 'arguments', 'openai-gpt-5.2')
 
           citations = json_response[:citations].index_by { |citation| citation[:id] }
           expect(citations.keys).to contain_exactly(document.id)
@@ -79,6 +81,35 @@ RSpec.describe 'Api::V1::Accounts::Captain::AgentSessions', type: :request do
 
           expect(json_response[:scenarios]).to eq([{ id: scenario.id, title: 'Refund flow' }])
         end
+      end
+
+      it 'returns only credits to administrators and all recorded technical fields to member SuperAdmins' do
+        admin = create(:user, account: account, role: :administrator)
+        get "/api/v1/accounts/#{account.id}/captain/agent_sessions/#{message.id}", headers: admin.create_new_auth_token, as: :json
+        expect(json_response[:technical]).to eq(credits_consumed: { status: 'recorded', value: 1.0 })
+        super_admin = create(:super_admin)
+        create(:account_user, account: account, user: super_admin, role: :administrator)
+        get "/api/v1/accounts/#{account.id}/captain/agent_sessions/#{message.id}", headers: super_admin.create_new_auth_token, as: :json
+        expect(json_response[:technical]).to eq(model: { status: 'recorded', value: 'openai-gpt-5.2' },
+                                                credits_consumed: { status: 'recorded', value: 1.0 }, cost: { status: 'not_recorded' })
+        expect(json_response).not_to have_key(:run_context)
+        expect(response.body).not_to include('I want a refund', 'arguments')
+      end
+
+      it 'denies private anchors and bots rather than inheriting conversation access' do
+        message.update!(private: true)
+        get "/api/v1/accounts/#{account.id}/captain/agent_sessions/#{message.id}", headers: agent.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unauthorized)
+        bot = create(:agent_bot, account: account)
+        create(:agent_bot_inbox, agent_bot: bot, inbox: inbox)
+        get "/api/v1/accounts/#{account.id}/captain/agent_sessions/#{message.id}", headers: { api_access_token: bot.access_token.token }, as: :json
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it 'does not return a retained session whose subject belongs to another conversation' do
+        agent_session.update!(subject: create(:conversation, account: account, inbox: inbox))
+        get "/api/v1/accounts/#{account.id}/captain/agent_sessions/#{message.id}", headers: agent.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:not_found)
       end
 
       it 'does not allow an agent without access to the conversation' do

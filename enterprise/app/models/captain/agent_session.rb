@@ -36,6 +36,8 @@
 class Captain::AgentSession < ApplicationRecord
   self.table_name = 'agent_sessions'
 
+  has_many :decisions, class_name: 'Captain::Decision', dependent: :nullify
+
   SUBJECT_TYPES = { 'assistant' => 'Conversation', 'copilot' => 'CopilotThread' }.freeze
   RESULT_TYPES = { 'assistant' => 'Message', 'copilot' => 'CopilotMessage' }.freeze
 

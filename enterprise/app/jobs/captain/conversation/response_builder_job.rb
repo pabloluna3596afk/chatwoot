@@ -2,6 +2,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   include Captain::Conversation::V1ActionClassifier
   include Captain::Conversation::V1FalsePromiseHandler
   include Captain::Conversation::V2LifecycleEvents
+  include Captain::Conversation::DecisionRecording
   include Captain::Conversation::MessageBuilder
   include Captain::Conversation::ResponseLifecycleLogging
   include Captain::Conversation::ResponseBuilderMessageGuard
@@ -190,6 +191,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       next if captain_v2_enabled? && newer_customer_message_arrived?
 
       message = create_messages
+      record_reply_decision(message)
       record_completion_signal(message)
       Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
       finish_reply_usage!
@@ -200,7 +202,8 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     if executions > 1
       Rails.logger.info("[CAPTAIN][ResponseLifecycle] event=generation_retry_recovered attempts=#{executions} conversation_id=#{@conversation.id}")
     end
-    capture_assistant_session(result_message: message, credits_consumed: 1.0)
+    session = capture_assistant_session(result_message: message, credits_consumed: 1.0)
+    attach_decision_session(session)
     record_v2_response_completed(message) if captain_v2_enabled?
   end
 

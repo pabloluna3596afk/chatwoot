@@ -70,9 +70,11 @@ module ActivityMessageHandler
 
     return if content.blank?
 
-    activity = { type: 'conversation_status_changed', status: status }
+    activity = { type: 'conversation_status_changed', status: status, previous_status: status_before_last_save }
     activity[:source] = captain_activity_source(user_name) if captain_content.present?
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, content_attributes: { activity: activity }))
+    args = [self, activity_message_params(content, content_attributes: { activity: activity })]
+    args << captain_decision_key if respond_to?(:captain_decision_key) && captain_decision_key
+    ::Conversations::ActivityMessageJob.perform_later(*args)
   end
 
   # Captain taking a conversation, or letting it go to the team, says so in plain words instead of "marked as pending",

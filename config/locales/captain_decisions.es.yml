@@ -1,0 +1,14 @@
+es:
+  captain:
+    decisions:
+      tool_resolve: "La herramienta de resolución cerró la conversación."
+      time_resolve: "Se alcanzó el umbral de inactividad configurado. Esto no confirma que la consulta se haya solucionado."
+      evaluation_resolve: "La evaluación no encontró preguntas pendientes."
+      evaluation_handoff: "La evaluación no pudo confirmar el cierre y pasó la conversación al equipo."
+      evaluation_error: "La evaluación falló y la conversación se pasó al equipo."
+      tool_handoff: "La herramienta de traspaso pasó la conversación al equipo."
+      signal_pending: "Captain detectó un posible cierre y programó una revisión."
+      signal_confirmed: "La revisión confirmó el cierre sin un nuevo mensaje del cliente."
+      signal_rejected: "La revisión no confirmó el cierre."
+      signal_cancelled: "La revisión se canceló porque cambió la conversación o el turno."
+      signal_failed: "La revisión del cierre falló."

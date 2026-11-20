@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_17_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_19_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -728,6 +728,44 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_130000) do
     t.jsonb "settings", default: {}, null: false
     t.index ["account_id"], name: "index_captain_custom_tools_on_account_id"
     t.index ["assistant_id", "slug"], name: "index_captain_custom_tools_on_assistant_id_and_slug", unique: true
+  end
+
+  create_table "captain_decisions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "assistant_id"
+    t.bigint "anchor_message_id"
+    t.bigint "agent_session_id"
+    t.bigint "parent_decision_id"
+    t.integer "version", default: 1, null: false
+    t.string "kind", limit: 40, null: false
+    t.string "outcome", limit: 24, null: false
+    t.string "origin", limit: 24, null: false
+    t.string "trigger", limit: 40, null: false
+    t.string "decision_key", limit: 200, null: false
+    t.string "reason_code", limit: 80, null: false
+    t.string "reason_locale", limit: 16, null: false
+    t.text "reason_text"
+    t.jsonb "evidence", default: {}, null: false
+    t.jsonb "settings_snapshot", default: {}, null: false
+    t.jsonb "technical_details", default: {}, null: false
+    t.timestamptz "occurred_at", null: false
+    t.timestamptz "due_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "anchor_message_id"], name: "index_captain_decisions_on_account_id_and_anchor_message_id"
+    t.index ["account_id", "conversation_id", "occurred_at", "id"], name: "index_captain_decisions_on_conversation_timeline"
+    t.index ["account_id", "decision_key"], name: "index_captain_decisions_on_account_id_and_decision_key", unique: true
+    t.index ["agent_session_id"], name: "index_captain_decisions_on_agent_session_id"
+    t.index ["anchor_message_id"], name: "index_captain_decisions_on_anchor_message_id"
+    t.index ["assistant_id"], name: "index_captain_decisions_on_assistant_id"
+    t.index ["occurred_at"], name: "index_captain_decisions_on_occurred_at"
+    t.index ["parent_decision_id"], name: "index_captain_decisions_on_parent_decision_id"
+    t.check_constraint "(octet_length(evidence::text) + octet_length(settings_snapshot::text) + octet_length(technical_details::text)) <= 8192", name: "captain_decisions_payload_size"
+    t.check_constraint "char_length(reason_text) <= 500", name: "captain_decisions_reason_length"
+    t.check_constraint "jsonb_typeof(evidence) = 'object'::text", name: "captain_decisions_evidence_object"
+    t.check_constraint "jsonb_typeof(settings_snapshot) = 'object'::text", name: "captain_decisions_settings_snapshot_object"
+    t.check_constraint "jsonb_typeof(technical_details) = 'object'::text", name: "captain_decisions_technical_details_object"
   end
 
   create_table "captain_documents", force: :cascade do |t|
@@ -2246,6 +2284,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_17_130000) do
   add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
   add_foreign_key "canned_responses", "users", column: "created_by_id"
   add_foreign_key "canned_responses", "users", column: "reviewed_by_id"
+  add_foreign_key "captain_decisions", "accounts", on_delete: :cascade
+  add_foreign_key "captain_decisions", "agent_sessions", on_delete: :nullify
+  add_foreign_key "captain_decisions", "captain_assistants", column: "assistant_id", on_delete: :nullify
+  add_foreign_key "captain_decisions", "captain_decisions", column: "parent_decision_id", on_delete: :nullify
+  add_foreign_key "captain_decisions", "conversations", on_delete: :cascade
+  add_foreign_key "captain_decisions", "messages", column: "anchor_message_id", on_delete: :nullify
   add_foreign_key "contacts", "users", column: "assigned_agent_id"
   add_foreign_key "copilot_action_events", "accounts"
   add_foreign_key "copilot_action_events", "copilot_action_items", column: "item_id"

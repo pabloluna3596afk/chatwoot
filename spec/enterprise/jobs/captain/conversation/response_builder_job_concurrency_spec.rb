@@ -22,7 +22,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
   it 'refunds the reservation if delivery rolls back after finishing the receipt' do
     conversation = create(:conversation, account: account, inbox: inbox, status: :pending)
-    message = create(:message, conversation: conversation, message_type: :incoming)
+    message = create(:message, account: account, conversation: conversation, message_type: :incoming)
     allow(account).to receive(:finish_captain_ai_usage!).and_wrap_original do |original, **arguments|
       original.call(**arguments)
       raise StandardError, 'delivery transaction failed'
@@ -38,7 +38,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
   it 'delivers one reply and hands off the other when two jobs compete for the last unit' do
     conversations = Array.new(2) { create(:conversation, account: account, inbox: inbox, status: :pending) }
-    messages = conversations.map { |conversation| create(:message, conversation: conversation, message_type: :incoming) }
+    messages = conversations.map { |conversation| create(:message, account: account, conversation: conversation, message_type: :incoming) }
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
     conversations.each(&:reload)
     ready = Queue.new

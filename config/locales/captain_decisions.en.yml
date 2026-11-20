@@ -1,0 +1,14 @@
+en:
+  captain:
+    decisions:
+      tool_resolve: "The resolution tool closed the conversation."
+      time_resolve: "The configured inactivity threshold was reached. This does not confirm that the issue was resolved."
+      evaluation_resolve: "The evaluation found no outstanding questions."
+      evaluation_handoff: "The evaluation could not confirm completion and handed the conversation to the team."
+      evaluation_error: "The evaluation failed and the conversation was handed to the team."
+      tool_handoff: "The handoff tool transferred the conversation to the team."
+      signal_pending: "Captain detected a possible completion and scheduled a review."
+      signal_confirmed: "The review confirmed completion without a new customer message."
+      signal_rejected: "The review did not confirm completion."
+      signal_cancelled: "The review was cancelled because the conversation or turn changed."
+      signal_failed: "The completion review failed."

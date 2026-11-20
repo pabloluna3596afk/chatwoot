@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n, I18nT } from 'vue-i18n';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
-import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useStore } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useMessageContext } from './provider.js';
@@ -43,30 +43,6 @@ const knowledgeSources = computed(() => [
   ...usedFaqs.value.map(source => ({ ...source, type: 'faq' })),
 ]);
 
-const scenarioTitles = computed(() =>
-  (session.value?.scenarios || []).reduce((map, scenario) => {
-    map[scenario.id] = scenario.title;
-    return map;
-  }, {})
-);
-
-// Fallback for agents without a matching scenario title:
-// "chatwoot_assistant" → "Chatwoot assistant",
-// "scenario_5_chatwoot_uptime_agent" → "Chatwoot uptime".
-const humanizeAgentName = agentName => {
-  const label = agentName
-    .replace(/^scenario_\d+_/, '')
-    .replace(/_agent$/, '')
-    .replaceAll('_', ' ')
-    .trim();
-  return label.charAt(0).toUpperCase() + label.slice(1);
-};
-
-const handoffLabel = agentName => {
-  const scenarioId = agentName.match(/^scenario_(\d+)/)?.[1];
-  return scenarioTitles.value[scenarioId] || humanizeAgentName(agentName);
-};
-
 const ACRONYMS = ['faq', 'api', 'url', 'id', 'sla', 'csat'];
 
 // Tool names arrive as RubyLLM identifiers like
@@ -87,67 +63,15 @@ const humanizeToolName = name => {
     .join(' ');
 };
 
-// Argument keys are camelCased by the store ("labelName"); show "Label Name".
-const humanizeArgumentKey = key =>
-  key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+// The server supplies a bounded summary. Raw session context never reaches this component.
+const steps = computed(() =>
+  (session.value?.summary?.actions || []).map(action => ({
+    type: action.type,
+    name: humanizeToolName(action.name),
+  }))
+);
 
-const formatArguments = args => {
-  if (!args || typeof args !== 'object') return '';
-  return Object.entries(args)
-    .map(([key, value]) => `${humanizeArgumentKey(key)}: ${value}`)
-    .join(', ');
-};
-
-// Timeline of what Captain did during the run: tool calls (with their
-// arguments) and scenario/agent handoffs. Message bodies and raw tool
-// results are intentionally not echoed here.
-const steps = computed(() => {
-  const runContext = session.value?.runContext;
-  const result = [];
-  let currentAgent = null;
-
-  (Array.isArray(runContext) ? runContext : []).forEach(entry => {
-    if (entry?.role !== 'assistant') return;
-
-    const agentName = entry.agentName;
-    if (agentName && agentName !== currentAgent) {
-      if (currentAgent !== null) {
-        result.push({ type: 'handoff', name: handoffLabel(agentName) });
-      }
-      currentAgent = agentName;
-    }
-
-    (entry.toolCalls || []).forEach(call => {
-      // Agent-to-agent transfers surface as "handoff_to_<agent>" tool calls;
-      // the agent_name change above already yields a handoff step for them.
-      if (call.name?.startsWith('handoff_to_')) return;
-
-      result.push({
-        type: 'tool',
-        name: humanizeToolName(call.name),
-        detail: formatArguments(call.arguments),
-      });
-    });
-  });
-
-  return result;
-});
-
-// The final assistant entry stores structured content ({response, reasoning});
-// surface the model's reasoning for the reply it produced.
-const reasoning = computed(() => {
-  const runContext = session.value?.runContext;
-  if (!Array.isArray(runContext)) return '';
-
-  const entry = [...runContext]
-    .reverse()
-    .find(item => item?.role === 'assistant' && item.content?.reasoning);
-  return entry?.content?.reasoning || '';
-});
+const reasoning = computed(() => session.value?.summary?.reasonText || '');
 
 const STEP_ICONS = {
   tool: 'i-ph-wrench',
@@ -159,20 +83,25 @@ const STEP_KEYPATHS = {
   handoff: 'CONVERSATION.CAPTAIN_GENERATION.STEP_HANDOFF',
 };
 
-const currentUser = useMapGetter('getCurrentUser');
-const isSuperAdmin = computed(() => currentUser.value.type === 'SuperAdmin');
-
-// Model and credits are only surfaced to super admins and in development.
 const devDetails = computed(() => {
-  if (!session.value) return null;
-  if (!import.meta.env.DEV && !isSuperAdmin.value) return null;
-  const model = t('CONVERSATION.CAPTAIN_GENERATION.MODEL', {
-    model: session.value.llmModel,
-  });
-  const credits = t('CONVERSATION.CAPTAIN_GENERATION.CREDITS', {
-    credits: session.value.creditsConsumed,
-  });
-  return `${model} · ${credits}`;
+  const technical = session.value?.technical;
+  if (!technical) return null;
+  const details = [];
+  if (technical.model?.status === 'recorded') {
+    details.push(
+      t('CONVERSATION.CAPTAIN_GENERATION.MODEL', {
+        model: technical.model.value,
+      })
+    );
+  }
+  if (technical.creditsConsumed?.status === 'recorded') {
+    details.push(
+      t('CONVERSATION.CAPTAIN_GENERATION.CREDITS', {
+        credits: technical.creditsConsumed.value,
+      })
+    );
+  }
+  return details.join(' · ') || null;
 });
 
 // With the sparkle at the row start, the meta gets pushed to the opposite end;

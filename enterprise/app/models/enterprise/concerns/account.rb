@@ -16,6 +16,7 @@ module Enterprise::Concerns::Account
     has_many :captain_faq_suggestions, dependent: :destroy_async, class_name: 'Captain::FaqSuggestion'
     has_many :captain_documents, dependent: :destroy_async, class_name: 'Captain::Document'
     has_many :captain_custom_tools, dependent: :destroy_async, class_name: 'Captain::CustomTool'
+    has_many :captain_decisions, dependent: :delete_all, class_name: 'Captain::Decision'
     has_many :captain_agent_sessions, dependent: :destroy_async, class_name: 'Captain::AgentSession'
     has_many :conversation_outcomes, dependent: :destroy_async
 

@@ -265,6 +265,7 @@ Rails.application.routes.draw do
               resource :direct_uploads, only: [:create]
               resource :draft_messages, only: [:show, :update, :destroy]
               resources :internal_tasks, only: [:index, :create]
+              resources :captain_decisions, only: [:index, :show] if ChatwootApp.enterprise?
               resources :calendar_events, only: [:index]
               resource :timeline, only: [:show]
             end
