@@ -79,9 +79,21 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
         ).and_call_original
         expect(tool.perform(tool_context)).to include('Conversation handed off')
         expect(conversation.reload).to be_high
+        expect(conversation.captain_decisions.sole).to have_attributes(kind: 'handoff', outcome: 'completed', origin: 'tool',
+                                                                       anchor_message_id: conversation.messages.where(private: true).sole.id)
         expect(conversation.messages.where(private: true).sole.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
       end
+
+      it "does not duplicate the V#{v2 ? 2 : 1} handoff decision on a repeated tool execution" do
+        v2 ? account.enable_features!(:captain_integration_v2) : account.disable_features!(:captain_integration_v2)
+        tool.perform(tool_context)
+        original = conversation.captain_decisions.sole
+        tool.perform(tool_context)
+        expect(conversation.captain_decisions.sole.id).to eq(original.id)
+        expect(original.anchor_message).to be_private
+      end
     end
+
     blank_reasons = [nil, '', '   '].freeze
     [true, false].each do |v2|
       context "with a blank reason (#{v2 ? 'v2' : 'legacy'})" do

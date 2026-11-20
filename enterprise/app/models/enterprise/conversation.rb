@@ -1,7 +1,8 @@
 module Enterprise::Conversation
-  attr_accessor :captain_activity_reason, :captain_activity_reason_type
+  attr_accessor :captain_activity_reason, :captain_activity_reason_type, :captain_decision_key
 
   def self.prepended(base)
+    base.has_many :captain_decisions, class_name: 'Captain::Decision', dependent: :delete_all
     base.before_update :cancel_completion_signal
     base.after_create :create_captain_skip_activity
     base.after_update :create_captain_skip_activity, if: :saved_change_to_status?
@@ -22,7 +23,9 @@ module Enterprise::Conversation
     super || call_attributes_changed?
   end
 
-  def with_captain_activity_context(reason:, reason_type:)
+  def with_captain_activity_context(reason:, reason_type:, decision_key: nil)
+    previous_key = captain_decision_key
+    self.captain_decision_key = decision_key
     previous_reason = captain_activity_reason
     previous_reason_type = captain_activity_reason_type
 
@@ -30,6 +33,7 @@ module Enterprise::Conversation
     self.captain_activity_reason_type = reason_type
     yield
   ensure
+    self.captain_decision_key = previous_key
     self.captain_activity_reason = previous_reason
     self.captain_activity_reason_type = previous_reason_type
   end

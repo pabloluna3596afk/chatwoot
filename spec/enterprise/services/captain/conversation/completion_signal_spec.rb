@@ -24,6 +24,14 @@ RSpec.describe Captain::Conversation::CompletionSignal do
 
   after { Current.reset }
 
+  it 'records one linked candidate for the reply without writing evidence into message attributes' do
+    signal.record(message: reply, response: response, incoming_id: incoming.id)
+    decision = conversation.captain_decisions.sole
+    expect(decision).to have_attributes(kind: 'completion_signal', outcome: 'pending', anchor_message_id: reply.id, parent_decision_id: nil)
+    expect(decision.due_at).to be_present
+    expect(reply.reload.additional_attributes).not_to have_key('captain_decisions')
+  end
+
   it 'waits for the server grace, then closes without a goodbye or re-engagement' do
     signal.review
     expect(evaluation).not_to have_received(:perform)
@@ -36,6 +44,19 @@ RSpec.describe Captain::Conversation::CompletionSignal do
     expect(conversation.reload).to be_resolved
     expect(conversation.additional_attributes[described_class::KEY]['status']).to eq('confirmed')
     expect(conversation.additional_attributes).not_to have_key(Captain::Followup::Reengager::STATE_KEY)
+  end
+
+  it 'retains the confirmed result linked to its candidate and reply' do
+    travel(6.minutes) { signal.review }
+    decision = conversation.captain_decisions.find_by!(outcome: 'confirmed')
+    expect(decision).to have_attributes(anchor_message_id: reply.id, kind: 'completion_review')
+    expect(decision.parent_decision).to have_attributes(outcome: 'pending', anchor_message_id: reply.id)
+  end
+
+  it 'keeps the applied grace even when the assistant setting changes before review' do
+    assistant.update!(config: assistant.config.merge('completion_grace_minutes' => 10))
+    travel(6.minutes) { signal.review }
+    expect(conversation.captain_decisions.find_by!(outcome: 'confirmed').settings_snapshot).to eq('completion_grace_minutes' => 5)
   end
 
   it 'does not review the same turn twice or recreate its candidate' do
@@ -55,6 +76,9 @@ RSpec.describe Captain::Conversation::CompletionSignal do
     expect(conversation.ai_assignee).to eq(assistant)
     expect(conversation.additional_attributes[described_class::KEY]).to include('status' => 'rejected', 'expects_customer_reply' => true)
     expect(Captain::Conversation::Turn.awaiting_customer?(conversation, assistant)).to be(true)
+    decision = conversation.captain_decisions.find_by!(outcome: 'rejected')
+    expect(decision).to have_attributes(anchor_message_id: reply.id)
+    expect(decision.parent_decision).to have_attributes(outcome: 'pending', anchor_message_id: reply.id)
   end
 
   it 'does not resume reminders after rejection unless a customer reply is really expected' do
@@ -70,6 +94,9 @@ RSpec.describe Captain::Conversation::CompletionSignal do
     expect(conversation.additional_attributes[described_class::KEY]['status']).to eq('failed')
     expect(evaluation).not_to receive(:perform)
     travel(7.minutes) { signal.review }
+    decision = conversation.captain_decisions.find_by!(outcome: 'failed')
+    expect(decision).to have_attributes(anchor_message_id: reply.id)
+    expect(decision.parent_decision).to have_attributes(outcome: 'pending', anchor_message_id: reply.id)
   end
 
   it 'retires a raised model error without closing or handing off' do
@@ -86,6 +113,10 @@ RSpec.describe Captain::Conversation::CompletionSignal do
     travel(6.minutes) { signal.review }
     expect(conversation.reload).to be_pending
     expect(conversation.additional_attributes[described_class::KEY]['status']).to eq('cancelled')
+    decision = conversation.captain_decisions.find_by!(outcome: 'cancelled')
+    expect(decision.evidence['cancellation_cause']).to eq('new_incoming')
+    expect(decision).to have_attributes(anchor_message_id: reply.id)
+    expect(decision.parent_decision).to have_attributes(outcome: 'pending', anchor_message_id: reply.id)
   end
 
   it 'discards a positive result if a message arrives during evaluation' do
@@ -203,6 +234,9 @@ RSpec.describe Captain::Conversation::CompletionSignal do
     travel(6.minutes) { Captain::ReviewCompletionSignalsJob.perform_now }
     expect(conversation.reload.additional_attributes[described_class::KEY]).to include('status' => 'failed', 'error' => 'evaluation_interrupted')
     expect(conversation).to be_pending
+    decision = conversation.captain_decisions.find_by!(outcome: 'failed')
+    expect(decision).to have_attributes(anchor_message_id: reply.id)
+    expect(decision.parent_decision).to have_attributes(outcome: 'pending', anchor_message_id: reply.id)
   end
 
   it 'discards the result when detection is disabled while evaluating' do

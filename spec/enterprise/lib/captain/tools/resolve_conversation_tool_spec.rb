@@ -27,8 +27,16 @@ RSpec.describe Captain::Tools::ResolveConversationTool do
         conversation,
         hash_including(
           content: I18n.t('conversations.activity.captain.resolved_by_tool', user_name: assistant.name, reason: 'Possible spam')
-        )
+        ),
+        a_string_starting_with('resolve:tool:')
       )
+    end
+
+    it 'links the resolution decision to the existing asynchronous activity' do
+      perform_enqueued_jobs(only: Conversations::ActivityMessageJob) { tool.perform(tool_context, reason: 'Completed') }
+      decision = conversation.captain_decisions.sole
+      expect(decision).to have_attributes(kind: 'resolve', origin: 'tool', outcome: 'completed')
+      expect(decision.anchor_message).to be_activity
     end
 
     it 'creates the configured resolution message' do

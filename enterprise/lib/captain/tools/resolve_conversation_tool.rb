@@ -10,9 +10,12 @@ class Captain::Tools::ResolveConversationTool < Captain::Tools::BasePublicTool
 
     log_tool_usage('resolve_conversation', { conversation_id: conversation.id, reason: reason })
 
-    conversation.with_captain_activity_context(reason: reason, reason_type: :tool) do
+    decision_key = "resolve:tool:#{conversation.id}:#{conversation.messages.maximum(:id)}"
+    conversation.with_captain_activity_context(reason: reason, reason_type: :tool, decision_key: decision_key) do
       Conversation.transaction do
         Captain::Conversation::ResolutionMessageService.new(conversation: conversation, assistant: @assistant).perform
+        Captain::Decisions::Action.record(conversation: conversation, assistant: @assistant, kind: 'resolve', origin: 'tool', trigger: 'tool',
+                                          reason_code: 'tool_resolve', decision_key: decision_key, evidence: { action: 'resolve' })
         conversation.resolved!
       end
     end

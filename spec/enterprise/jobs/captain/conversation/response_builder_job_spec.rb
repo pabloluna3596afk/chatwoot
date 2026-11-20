@@ -37,6 +37,34 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    [true, false].each do |v2|
+      it "still delivers V#{v2 ? 2 : 1} when the decision insert fails" do
+        v2 ? account.enable_features!(:captain_integration_v2) : account.disable_features!(:captain_integration_v2)
+        allow(Captain::Decision).to receive(:create_or_find_by!).and_raise(ActiveRecord::StatementInvalid, 'logging unavailable')
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+        expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+        expect(conversation.reload.status).to eq('pending')
+        expect(conversation.captain_decisions).to be_empty
+      end
+    end
+
+    it 'stores a bounded operational reply reason without adding it to message events' do
+      account.disable_features!(:captain_integration_v2)
+      allow(mock_llm_chat_service).to receive(:generate_response).and_return('response' => 'Delivered', 'reasoning' => 'x' * 600)
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+      decision = conversation.captain_decisions.sole
+      expect(decision.reason_text).to eq('x' * 500)
+      expect(decision.anchor_message.push_event_data.to_json).not_to include('x' * 500, 'captain_decisions')
+    end
+
+    it 'does not invent a deducted credit for an account without a billing period' do
+      account.disable_features!(:captain_integration_v2)
+      account.update!(custom_attributes: {}, plan: nil, plan_started_at: nil)
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+      expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+      expect(conversation.captain_decisions.sole.technical_details).not_to have_key('credits_consumed')
+    end
+
     it 'records a completion candidate only after the final response is persisted' do
       account.enable_features!('captain_integration_v2')
       assistant.update!(config: assistant.config.merge('auto_resolve_mode' => 'evaluated', 'completion_signal_enabled' => true))
@@ -141,6 +169,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         described_class.perform_now(conversation, assistant, responding_to_message.id)
 
         expect(conversation.messages.outgoing.where(private: false).pluck(:content)).to eq(['Delivered'])
+        decision = conversation.captain_decisions.sole
+        expect(decision).to have_attributes(kind: 'reply', outcome: 'created', anchor_message_id: conversation.messages.outgoing.last.id,
+                                            evidence: include('evaluated_through_message_id' => responding_to_message.id))
         expect(usage.reload.responses_consumed).to eq(1)
         expect(usage.ai_usage_reservations).to be_empty
       end
@@ -168,6 +199,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         described_class.perform_now(conversation, assistant, responding_to_message.id)
 
         expect(conversation.messages.outgoing.where(private: false).pluck(:content)).to eq(['Delivered V1'])
+        decision = conversation.captain_decisions.sole
+        expect(decision).to have_attributes(kind: 'reply', outcome: 'created', anchor_message_id: conversation.messages.outgoing.last.id,
+                                            evidence: include('evaluated_through_message_id' => responding_to_message.id))
         expect(usage.reload.responses_consumed).to eq(1)
         expect(usage.ai_usage_reservations).to be_empty
       end
@@ -1569,15 +1603,19 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
     context 'when capturing assistant sessions' do
       let(:run_context) do
+        captured_document = create(:captain_document, account: account, assistant: assistant)
+        captured_faq = create(:captain_assistant_response, account: account, assistant: assistant, documentable: captured_document)
         {
           session_id: "#{account.id}_#{conversation.display_id}",
           current_agent: 'Assistant',
           turn_count: 1,
           conversation_history: [
+            { role: :assistant, tool_calls: [{ name: 'previous_turn_tool', arguments: { secret: 'not stored' } }] },
             { role: :user, content: 'Hello' },
-            { role: :assistant, content: 'Hey, welcome to Captain V2', agent_name: 'Assistant' }
+            { role: :assistant, content: 'Hey, welcome to Captain V2', agent_name: 'Assistant',
+              tool_calls: [{ name: 'faq_lookup', arguments: { secret: 'not stored' } }] }
           ],
-          state: { cw_metadata: { faq_ids: [7, 9], document_ids: [3] } }
+          state: { cw_metadata: { faq_ids: [captured_faq.id], document_ids: [captured_document.id] } }
         }
       end
       let(:usage) do
@@ -1608,11 +1646,15 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           result_type: 'Message',
           llm_model: 'openai-gpt-6-luna',
           credits_consumed: 1.0,
-          faq_ids: [7, 9],
+          faq_ids: run_context.dig(:state, :cw_metadata, :faq_ids),
           cited_document_ids: [],
-          document_ids: [3],
+          document_ids: run_context.dig(:state, :cw_metadata, :document_ids),
           scenario_ids: [],
           user_id: nil
+        )
+        expect(conversation.captain_decisions.sole).to have_attributes(
+          agent_session_id: session.id, anchor_message_id: session.result_id,
+          evidence: include('document_ids' => run_context.dig(:state, :cw_metadata, :document_ids), 'tools' => ['faq_lookup'])
         )
         expect(session).to be_session_assistant
         expect(session.run_context.first).to include('role' => 'user', 'content' => 'Hello')
@@ -1674,6 +1716,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         expect(conversation.messages.outgoing.count).to eq(1)
         expect(conversation.messages.outgoing.last.content).to eq('Hey, welcome to Captain V2')
         expect(conversation.reload.status).to eq('pending')
+        expect(conversation.captain_decisions.sole).to have_attributes(agent_session_id: nil, kind: 'reply')
         expect(ChatwootExceptionTracker).to have_received(:new)
       end
     end

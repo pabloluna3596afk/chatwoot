@@ -72,6 +72,11 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       expect(resolvable_pending_conversation.reload.status).to eq('resolved')
+      decision = resolvable_pending_conversation.captain_decisions.sole
+      expect(decision.reason_code).to eq('time_resolve')
+      expect(decision.outcome).to eq('completed')
+      perform_enqueued_jobs(only: Conversations::ActivityMessageJob)
+      expect(decision.reload.anchor_message).to be_activity
     end
 
     it 'does not resolve recent pending conversations' do
@@ -218,6 +223,10 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       expect(resolvable_pending_conversation.reload.status).to eq('resolved')
+      decision = resolvable_pending_conversation.captain_decisions.sole
+      expect(decision.reason_code).to eq('evaluation_resolve')
+      expect(decision.outcome).to eq('completed')
+      expect(decision.anchor_message).to be_private
     end
 
     it 'creates a private note with the reason' do
@@ -264,7 +273,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
             inbox_id: resolvable_pending_conversation.inbox_id,
             message_type: :activity,
             content: expected_content,
-            content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved' } }
+            content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved', previous_status: 'pending' } }
           }
         )
     end
@@ -304,6 +313,10 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       expect(resolvable_pending_conversation.reload.status).to eq('open')
+      decision = resolvable_pending_conversation.captain_decisions.sole
+      expect(decision.reason_code).to eq('evaluation_handoff')
+      expect(decision.outcome).to eq('completed')
+      expect(decision.anchor_message).to be_private
     end
 
     it 'creates a private note with the reason' do
@@ -384,7 +397,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
             inbox_id: resolvable_pending_conversation.inbox_id,
             message_type: :activity,
             content: expected_content,
-            content_attributes: { activity: { type: 'conversation_status_changed', status: 'open' } }
+            content_attributes: { activity: { type: 'conversation_status_changed', status: 'open', previous_status: 'pending' } }
           }
         )
     end
@@ -460,7 +473,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       allow(inbox.account).to receive(:feature_enabled?).and_call_original
       allow(inbox.account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
       mock_service = instance_double(Captain::ConversationCompletionService)
-      allow(mock_service).to receive(:perform).and_return({ complete: false, reason: 'API Error' })
+      allow(mock_service).to receive(:perform).and_return({ complete: false, reason: 'API Error', error: :failed })
       allow(Captain::ConversationCompletionService).to receive(:new).and_return(mock_service)
     end
 
@@ -468,6 +481,10 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       expect(resolvable_pending_conversation.reload.status).to eq('open')
+      decision = resolvable_pending_conversation.captain_decisions.sole
+      expect(decision.reason_code).to eq('evaluation_error')
+      expect(decision.outcome).to eq('completed')
+      expect(decision.anchor_message).to be_private
     end
   end
 

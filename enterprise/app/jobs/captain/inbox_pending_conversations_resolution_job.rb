@@ -45,7 +45,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       next unless still_resolvable_after_evaluation?(conversation)
 
       if evaluation[:complete]
-        resolve_conversation(conversation, inbox, evaluation[:reason], customer_confirmed: evaluation[:customer_confirmed])
+        resolve_conversation(conversation, inbox, evaluation[:reason], customer_confirmed: evaluation[:customer_confirmed], evaluation: evaluation)
       else
         handoff_conversation(conversation, evaluation)
       end
@@ -90,10 +90,11 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def evaluate_conversation(conversation, inbox)
+    evaluated_id = Captain::Conversation::Turn.last_message(conversation)&.id
     Captain::ConversationCompletionService.new(
       account: inbox.account,
       conversation_display_id: conversation.display_id
-    ).perform
+    ).perform.merge(evaluated_through_message_id: evaluated_id).compact
   end
 
   def resolvable_pending_conversations(inbox)
@@ -123,7 +124,9 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       next unless conversation.pending? && inactive_for_initial_action?(conversation)
 
       create_resolution_message(conversation)
-      conversation.resolved!
+      key = "resolve:time:#{conversation.id}:#{conversation.messages.maximum(:id)}"
+      record_inactivity_decision(conversation, key: key, code: 'time_resolve', kind: 'resolve', origin: 'time')
+      conversation.with_captain_activity_context(reason: nil, reason_type: :time, decision_key: key) { conversation.resolved! }
       resolved = true
     end
     return unless resolved
@@ -138,12 +141,14 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     nil
   end
 
-  def resolve_conversation(conversation, _inbox, reason, customer_confirmed: false)
+  def resolve_conversation(conversation, _inbox, reason, customer_confirmed: false, evaluation: {})
     resolved = with_inference_activity_context(conversation, activity_reason(conversation, 'no_outstanding_questions')) do
       perform_locked_transition(conversation) do
         conversation.resolved!
-        create_private_note(conversation, resolution_note(conversation, reason))
+        note = create_private_note(conversation, resolution_note(conversation, reason))
         create_resolution_message(conversation)
+        record_inactivity_decision(conversation, key: "resolve:evaluation:#{note.id}", code: 'evaluation_resolve', kind: 'resolve',
+                                                 origin: 'model', anchor_message: note, evaluation: evaluation)
       end
     end
     record_inference_resolution(conversation, customer_confirmed: customer_confirmed) if resolved
@@ -166,9 +171,9 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       perform_locked_transition(conversation) do
         routing = Captain::HandoffRouter.new(conversation: conversation, assistant: captain_assistant).plan
         conversation.bot_handoff!(dispatch_event: false, routing: routing)
-        create_private_note(conversation, [handoff_note(conversation, evaluation), routing.note].compact.join("\n"),
-                            captain_handoff: { reason_category: 'pending_clarification', source: 'inference' })
-        create_handoff_message(conversation)
+        note = create_private_note(conversation, [handoff_note(conversation, evaluation), routing.note].compact.join("\n"),
+                                   captain_handoff: { reason_category: 'pending_clarification', source: 'inference' })
+        complete_inactivity_handoff(conversation, note, evaluation)
       end
     end
     return unless handed_off
@@ -182,6 +187,26 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     )
   rescue ActiveRecord::RecordNotFound
     nil
+  end
+
+  def complete_inactivity_handoff(conversation, note, evaluation)
+    create_handoff_message(conversation)
+    code = evaluation[:error] ? 'evaluation_error' : 'evaluation_handoff'
+    record_inactivity_decision(conversation, key: "handoff:evaluation:#{note.id}", code: code, kind: 'handoff', origin: 'model',
+                                             anchor_message: note, evaluation: evaluation)
+  end
+
+  def record_inactivity_decision(conversation, key:, code:, kind:, **attributes)
+    evaluation = attributes.fetch(:evaluation, {})
+    evidence = evaluation.slice(:complete, :customer_confirmed, :expects_customer_reply, :evaluated_through_message_id)
+    evidence[:error] = 'evaluation_failed' if evaluation[:error]
+    evidence.merge!(action: kind, team_id: conversation.team_id, assignee_id: conversation.assignee_id)
+    Captain::Decisions::Action.record(
+      conversation: conversation, assistant: captain_assistant, kind: kind, origin: attributes.fetch(:origin),
+      trigger: evaluation[:error] ? 'error' : 'inactivity', reason_code: code, decision_key: key, anchor_message: attributes[:anchor_message],
+      evidence: evidence.compact, settings_snapshot: { inactivity_threshold_minutes: captain_assistant.inactivity_threshold_minutes },
+      technical_details: attributes[:origin] == 'model' ? { credits_consumed: 0 } : {}
+    )
   end
 
   def perform_locked_transition(conversation)

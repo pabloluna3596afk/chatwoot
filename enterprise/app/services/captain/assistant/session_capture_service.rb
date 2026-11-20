@@ -50,15 +50,7 @@ class Captain::Assistant::SessionCaptureService
   end
 
   def cited_document_ids
-    return [] unless @assistant.config['feature_citation']
-
-    citation_document_ids = (context.dig(:state, Captain::Assistant::CITATION_SOURCES_STATE_KEY) || {}).transform_keys(&:to_i)
-    visible_citation_indexes = @assistant.customer_visible_citation_urls(citation_document_ids).keys
-    stored_response_parts = result_message.additional_attributes.to_h[Captain::Assistant::ResponseParts::MESSAGE_ATTRIBUTE_KEY]
-    response_parts = Captain::Assistant::ResponseParts.new(stored_response_parts)
-    selected_citation_indexes = response_parts.to_a.flat_map { |part| part['citation_indexes'] }.uniq
-
-    (selected_citation_indexes & visible_citation_indexes).filter_map { |index| citation_document_ids[index] }.uniq
+    Captain::Assistant::CitationDocumentIds.call(assistant: @assistant, message: result_message, context: context)
   end
 
   # On handoff, HandoffTool records the private reason note it created; the session

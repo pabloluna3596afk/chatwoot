@@ -5,10 +5,11 @@ class Captain::Conversation::CompletionSignal
   ACTIVE_STATUSES = %w[pending evaluating].freeze
   EVALUATION_LEASE = 5.minutes
 
-  def self.cancel(conversation)
+  def self.cancel(conversation, cause: 'conversation_changed')
     state = conversation.additional_attributes[KEY]
     return unless state && ACTIVE_STATUSES.include?(state['status'])
 
+    new(conversation, nil).record_decision('cancelled', state, cancellation_cause: cause)
     conversation.additional_attributes = conversation.additional_attributes.merge(KEY => state.merge('status' => 'cancelled'))
   end
 
@@ -26,6 +27,7 @@ class Captain::Conversation::CompletionSignal
       conversation.update!(additional_attributes: conversation.additional_attributes.merge(
         KEY => candidate_attributes(message, response, incoming_id)
       ))
+      record_decision('pending', state) if state['status'] == 'pending'
     end
   end
 
@@ -37,12 +39,16 @@ class Captain::Conversation::CompletionSignal
     result = evaluate
     conversation.with_lock do
       next unless state == snapshot
-      next retire('cancelled') unless current_turn?
+      next retire('cancelled', cancellation_cause: 'turn_changed') unless current_turn?
 
       Captain::Conversation::ResolutionTransition.perform(conversation, assistant, signal: true) { apply(result) }
     end
   ensure
     Current.reset
+  end
+
+  def record_decision(status, snapshot, **facts)
+    Captain::Decisions::CompletionSignalRecorder.new(conversation, assistant).record(status, snapshot, **facts)
   end
 
   private
@@ -74,7 +80,7 @@ class Captain::Conversation::CompletionSignal
   def claim
     conversation.with_lock do
       next unless state['status'] == 'pending' && Time.iso8601(state.fetch('due_at')) <= Time.current
-      next retire('cancelled') unless assistant && current_turn?
+      next retire('cancelled', cancellation_cause: 'turn_changed') unless assistant && current_turn?
 
       retire('evaluating', evaluating_at: Time.current.utc.iso8601)
       state.deep_dup
@@ -98,6 +104,9 @@ class Captain::Conversation::CompletionSignal
   end
 
   def retire(status, **extra)
+    facts = extra.slice(:cancellation_cause)
+    facts[:error] = extra[:error] == 'evaluation_interrupted' ? 'evaluation_interrupted' : 'evaluation_failed' if extra[:error]
+    record_decision(status, state, **facts) unless status == 'evaluating'
     attributes = state.merge('status' => status).merge(extra.stringify_keys)
     conversation.update!(additional_attributes: conversation.additional_attributes.merge(KEY => attributes))
   end
@@ -117,9 +126,14 @@ class Captain::Conversation::CompletionSignal
     # No public goodbye and no follow-up/re-engagement mark for a completed request.
     retire('confirmed')
     conversation.update!(additional_attributes: conversation.additional_attributes.except(Captain::Followup::Reengager::STATE_KEY))
-    conversation.with_captain_activity_context(reason: result[:reason], reason_type: :inference) { conversation.resolved! }
+    resolve_with_activity(result[:reason])
     Captain::ConversationEvents.resolved(conversation: conversation, assistant: assistant,
                                          source: Captain::ConversationEvents::Sources::INFERENCE, at: Time.current,
                                          reason: result[:customer_confirmed] ? 'customer_confirmation' : 'evaluated_completion')
+  end
+
+  def resolve_with_activity(reason)
+    key = "signal:#{conversation.id}:#{state['reply_id']}:confirmed"
+    conversation.with_captain_activity_context(reason: reason, reason_type: :inference, decision_key: key) { conversation.resolved! }
   end
 end
