@@ -227,6 +227,17 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
       expect(assistant.messaging.revision).to eq(4)
     end
 
+    it 'accepts the unchanged messaging block a settings form sends back, without touching the revision' do
+      saved = assistant.config['messaging']
+      patch assistant_url,
+            params: { assistant: { config: { messaging: saved, product_name: 'New', followup: { inactivity_after_minutes: 10 } } } },
+            headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(assistant.reload.config['product_name']).to eq('New')
+      expect(assistant.messaging.revision).to eq(4)
+    end
+
     it 'preserves messaging when saving another assistant setting' do
       patch assistant_url, params: { assistant: { config: { product_name: 'New' } } },
                            headers: admin.create_new_auth_token, as: :json
