@@ -7,12 +7,12 @@ import { provideMessageContext } from '../../provider.js';
 const maliciousContent =
   'Conversation was resolved by <img src="https://example.com/tracker.png" onerror="alert(1)">Agent';
 
-const mountActivity = (attributes = {}) => {
+const mountActivity = (attributes = {}, activityContent = maliciousContent) => {
   const TestHost = defineComponent({
     components: { Activity },
     setup() {
       provideMessageContext({
-        content: ref(maliciousContent),
+        content: ref(activityContent),
         createdAt: ref(1_723_456_789),
         id: ref(7),
         contentAttributes: ref(attributes),
@@ -54,6 +54,24 @@ describe('Activity', () => {
       new Date(1_723_456_789_000).toISOString()
     );
     expect(wrapper.get('time').text()).not.toBe('');
+    wrapper.unmount();
+  });
+
+  it('keeps short activity copy, time, and Captain access in inline flow', () => {
+    const wrapper = mountActivity(
+      { activity: { source: { type: 'captain' } } },
+      'Conversation resolved'
+    );
+    expect(wrapper.find('br').exists()).toBe(false);
+    expect(
+      wrapper.find('time').element.previousElementSibling.textContent
+    ).toBe('Conversation resolved');
+    expect(wrapper.find('time').element.parentElement.className).not.toContain(
+      'flex-wrap'
+    );
+    expect(
+      wrapper.findComponent({ name: 'CaptainGenerationDetails' }).exists()
+    ).toBe(true);
     wrapper.unmount();
   });
 });

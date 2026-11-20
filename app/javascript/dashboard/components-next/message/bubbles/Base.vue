@@ -42,7 +42,7 @@ const varaintBaseMap = {
     'bg-n-solid-amber text-n-amber-12 [&_.prosemirror-mention-node]:font-semibold',
   [MESSAGE_VARIANTS.USER]: CHAT_SKIN.bubble.incoming,
   [MESSAGE_VARIANTS.ACTIVITY]:
-    'bg-white dark:bg-n-solid-3 shadow-sm px-2 py-0.5 text-n-slate-11 text-sm',
+    'bg-n-solid-2 shadow-sm px-3 py-1 text-n-slate-11 text-sm max-w-[min(92vw,35rem)]',
   [MESSAGE_VARIANTS.BOT]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.TEMPLATE]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.ERROR]: 'bg-n-ruby-4 text-n-ruby-12',
@@ -53,9 +53,9 @@ const varaintBaseMap = {
 
 const orientationMap = {
   [ORIENTATION.LEFT]:
-    'left-bubble rounded-xl ltr:rounded-bl-sm rtl:rounded-br-sm',
+    'left-bubble rounded-[0.875rem] ltr:rounded-bl-none rtl:rounded-br-none',
   [ORIENTATION.RIGHT]:
-    'right-bubble rounded-xl ltr:rounded-br-sm rtl:rounded-bl-sm',
+    'right-bubble rounded-[0.875rem] ltr:rounded-br-none rtl:rounded-bl-none',
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 
@@ -63,9 +63,9 @@ const messageClass = computed(() => {
   const classToApply = [varaintBaseMap[variant.value]];
 
   if (variant.value !== MESSAGE_VARIANTS.ACTIVITY) {
-    classToApply.push(orientationMap[orientation.value]);
+    classToApply.push(orientationMap[orientation.value], 'shadow-sm');
   } else {
-    classToApply.push('rounded-lg');
+    classToApply.push('rounded-full');
   }
 
   return classToApply;

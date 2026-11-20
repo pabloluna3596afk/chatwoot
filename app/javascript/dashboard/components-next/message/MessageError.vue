@@ -34,20 +34,17 @@ const canRetry = computed(() => {
   const hasAttachments = attachments.value && attachments.value.length > 0;
   return !hasOneDayPassed(createdAt.value) && (hasContent || hasAttachments);
 });
+const canRetryNow = computed(() => status.value === MESSAGE_STATUS.FAILED);
 </script>
 
 <template>
-  <div class="text-xs text-n-ruby-11 flex items-center gap-1.5">
-    <span>{{ t('CHAT_LIST.FAILED_TO_SEND') }}</span>
+  <div class="flex items-center justify-end gap-1.5 text-xs text-n-ruby-11">
     <div class="relative group">
-      <div
-        class="bg-n-alpha-2 rounded-md size-5 grid place-content-center cursor-pointer"
-      >
-        <Icon
-          icon="i-lucide-alert-triangle"
-          class="text-n-ruby-11 size-[14px]"
-        />
-      </div>
+      <Icon
+        icon="i-lucide-circle-alert"
+        class="size-3.5 shrink-0"
+        aria-hidden="true"
+      />
       <div
         class="absolute bg-n-alpha-3 px-4 py-3 border rounded-xl border-n-strong text-n-slate-12 bottom-6 w-64 max-w-xs text-xs backdrop-blur-[100px] shadow-[0px_0px_24px_0px_rgba(0,0,0,0.12)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all break-words"
         :class="{
@@ -58,14 +55,16 @@ const canRetry = computed(() => {
         {{ tooltipError }}
       </div>
     </div>
+    <span>{{ canRetry ? t('CHAT_LIST.FAILED_TO_SEND') : tooltipError }}</span>
     <button
       v-if="canRetry"
       type="button"
-      :disabled="status !== MESSAGE_STATUS.FAILED"
-      class="bg-n-alpha-2 rounded-md size-5 grid place-content-center cursor-pointer"
+      :disabled="!canRetryNow"
+      class="inline-flex min-h-6 items-center gap-1 rounded-md px-1.5 text-n-ruby-11 underline underline-offset-2 disabled:cursor-not-allowed"
       @click="emit('retry')"
     >
-      <Icon icon="i-lucide-refresh-ccw" class="text-n-ruby-11 size-[14px]" />
+      <Icon icon="i-lucide-refresh-ccw" class="size-3.5" aria-hidden="true" />
+      {{ t('CHAT_LIST.RETRY') }}
     </button>
   </div>
 </template>
