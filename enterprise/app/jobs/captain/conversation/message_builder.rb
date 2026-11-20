@@ -59,8 +59,13 @@ module Captain::Conversation::MessageBuilder
 
   def note_messaging_failure(result)
     content = I18n.t('captain.messaging.not_sent', locale: account.locale, reason: result.message)
-    @conversation.messages.create!(message_type: :outgoing, account_id: account.id, inbox_id: inbox.id, sender: @assistant,
-                                   content: content, private: true, preserve_waiting_since: true)
+    note = @conversation.messages.create!(message_type: :outgoing, account_id: account.id, inbox_id: inbox.id, sender: @assistant,
+                                          content: content, private: true, preserve_waiting_since: true)
+    Captain::Decisions::Action.record(
+      conversation: @conversation, assistant: @assistant, decision_key: "reply:messaging-skipped:#{@conversation.id}:#{job_id}",
+      kind: 'reply', outcome: 'skipped', origin: 'rule', trigger: 'tool', anchor_message: note,
+      reason_code: "messaging_#{result.code}", reason_text: content, evidence: { action: 'reply' }
+    )
   end
 
   def create_v1_message

@@ -7,8 +7,10 @@ RSpec.describe Captain::Conversation::CompletionSignal do
     create(:captain_assistant, account: account, config: { auto_resolve_mode: 'evaluated', completion_signal_enabled: true })
   end
   let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending, ai_assignee: assistant) }
-  let(:incoming) { create(:message, conversation: conversation, message_type: :incoming, sender: conversation.contact) }
-  let(:reply) { create(:message, conversation: conversation, message_type: :outgoing, sender: assistant, content: 'Goodbye, glad I could help.') }
+  let(:incoming) { create(:message, account: account, conversation: conversation, message_type: :incoming, sender: conversation.contact) }
+  let(:reply) do
+    create(:message, account: account, conversation: conversation, message_type: :outgoing, sender: assistant, content: 'Goodbye, glad I could help.')
+  end
   let(:signal) { described_class.new(conversation, assistant) }
   let(:response) { { 'probable_complete' => true, 'expects_customer_reply' => false } }
   let(:evaluation) { instance_double(Captain::ConversationCompletionService, perform: { complete: true, reason: 'Done' }) }
@@ -109,7 +111,7 @@ RSpec.describe Captain::Conversation::CompletionSignal do
   end
 
   it 'cancels a candidate on an incoming message' do
-    create(:message, conversation: conversation, message_type: :incoming, sender: conversation.contact)
+    create(:message, account: account, conversation: conversation, message_type: :incoming, sender: conversation.contact)
     expect(evaluation).not_to receive(:perform)
     travel(6.minutes) { signal.review }
     expect(conversation.reload).to be_pending
@@ -201,7 +203,7 @@ RSpec.describe Captain::Conversation::CompletionSignal do
   end
 
   it 'does not overwrite a newer turn with an older candidate' do
-    newer = create(:message, conversation: conversation, message_type: :incoming, sender: conversation.contact)
+    newer = create(:message, account: account, conversation: conversation, message_type: :incoming, sender: conversation.contact)
     signal.record(message: reply, response: response, incoming_id: incoming.id)
     expect(conversation.reload.additional_attributes[described_class::KEY]['status']).to eq('cancelled')
     expect(newer.id).to be > incoming.id

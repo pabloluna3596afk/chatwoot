@@ -2,9 +2,11 @@ require 'rails_helper'
 
 RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
   let!(:inbox) { create(:inbox) }
-  let!(:resolvable_pending_conversation) { create(:conversation, inbox: inbox, last_activity_at: 2.hours.ago, status: :pending) }
-  let!(:recent_pending_conversation) { create(:conversation, inbox: inbox, last_activity_at: 1.minute.ago, status: :pending) }
-  let!(:open_conversation) { create(:conversation, inbox: inbox, last_activity_at: 1.hour.ago, status: :open) }
+  let!(:resolvable_pending_conversation) do
+    create(:conversation, account: inbox.account, inbox: inbox, last_activity_at: 2.hours.ago, status: :pending)
+  end
+  let!(:recent_pending_conversation) { create(:conversation, account: inbox.account, inbox: inbox, last_activity_at: 1.minute.ago, status: :pending) }
+  let!(:open_conversation) { create(:conversation, account: inbox.account, inbox: inbox, last_activity_at: 1.hour.ago, status: :open) }
   let!(:captain_assistant) { create(:captain_assistant, account: inbox.account, config: { 'auto_resolve_mode' => 'evaluated' }) }
 
   before do
@@ -221,6 +223,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
 
     it 'records the inactivity threshold used before the evaluator ran' do
       inbox.account.enable_features!(:captain_integration_v2)
+      captain_assistant.reload
       applied_minutes = captain_assistant.inactivity_threshold_minutes
       mock_service = instance_double(Captain::ConversationCompletionService)
       allow(Captain::ConversationCompletionService).to receive(:new).and_return(mock_service)

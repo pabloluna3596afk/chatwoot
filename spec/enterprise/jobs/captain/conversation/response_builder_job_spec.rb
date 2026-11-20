@@ -14,7 +14,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     let(:mock_action_classifier_service) { instance_double(Captain::Llm::AssistantActionClassifierService) }
     let(:mock_false_promise_service) { instance_double(Captain::Llm::AssistantFalsePromiseService) }
     let(:assistant_model) { Llm::Models.default_model_for('assistant') }
-    let!(:responding_to_message) { create(:message, conversation: conversation, content: 'Hello', message_type: :incoming) }
+    let!(:responding_to_message) { create(:message, account: account, conversation: conversation, content: 'Hello', message_type: :incoming) }
     let(:v2_response_parts) { [{ 'text' => 'Hey, welcome to Captain V2', 'citation_indexes' => [] }] }
 
     before do
@@ -59,10 +59,57 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
     it 'does not invent a deducted credit for an account without a billing period' do
       account.disable_features!(:captain_integration_v2)
-      account.update!(custom_attributes: {}, plan: nil, plan_started_at: nil)
+      account.update_columns(plan_id: nil, plan_started_at: nil) # rubocop:disable Rails/SkipsModelValidations -- represent an unmetered account
+      account.reload
       described_class.perform_now(conversation, assistant, responding_to_message.id)
       expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
       expect(conversation.captain_decisions.sole.technical_details).not_to have_key('credits_consumed')
+    end
+
+    context 'when a prepared Flow or template is delivered' do
+      let(:inbox) do
+        create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false).inbox
+      end
+
+      before { account.enable_features!(:captain_integration_v2) }
+
+      %w[flow template].each do |kind|
+        it "anchors the #{kind} reply decision to the message actually returned by delivery" do
+          resource = kind == 'flow' ? 1 : { name: 'welcome', language: 'en' }
+          request = Captain::Messaging::Request.new(kind: kind, resource: resource, responding_to_message_id: responding_to_message.id)
+          allow(Captain::Messaging::Intent).to receive(:take).and_return(request)
+          service = instance_double(Captain::Messaging::SendService)
+          allow(Captain::Messaging::SendService).to receive(:new).and_return(service)
+          allow(service).to receive(:perform) do
+            sent = create(:message, account: account, inbox: inbox, conversation: conversation, sender: assistant,
+                                    message_type: :outgoing, content: "Prepared #{kind}")
+            Captain::Messaging::SendService::Result.new(status: :sent, message: sent)
+          end
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+          expect(conversation.captain_decisions.sole).to have_attributes(kind: 'reply', outcome: 'created',
+                                                                         anchor_message_id: conversation.messages.outgoing.sole.id)
+        end
+      end
+
+      it 'records a rejected send on its existing private note and the fallback reply separately' do
+        request = Captain::Messaging::Request.new(kind: 'flow', resource: 1, responding_to_message_id: responding_to_message.id)
+        allow(Captain::Messaging::Intent).to receive(:take).and_return(request)
+        service = instance_double(Captain::Messaging::SendService)
+        allow(Captain::Messaging::SendService).to receive(:new).and_return(service)
+        allow(service).to receive(:perform).and_return(Captain::Messaging::SendService::Result.new(
+                                                         status: :denied, code: 'window_closed', message: I18n.t(
+                                                           'captain.messaging.errors.window_closed', locale: account.locale
+                                                         )
+                                                       ))
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+        note = conversation.messages.where(private: true).sole
+        expect(conversation.captain_decisions.count).to eq(2)
+        expect(conversation.captain_decisions.find_by!(outcome: 'skipped')).to have_attributes(
+          anchor_message_id: note.id, reason_code: 'messaging_window_closed', reason_text: note.content
+        )
+        expect(conversation.captain_decisions.find_by!(outcome: 'created').anchor_message).not_to be_private
+        expect(note.push_event_data.to_json).not_to include('captain_decisions', 'decision_key')
+      end
     end
 
     it 'records a completion candidate only after the final response is persisted' do
@@ -232,7 +279,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         job = described_class.new(conversation, assistant, responding_to_message.id)
         expect(account).not_to receive(:finish_captain_ai_usage!)
         allow(job).to receive(:process_response).and_wrap_original do |original|
-          create(:message, conversation: conversation, message_type: :incoming, content: 'Another question')
+          create(:message, account: account, conversation: conversation, message_type: :incoming, content: 'Another question')
           original.call
         end
 
@@ -630,7 +677,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       it 'does nothing on retry when a newer customer message arrived' do
         freeze_time do
           described_class.perform_now(conversation, assistant, responding_to_message.id)
-          create(:message, conversation: conversation, message_type: :incoming, content: 'New question')
+          create(:message, account: account, conversation: conversation, message_type: :incoming, content: 'New question')
           travel 5.seconds
           perform_enqueued_jobs(only: described_class, at: Time.current)
 
@@ -667,11 +714,11 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           freeze_time do
             Captain::Conversation::ResponseSchedulerService.new(message: responding_to_message).perform
             travel 1.second
-            second_message = create(:message, conversation: conversation, content: 'Second', message_type: :incoming)
+            second_message = create(:message, account: account, conversation: conversation, content: 'Second', message_type: :incoming)
             allow(second_message.inbox).to receive(:captain_assistant).and_return(assistant)
             Captain::Conversation::ResponseSchedulerService.new(message: second_message).perform
             travel 1.second
-            last_message = create(:message, conversation: conversation, content: 'Last', message_type: :incoming)
+            last_message = create(:message, account: account, conversation: conversation, content: 'Last', message_type: :incoming)
             allow(last_message.inbox).to receive(:captain_assistant).and_return(assistant)
             Captain::Conversation::ResponseSchedulerService.new(message: last_message).perform
 
@@ -701,7 +748,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         end
 
         it 'does not generate or charge when a newer message arrives during the wait' do
-          create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+          create(:message, account: account, conversation: conversation, content: 'New context', message_type: :incoming)
 
           expect(mock_llm_chat_service).not_to receive(:generate_response)
           expect(mock_agent_runner_service).not_to receive(:generate_response)
@@ -753,7 +800,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
                                  captain_assignment_message_id: responding_to_message.id,
                                  captain_assignment_response_message_id: responding_to_message.id
                                })
-          newer_message = create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+          newer_message = create(:message, account: account, conversation: conversation, content: 'New context', message_type: :incoming)
 
           described_class.perform_now(conversation.reload, assistant, responding_to_message.id)
           expect(conversation.messages.where(sender: assistant, private: false, message_type: :outgoing)).to be_empty
@@ -814,7 +861,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           content: 'Conversation was marked resolved',
           content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved' } }
         )
-        create(:message, conversation: conversation, content: 'Private note', message_type: :outgoing, private: true)
+        create(:message, account: account, conversation: conversation, content: 'Private note', message_type: :outgoing, private: true)
 
         expect(mock_llm_chat_service).to receive(:generate_response).with(
           message_history: [{ content: 'Hello', role: 'user' }]
@@ -1145,7 +1192,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
         it 'discards a response when the runner sees a newer customer message' do
           allow(mock_agent_runner_service).to receive(:generate_response) do
-            create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+            create(:message, account: account, conversation: conversation, content: 'New context', message_type: :incoming)
             { 'response' => 'Stale response', 'handoff_tool_called' => false }
           end
           allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
@@ -1163,7 +1210,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
         it 'checks freshness itself after generation' do
           allow(mock_agent_runner_service).to receive(:generate_response) do
-            create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+            create(:message, account: account, conversation: conversation, content: 'New context', message_type: :incoming)
             { 'response' => 'Stale response', 'handoff_tool_called' => false }
           end
           allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(false)
@@ -1176,7 +1223,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
         it 'does not emit a response completed event for a stale response' do
           allow(mock_agent_runner_service).to receive(:generate_response) do
-            create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+            create(:message, account: account, conversation: conversation, content: 'New context', message_type: :incoming)
             { 'response' => 'Stale response', 'handoff_tool_called' => false }
           end
 
@@ -1187,7 +1234,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
         it 'emits only the response failed event when generation raises after a newer message arrived' do
           allow(mock_agent_runner_service).to receive(:generate_response) do
-            create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+            create(:message, account: account, conversation: conversation, content: 'New context', message_type: :incoming)
             raise StandardError, 'llm down'
           end
 
@@ -1243,9 +1290,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           created_at: same_second,
           updated_at: same_second
         )
-        create(:message, conversation: conversation, message_type: :activity, content: 'Assigned to agent', created_at: same_second,
+        create(:message, account: account, conversation: conversation, message_type: :activity, content: 'Assigned to agent', created_at: same_second,
                          updated_at: same_second)
-        create(:message, conversation: conversation, content: 'Fresh question', message_type: :incoming, created_at: same_second,
+        create(:message, account: account, conversation: conversation, content: 'Fresh question', message_type: :incoming, created_at: same_second,
                          updated_at: same_second)
 
         expected_messages = [
@@ -1755,14 +1802,16 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
         # A human reply clears waiting_since (consumed by dispatch_create_events
         # to emit FIRST_REPLY_CREATED or REPLY_CREATED for reply_time tracking).
-        create(:message, conversation: conversation, message_type: :outgoing,
-                         sender: agent, account: account, inbox: inbox)
+        create(:message, account: account, conversation: conversation, message_type: :outgoing,
+                         sender: agent, inbox: inbox)
         expect(conversation.reload.waiting_since).to be_nil
       end
     end
 
     context 'when message contains an image' do
-      let(:message_with_image) { create(:message, conversation: conversation, message_type: :incoming, content: 'Can you help with this error?') }
+      let(:message_with_image) do
+        create(:message, account: account, conversation: conversation, message_type: :incoming, content: 'Can you help with this error?')
+      end
       let(:image_attachment) { message_with_image.attachments.create!(account: account, file_type: :image, external_url: 'https://example.com/error.jpg') }
 
       before do
@@ -1793,7 +1842,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     let(:mock_message_builder) { instance_double(Captain::OpenAiMessageBuilderService) }
 
     before do
-      create(:message, conversation: conversation, content: 'Hello with image', message_type: :incoming)
+      create(:message, account: account, conversation: conversation, content: 'Hello with image', message_type: :incoming)
       allow(Captain::Llm::AssistantChatService).to receive(:new).and_return(mock_llm_chat_service)
       allow(Captain::OpenAiMessageBuilderService).to receive(:new).with(message: anything).and_return(mock_message_builder)
       allow(mock_message_builder).to receive(:generate_content).and_return('Hello with image')
@@ -1907,7 +1956,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     let(:mock_llm_chat_service) { instance_double(Captain::Llm::AssistantChatService) }
 
     before do
-      create(:message, conversation: conversation, content: 'Hello', message_type: :incoming)
+      create(:message, account: account, conversation: conversation, content: 'Hello', message_type: :incoming)
       allow(Captain::Llm::AssistantChatService).to receive(:new).and_return(mock_llm_chat_service)
       allow(account).to receive(:feature_enabled?).and_return(false)
       allow(account).to receive(:feature_enabled?).with('captain_integration_v2').and_return(false)
@@ -2022,8 +2071,8 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     before do
       assistant.update!(config: assistant.config.merge('max_replies_per_conversation' => 2))
       conversation.update!(status: :pending, ai_assignee: assistant)
-      2.times { create(:message, conversation: conversation, message_type: :outgoing, sender: assistant, content: 'respuesta') }
-      create(:message, conversation: conversation, content: 'otra pregunta', message_type: :incoming)
+      2.times { create(:message, account: account, conversation: conversation, message_type: :outgoing, sender: assistant, content: 'respuesta') }
+      create(:message, account: account, conversation: conversation, content: 'otra pregunta', message_type: :incoming)
       allow(Captain::Llm::AssistantChatService).to receive(:new).and_raise('Captain must not generate past its limit')
       allow(Captain::Assistant::AgentRunnerService).to receive(:new).and_raise('Captain must not generate past its limit')
     end
