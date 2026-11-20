@@ -77,10 +77,12 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
         expect(Captain::HandoffRouter).to receive(:new).with(
           conversation: an_instance_of(Conversation), assistant: assistant, team_name: nil, urgent: nil
         ).and_call_original
-        expect(tool.perform(tool_context)).to include('Conversation handed off')
+        expect(tool.perform(tool_context, reason: 'Customer requested a specialist')).to include('Conversation handed off')
         expect(conversation.reload).to be_high
-        expect(conversation.captain_decisions.sole).to have_attributes(kind: 'handoff', outcome: 'completed', origin: 'tool',
-                                                                       anchor_message_id: conversation.messages.where(private: true).sole.id)
+        expect(conversation.captain_decisions.sole).to have_attributes(
+          kind: 'handoff', outcome: 'completed', origin: 'tool', reason_text: 'Customer requested a specialist',
+          anchor_message_id: conversation.messages.where(private: true).sole.id
+        )
         expect(conversation.messages.where(private: true).sole.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
       end
 

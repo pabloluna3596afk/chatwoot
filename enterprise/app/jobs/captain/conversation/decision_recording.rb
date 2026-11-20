@@ -7,7 +7,8 @@ module Captain::Conversation::DecisionRecording
       anchor_message: message, kind: 'reply', outcome: 'created', origin: 'model', trigger: 'customer_message',
       reason_code: 'model_reply'
     ) do
-      { reason_text: @response['reasoning']&.first(500), evidence: reply_evidence(message), technical_details: reply_technical_details }
+      { reason_text: @response['reasoning']&.first(Captain::Decision::REASON_TEXT_LIMIT), evidence: reply_evidence(message),
+        technical_details: reply_technical_details }
     end
   end
 

@@ -5,6 +5,7 @@ class Captain::Decision < ApplicationRecord
   OUTCOMES = %w[created completed pending confirmed rejected cancelled skipped failed].freeze
   ORIGINS = %w[model rule tool time].freeze
   TRIGGERS = %w[customer_message tool inactivity completion_signal evaluation error reply_limit usage_limit].freeze
+  REASON_TEXT_LIMIT = 500
   PAYLOAD_LIMIT = 8.kilobytes
 
   belongs_to :account
@@ -23,7 +24,7 @@ class Captain::Decision < ApplicationRecord
   validates :decision_key, presence: true, length: { maximum: 200 }, uniqueness: { scope: :account_id }
   validates :reason_code, presence: true, length: { maximum: 80 }
   validates :reason_locale, presence: true, length: { maximum: 16 }
-  validates :reason_text, length: { maximum: 500 }
+  validates :reason_text, length: { maximum: REASON_TEXT_LIMIT }
   validates :occurred_at, presence: true
   validates_with Captain::Decisions::PayloadValidator
   validates_with Captain::Decisions::ReferencesValidator

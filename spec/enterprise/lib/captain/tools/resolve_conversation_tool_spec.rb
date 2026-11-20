@@ -35,7 +35,7 @@ RSpec.describe Captain::Tools::ResolveConversationTool do
     it 'links the resolution decision to the existing asynchronous activity' do
       perform_enqueued_jobs(only: Conversations::ActivityMessageJob) { tool.perform(tool_context, reason: 'Completed') }
       decision = conversation.captain_decisions.sole
-      expect(decision).to have_attributes(kind: 'resolve', origin: 'tool', outcome: 'completed')
+      expect(decision).to have_attributes(kind: 'resolve', origin: 'tool', outcome: 'completed', reason_text: 'Completed')
       expect(decision.anchor_message).to be_activity
     end
 

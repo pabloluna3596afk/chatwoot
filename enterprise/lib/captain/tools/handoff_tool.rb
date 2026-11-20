@@ -85,7 +85,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
       plan = routing.plan
       conversation.bot_handoff!(dispatch_event: false, routing: plan)
       plan.append_to(note)
-      record_handoff_decision(conversation, note, tool_context.state)
+      record_handoff_decision(conversation, note, tool_context.state, reason)
       :completed
     end
 
@@ -111,18 +111,19 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
       routing = router.plan
       conversation.bot_handoff!(routing: routing)
       routing.append_to(note)
-      record_handoff_decision(conversation, note, tool_context.state) if pending && conversation.open?
+      record_handoff_decision(conversation, note, tool_context.state, reason) if pending && conversation.open?
     end
     emit_tool_handoff_event(conversation, reason_category)
     :completed
   end
 
-  def record_handoff_decision(conversation, note, state)
+  def record_handoff_decision(conversation, note, state, reason)
     turn_id = state[:responding_to_message_id] || conversation.messages.incoming.maximum(:id) || 'initial'
     assignment_id = conversation.additional_attributes.fetch('captain_assignment_message_id', 0)
     Captain::Decisions::Action.record(
       conversation: conversation, assistant: @assistant, kind: 'handoff', origin: 'tool', trigger: 'tool',
-      reason_code: 'tool_handoff', decision_key: "handoff:tool:#{conversation.id}:#{assignment_id}:#{turn_id}", anchor_message: note,
+      reason_code: 'tool_handoff', reason_text: reason, decision_key: "handoff:tool:#{conversation.id}:#{assignment_id}:#{turn_id}",
+      anchor_message: note,
       evidence: { action: 'handoff', reason_category: note.content_attributes.dig('captain_handoff', 'reason_category'),
                   team_id: conversation.team_id, assignee_id: conversation.assignee_id }.compact
     )
