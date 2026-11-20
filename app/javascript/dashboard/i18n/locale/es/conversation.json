@@ -527,6 +527,100 @@
       "LOCATION": "Ubicación",
       "CONTACT": "Contacto",
       "UNAVAILABLE": "{type} no disponible"
+    },
+    "CAPTAIN_DECISION": {
+      "OPEN": "Ver detalles de la decisión de Captain",
+      "TITLE": "Detalles de la decisión",
+      "OUTCOME": "Resultado",
+      "WHY": "Por qué",
+      "EVIDENCE": "Evidencia",
+      "ACTIONS": "Acciones",
+      "AFTERWARDS": "Qué pasó después",
+      "ORIGIN": "Origen",
+      "RULE": "Regla",
+      "SOURCES_USED": "Fuentes utilizadas",
+      "SOURCES_CONSULTED": "Fuentes consultadas",
+      "LOADING": "Cargando detalles…",
+      "EMPTY": "No hay detalles disponibles para este mensaje.",
+      "NO_REASON": "No se guardó un motivo para esta decisión.",
+      "NO_EVIDENCE": "No se registró evidencia para esta decisión.",
+      "NO_LATER_EVENTS": "No se registraron cambios posteriores.",
+      "ERROR": "No pudimos cargar los detalles.",
+      "FORBIDDEN": "No tienes acceso a estos detalles.",
+      "RETRY": "Reintentar",
+      "CLOSE": "Cerrar",
+      "CHANGE_SETTING": "Cambiar este ajuste",
+      "SILENCE_WARNING": "El cierre por falta de respuesta no confirma que la consulta se haya solucionado.",
+      "NOT_RECORDED": "No registrado",
+      "NOT_APPLICABLE": "No aplica",
+      "EVALUATION_COST_NOTICE": "La evaluación no consume créditos de Captain; puede generar costos del proveedor.",
+      "SOURCE_UNAVAILABLE": "Fuente no disponible",
+      "TOOL_CALLED": "Se llamó a la herramienta {name}",
+      "OUTCOMES": {
+        "created": "Mensaje creado",
+        "completed": "Completada",
+        "pending": "Pendiente",
+        "confirmed": "Confirmada",
+        "rejected": "Rechazada",
+        "cancelled": "Cancelada",
+        "skipped": "Omitida",
+        "failed": "Fallida"
+      },
+      "ORIGINS": {
+        "model": "Modelo",
+        "rule": "Regla",
+        "time": "Tiempo",
+        "tool": "Herramienta"
+      },
+      "TECHNICAL": {
+        "model": "Modelo: {value}",
+        "creditsConsumed": "Créditos descontados: {value}",
+        "cost": "Costo: {value}"
+      },
+      "LATER": {
+        "new_incoming": "El cliente envió un nuevo mensaje.",
+        "handoff": "Se transfirió la conversación.",
+        "resolved": "Se resolvió la conversación.",
+        "reopened": "Se reabrió la conversación."
+      },
+      "SETTINGS": {
+        "inactivityThresholdMinutes": "Umbral de inactividad: {minutes} minutos",
+        "completionGraceMinutes": "Revisar el cierre después de {minutes} minutos"
+      },
+      "FACTS": {
+        "complete": {
+          "true": "No se detectaron preguntas pendientes.",
+          "false": "Se detectaron preguntas pendientes."
+        },
+        "customerConfirmed": {
+          "true": "El cliente confirmó la solución.",
+          "false": "El cliente no confirmó la solución."
+        },
+        "expectsCustomerReply": {
+          "true": "Se esperaba una respuesta del cliente.",
+          "false": "No se esperaba una respuesta del cliente."
+        },
+        "probableComplete": {
+          "true": "Se detectó un posible cierre.",
+          "false": "No se detectó un posible cierre."
+        },
+        "action": {
+          "reply": "Acción registrada: responder",
+          "resolve": "Acción registrada: resolver",
+          "handoff": "Acción registrada: transferir"
+        },
+        "cancellationCause": {
+          "new_incoming": "Se canceló al llegar un nuevo mensaje del cliente.",
+          "human_reply": "Se canceló tras una respuesta humana.",
+          "conversation_changed": "Se canceló tras un cambio en la conversación.",
+          "turn_changed": "Se canceló tras un cambio de turno."
+        },
+        "error": {
+          "evaluation_failed": "La evaluación falló.",
+          "evaluation_interrupted": "Se interrumpió la evaluación."
+        }
+      },
+      "NO_SOURCES_OR_TOOLS": "No se registraron fuentes ni herramientas para esta respuesta."
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -763,9 +857,16 @@
     "ERROR": "No se pudo transcribir el audio. Inténtelo de nuevo"
   },
   "MESSAGE_SOURCE": {
-    "AUTOMATION": "Enviado por automatización «{name}»",
-    "MACRO": "Enviado por macro «{name}»",
-    "FLOW": "Enviado por flujo «{name}»",
-    "FALLBACK": "Enviado por {type} #{id}"
+    "AUTOMATION": "Origen: automatización «{name}»",
+    "MACRO": "Origen: macro «{name}»",
+    "FLOW": "Origen: flujo «{name}»",
+    "FALLBACK": "Origen: {type} #{id}",
+    "TYPE_AUTOMATION": "automatización",
+    "TYPE_MACRO": "macro",
+    "TYPE_FLOW": "flujo",
+    "WITHOUT_ID": "Origen: {type}"
+  },
+  "MESSAGE_META": {
+    "PRIVATE_NOTE": "Nota privada"
   }
 }

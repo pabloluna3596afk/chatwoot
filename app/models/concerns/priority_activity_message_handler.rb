@@ -10,7 +10,7 @@ module PriorityActivityMessageHandler
     user = AutomationRuleActor.activity_owner(user_name)
     content = build_priority_change_content(user, old_priority, new_priority)
 
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, names: activity_actor_names(user_name))) if content
   end
 
   def priority_change?(old_priority, new_priority)

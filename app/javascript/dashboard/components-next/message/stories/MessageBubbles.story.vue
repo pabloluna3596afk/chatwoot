@@ -170,6 +170,29 @@ const email = computed(() =>
         <Message :current-user-id="1" v-bind="privateText" />
       </div>
     </Variant>
+    <Variant title="Metadata sources and minute groups">
+      <div class="p-4 bg-n-background rounded-lg w-full grid gap-2">
+        <template
+          v-for="(source, index) in ['macro', 'automation', 'flow']"
+          :key="source"
+        >
+          <Message
+            v-bind="simpleText"
+            :id="9000 + index * 2"
+            :current-user-id="1"
+            group-with-next
+            :content-attributes="{
+              messageSource: { type: source, id: index + 1, name: 'Demo' },
+            }"
+          />
+          <Message
+            v-bind="simpleText"
+            :id="9001 + index * 2"
+            :current-user-id="1"
+          />
+        </template>
+      </div>
+    </Variant>
 
     <!-- Platform Specific -->
     <Variant title="Email">

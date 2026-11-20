@@ -66,13 +66,14 @@ module ActivityMessageHandler
 
   def status_change_activity(user_name)
     captain_content = captain_status_change_activity_content(user_name)
+    names = status_activity_names(user_name, captain_content)
     content = captain_content || standard_status_change_activity_content(user_name)
 
     return if content.blank?
 
     activity = { type: 'conversation_status_changed', status: status, previous_status: status_before_last_save }
     activity[:source] = captain_activity_source(user_name) if captain_content.present?
-    args = [self, activity_message_params(content, content_attributes: { activity: activity })]
+    args = [self, activity_message_params(content, content_attributes: { activity: activity }, names: names)]
     args << captain_decision_key if respond_to?(:captain_decision_key) && captain_decision_key
     ::Conversations::ActivityMessageJob.perform_later(*args)
   end
@@ -123,6 +124,23 @@ module ActivityMessageHandler
     user_status_change_activity_content(user_name)
   end
 
+  def activity_actor_names(user_name)
+    [activity_source(user_name)[:name]].compact
+  end
+
+  def status_activity_names(user_name, captain_content)
+    if captain_content.present?
+      return [captain_assistant_name] unless captain_attended?
+
+      return [*activity_actor_names(user_name), ai_assignee.name]
+    end
+    return activity_actor_names(nil) if Current.executed_by.present?
+    return [user_name] if user_name.present?
+    return [Current.contact.name.capitalize] if Current.contact.present? && resolved?
+
+    []
+  end
+
   def auto_resolve_message_key(minutes)
     if minutes >= 1440 && (minutes % 1440).zero?
       { key: 'auto_resolved_days', count: minutes / 1440 }
@@ -164,7 +182,7 @@ module ActivityMessageHandler
     I18n.t("conversations.activity.status_labels.#{status}", default: status.to_s)
   end
 
-  def activity_message_params(content, content_attributes: nil)
+  def activity_message_params(content, content_attributes: nil, names: [])
     params = {
       account_id: account_id,
       inbox_id: inbox_id,
@@ -172,6 +190,7 @@ module ActivityMessageHandler
       content: content
     }
     attrs = content_attributes || {}
+    attrs = attrs.deep_merge(ActivityMessageNames.attributes(content, names)) if names.present?
     attrs = attrs.merge(message_source_attributes_for_activity) if message_source_attributes_for_activity.present?
     params[:content_attributes] = attrs if attrs.present?
     params
@@ -198,7 +217,7 @@ module ActivityMessageHandler
     return unless Current.user
 
     content = with_account_locale { I18n.t("conversations.activity.#{change_type}", user_name: Current.user.name) }
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, names: [Current.user.name])) if content
   end
 end
 

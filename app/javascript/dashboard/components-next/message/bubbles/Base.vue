@@ -2,6 +2,9 @@
 import { computed } from 'vue';
 
 import MessageMeta from '../MessageMeta.vue';
+import CaptainGenerationDetails from '../CaptainGenerationDetails.vue';
+import { hasCaptainDetails } from '../helpers/captainDecision';
+import { useMessageSource } from 'dashboard/composables/useMessageSource';
 import ReplyPreview from '../ReplyPreview.vue';
 
 import { useMessageContext } from '../provider.js';
@@ -12,10 +15,27 @@ import { CHAT_SKIN } from 'dashboard/helper/chatSkin';
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
   overlayMeta: { type: Boolean, default: false },
+  captainDetailsAtStart: { type: Boolean, default: false },
 });
 
-const { variant, orientation, inReplyTo, shouldGroupWithNext } =
-  useMessageContext();
+const {
+  id,
+  sender,
+  senderType,
+  contentAttributes,
+  variant,
+  orientation,
+  inReplyTo,
+  shouldGroupWithNext,
+} = useMessageContext();
+const { icon: sourceIcon } = useMessageSource(contentAttributes);
+const showCaptain = computed(() =>
+  hasCaptainDetails({
+    sender: sender?.value,
+    senderType: senderType?.value,
+    contentAttributes: contentAttributes?.value,
+  })
+);
 
 const varaintBaseMap = {
   [MESSAGE_VARIANTS.AGENT]: CHAT_SKIN.bubble.outgoing,
@@ -23,7 +43,7 @@ const varaintBaseMap = {
     'bg-n-solid-amber text-n-amber-12 [&_.prosemirror-mention-node]:font-semibold',
   [MESSAGE_VARIANTS.USER]: CHAT_SKIN.bubble.incoming,
   [MESSAGE_VARIANTS.ACTIVITY]:
-    'bg-white dark:bg-n-solid-3 shadow-sm px-2 py-0.5 text-n-slate-11 text-sm',
+    'bg-n-solid-2 shadow-sm px-3 py-1 text-n-slate-11 text-sm',
   [MESSAGE_VARIANTS.BOT]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.TEMPLATE]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.ERROR]: 'bg-n-ruby-4 text-n-ruby-12',
@@ -34,9 +54,9 @@ const varaintBaseMap = {
 
 const orientationMap = {
   [ORIENTATION.LEFT]:
-    'left-bubble rounded-xl ltr:rounded-bl-sm rtl:rounded-br-sm',
+    'left-bubble rounded-[0.875rem] ltr:rounded-bl-none rtl:rounded-br-none',
   [ORIENTATION.RIGHT]:
-    'right-bubble rounded-xl ltr:rounded-br-sm rtl:rounded-bl-sm',
+    'right-bubble rounded-[0.875rem] ltr:rounded-br-none rtl:rounded-bl-none',
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 
@@ -44,9 +64,9 @@ const messageClass = computed(() => {
   const classToApply = [varaintBaseMap[variant.value]];
 
   if (variant.value !== MESSAGE_VARIANTS.ACTIVITY) {
-    classToApply.push(orientationMap[orientation.value]);
+    classToApply.push(orientationMap[orientation.value], 'shadow-sm');
   } else {
-    classToApply.push('rounded-lg');
+    classToApply.push('rounded-full');
   }
 
   return classToApply;
@@ -55,9 +75,16 @@ const messageClass = computed(() => {
 const shouldShowMeta = computed(
   () =>
     !props.hideMeta &&
-    !shouldGroupWithNext.value &&
+    (!shouldGroupWithNext.value || sourceIcon.value || showCaptain.value) &&
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
+const metaClass = computed(() => [
+  'mt-1 justify-end',
+  variant.value === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
+  props.overlayMeta
+    ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/60 px-2 py-0.5 text-white backdrop-blur-sm'
+    : 'text-n-slate-11',
+]);
 </script>
 
 <template>
@@ -68,23 +95,33 @@ const shouldShowMeta = computed(
       {
         'relative [&:has([role=status])_.media-meta]:static [&:has([role=status])_.media-meta]:w-fit [&:has([role=status])_.media-meta]:ms-auto':
           overlayMeta,
-        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
+        'max-w-lg':
+          variant !== MESSAGE_VARIANTS.EMAIL &&
+          variant !== MESSAGE_VARIANTS.ACTIVITY,
       },
     ]"
   >
     <ReplyPreview v-if="inReplyTo" />
     <slot />
-    <MessageMeta
-      v-if="shouldShowMeta"
-      :class="[
-        variant === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
-        overlayMeta
-          ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/60 px-2 py-0.5 text-white backdrop-blur-sm'
-          : variant === MESSAGE_VARIANTS.PRIVATE
-            ? 'text-n-amber-12/50'
-            : 'text-n-slate-11',
-      ]"
-      class="mt-1 justify-end"
-    />
+    <template v-if="shouldShowMeta">
+      <CaptainGenerationDetails
+        v-if="showCaptain && !props.captainDetailsAtStart"
+        :message-id="id"
+      >
+        <template #meta="{ trigger }">
+          <MessageMeta
+            :show-timestamp="!shouldGroupWithNext"
+            :class="metaClass"
+          >
+            <template #captain><component :is="trigger" /></template>
+          </MessageMeta>
+        </template>
+      </CaptainGenerationDetails>
+      <MessageMeta
+        v-else
+        :show-timestamp="!shouldGroupWithNext"
+        :class="metaClass"
+      />
+    </template>
   </div>
 </template>

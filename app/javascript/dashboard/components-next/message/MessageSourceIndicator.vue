@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Icon from 'next/icon/Icon.vue';
 import { useMessageSource } from 'dashboard/composables/useMessageSource';
 
 const props = defineProps({
@@ -22,16 +21,20 @@ const tooltip = computed(() => {
     return t(i18nKey.value, { name });
   }
 
-  return t('MESSAGE_SOURCE.FALLBACK', { type, id });
+  const typeLabel = t(`MESSAGE_SOURCE.TYPE_${type.toUpperCase()}`);
+  return id
+    ? t('MESSAGE_SOURCE.FALLBACK', { type: typeLabel, id })
+    : t('MESSAGE_SOURCE.WITHOUT_ID', { type: typeLabel });
 });
 </script>
 
 <template>
-  <Icon
+  <span
     v-if="hasSource && icon"
     v-tooltip.top="tooltip"
-    :icon="icon"
-    :class="iconClass"
+    :class="[icon, iconClass]"
+    role="img"
+    :aria-label="tooltip"
     data-testid="message-source-indicator"
   />
 </template>

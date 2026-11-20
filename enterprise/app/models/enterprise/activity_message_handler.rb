@@ -11,6 +11,19 @@ module Enterprise::ActivityMessageHandler
 
   private
 
+  def activity_message_params(content, content_attributes: nil, names: [])
+    return super unless Current.executed_by.instance_of?(Captain::Assistant)
+
+    attributes = (content_attributes || {}).deep_merge(activity: { source: { type: 'captain', name: Current.executed_by.name } })
+    super(content, content_attributes: attributes, names: names)
+  end
+
+  def status_activity_names(user_name, captain_content)
+    return [Current.executed_by.name] if captain_content.blank? && Current.executed_by.instance_of?(Captain::Assistant)
+
+    super
+  end
+
   def captain_status_reason
     captain_activity_reason.presence
   end

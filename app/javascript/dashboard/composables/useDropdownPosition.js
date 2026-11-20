@@ -1,4 +1,4 @@
-import { computed, unref, watch } from 'vue';
+import { computed, ref, unref, watch } from 'vue';
 import { useElementBounding, useWindowSize } from '@vueuse/core';
 
 const FALLBACK_SIZE = 200;
@@ -26,11 +26,13 @@ export function useDropdownPosition(
     margin = SAFE_MARGIN,
     align = 'end',
     side = 'bottom',
+    measureNaturalHeight = false,
   } = {}
 ) {
   const trigger = useElementBounding(triggerRef);
   const dropdown = useElementBounding(dropdownRef);
   const bounds = useElementBounding(container);
+  const naturalHeight = ref(0);
   const { width: winWidth, height: winHeight } = useWindowSize();
 
   const isRTL = computed(
@@ -42,7 +44,9 @@ export function useDropdownPosition(
 
   const verticalClass = computed(() => {
     if (!unref(enabled)) return 'top-full mt-2';
-    const dh = dropdown.height.value || FALLBACK_SIZE;
+    const dh = measureNaturalHeight
+      ? naturalHeight.value || dropdown.height.value || FALLBACK_SIZE
+      : dropdown.height.value || FALLBACK_SIZE;
     const spaceBelow = winHeight.value - trigger.bottom.value;
     const spaceAbove = trigger.top.value;
     if (side === 'top' && spaceAbove >= dh + GAP + margin)
@@ -79,7 +83,9 @@ export function useDropdownPosition(
   const fixedPosition = computed(() => {
     if (!unref(enabled)) return { class: 'fixed z-[9999]', style: {} };
 
-    const dh = dropdown.height.value || FALLBACK_SIZE;
+    const dh = measureNaturalHeight
+      ? naturalHeight.value || dropdown.height.value || FALLBACK_SIZE
+      : dropdown.height.value || FALLBACK_SIZE;
     const dw = dropdown.width.value || FALLBACK_SIZE;
     const spaceBelow = winHeight.value - trigger.bottom.value;
     const style = {};
@@ -93,10 +99,10 @@ export function useDropdownPosition(
 
     if (placeAbove) {
       style.bottom = `${winHeight.value - trigger.top.value + GAP}px`;
-      style.maxHeight = `${spaceAbove - GAP - margin}px`;
+      style.maxHeight = `${Math.max(0, spaceAbove - GAP - margin)}px`;
     } else {
       style.top = `${trigger.bottom.value + GAP}px`;
-      style.maxHeight = `${spaceBelow - GAP - margin}px`;
+      style.maxHeight = `${Math.max(0, spaceBelow - GAP - margin)}px`;
     }
 
     // Horizontal
@@ -122,6 +128,11 @@ export function useDropdownPosition(
   const updatePosition = () => {
     trigger.update();
     dropdown.update();
+    if (measureNaturalHeight) {
+      naturalHeight.value =
+        dropdownRef.value?.querySelector('[data-popover-scroll-content]')
+          ?.scrollHeight || 0;
+    }
     if (container) bounds.update();
   };
 

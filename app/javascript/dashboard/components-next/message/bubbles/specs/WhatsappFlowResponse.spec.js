@@ -42,7 +42,10 @@ const payload = {
   },
 };
 
-const mountFlowResponse = (attributes = payload.content_attributes) => {
+const mountFlowResponse = (
+  attributes = payload.content_attributes,
+  grouped = false
+) => {
   const converted = useCamelCase(
     { content_attributes: attributes },
     {
@@ -55,7 +58,7 @@ const mountFlowResponse = (attributes = payload.content_attributes) => {
     setup() {
       provideMessageContext({
         contentAttributes: ref(converted.contentAttributes),
-        shouldGroupWithNext: ref(false),
+        shouldGroupWithNext: ref(grouped),
       });
     },
     template: '<WhatsappFlowResponse />',
@@ -74,6 +77,17 @@ const mountFlowResponse = (attributes = payload.content_attributes) => {
 };
 
 describe('WhatsappFlowResponse', () => {
+  it.each([false, true])(
+    'keeps one shared metadata row with minute grouping %s',
+    grouped => {
+      const wrapper = mountFlowResponse(payload.content_attributes, grouped);
+      const rows = wrapper.findAllComponents({ name: 'MessageMeta' });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].props('showTimestamp')).toBe(!grouped);
+      wrapper.unmount();
+    }
+  );
+
   it('renders the real flat payload, original keys, option titles and files without links', () => {
     const wrapper = mountFlowResponse();
     expect(wrapper.text()).toContain('Flow \u00b7 Sales');

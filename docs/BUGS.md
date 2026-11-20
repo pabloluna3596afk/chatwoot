@@ -1,3 +1,23 @@
+### B-NEW-291 - Nombres estructurados en actividades (2026-11-20)
+
+- **Archivos:** concerns `activity_message_handler`, `assignee`, `team`, `label`, `priority`, `sla`; overlay Enterprise; `lib/activity_message_names.rb`; emisores de Linear, Calendar, permisos de llamadas WhatsApp y elegibilidad Captain.
+- **Problema:** las actividades guardaban nombres solo dentro de la frase, sin identificar qué nombres podía resaltar la conversación.
+- **Cambio:** `content_attributes.activity.names` conserva los nombres interpolados con su escritura exacta, únicos y ordenados por aparición en `content`. No cambia frases, argumentos existentes del job, mensajes normales ni historial. Los nombres también viajan en eventos/webhooks; son datos que ya constaban en el texto.
+- **Cómo probar:** ejecutar los specs de actividades/conversaciones, mensajes, listeners, webhooks e integraciones con `rspec-local.sh`; comprobar nombres literales, actores humanos/automáticos, Captain, etiquetas, SLA y citas. Ver autoevaluación en `docs-crm/codex/nombres-actividad-construccion.md` del directorio padre.
+- **Verificación:** corrida ampliada de 1258 ejemplos (5 TODO previos), dos expectativas de payload corregidas y archivo de Captain repetido con 48/48; cierre focal normal de 167/167. RuboCop inspeccionó 32 archivos, sin infracciones nuevas frente a `develop`. El informe distingue la corrida ampliada con código estable del cierre focal sin ajustes de recarga.
+- **Entrega:** solo backend, sin migraciones, frontend, push, PR ni despliegue.
+
+### B-NEW-290 - Detalles de decisiones de Captain y metadatos de mensajes (2026-11-20)
+
+- **Archivos:** `components-next/message/`, `components-next/popover/`, `store/captain/decisions.js`, `composables/useActivityTime.js`, `enterprise/app/models/enterprise/activity_message_handler.rb`, `lib/seeders/captain_decisions_demo.rb` y tarea rake.
+- **Problema:** el componente de detalles estaba desmontado; agrupar ocultaba los orígenes; los iconos no tenían nombres accesibles en el DOM y las actividades de cierre no siempre identificaban a Captain mediante datos estructurados.
+- **Cambio:** montaje del componente existente con consulta bajo demanda al endpoint del PR #383, estados de error y permisos del servidor; origen, Captain, candado, hora y estado en orden lógico; reloj compartido para actividades y hoja inferior móvil opcional. La atribución Enterprise añade `activity.source` para acciones ejecutadas por Captain, sin cambiar el endpoint. El estado leído usa el token `text-n-blue-11` en lugar de un azul fijo; el contraste renderizado queda pendiente de revisión visual.
+- **Cómo probar:** ejecutar `dev:captain_decisions_demo` en una base local aislada y abrir la conversación ficticia con cada rol; revisar agrupación por minuto, privado, correo, medios, FlowResponse, carga, error, ausencia y permisos. Pruebas y límites en `docs-crm/codex/detalles-pr2-construccion.md` del directorio padre.
+- **Preparación de pruebas:** el shared spec de autoasignación selecciona V1 explícitamente y su contexto V2 lo vuelve a habilitar; el valor por defecto V2 causaba seis fallos también en la base anterior a PR 2. Sin cambios al motor de asignación de producción.
+- **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
+
+- **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
+
 ### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.

@@ -25,10 +25,12 @@ shared_examples_for 'assignment_handler' do
         expect(conversation.update(team: nil)).to be true
         expect(Conversations::ActivityMessageJob).to(have_been_enqueued.at_least(:once)
           .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                                content: "Assigned to #{team.name} by #{agent.name}"  }))
+                                content: "Assigned to #{team.name} by #{agent.name}",
+                                content_attributes: { activity: { names: [team.name, agent.name] } } }))
         expect(Conversations::ActivityMessageJob).to(have_been_enqueued.at_least(:once)
           .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                                content: "Unassigned from #{team.name} by #{agent.name}" }))
+                                content: "Unassigned from #{team.name} by #{agent.name}",
+                                content_attributes: { activity: { names: [team.name, agent.name] } } }))
       end
 
       it 'changes assignee to nil if they doesnt belong to the team and allow_auto_assign is false' do
@@ -47,7 +49,8 @@ shared_examples_for 'assignment_handler' do
         expect(conversation.reload.assignee).to eq agent
         expect(Conversations::ActivityMessageJob).to(have_been_enqueued.at_least(:once)
           .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                                content: "Assigned to #{conversation.assignee.name} via #{team.name} by #{agent.name}" }))
+                                content: "Assigned to #{conversation.assignee.name} via #{team.name} by #{agent.name}",
+                                content_attributes: { activity: { names: [conversation.assignee.name, team.name, agent.name].uniq } } }))
       end
 
       it 'keeps AgentBot ownership when assigning an auto-assigning team' do

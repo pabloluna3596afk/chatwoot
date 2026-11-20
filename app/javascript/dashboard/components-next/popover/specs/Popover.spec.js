@@ -59,6 +59,78 @@ describe('Popover', () => {
     document.body.innerHTML = '';
   });
 
+  it('opts into a mobile bottom sheet while preserving the default centered modal', async () => {
+    belowMd.value = true;
+    mountPopover({ mobileSheet: true });
+    await openPopover();
+    expect(mobileBackdrop().classes()).toContain('items-end');
+    expect(wrapper.get('[data-popover-content]').classes()).toContain(
+      'max-h-[82dvh]'
+    );
+    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalled();
+    wrapper.unmount();
+    mountPopover();
+    await openPopover();
+    expect(mobileBackdrop().classes()).toContain('items-start');
+    expect(wrapper.get('[data-popover-content]').classes()).not.toContain(
+      'max-h-[82dvh]'
+    );
+  });
+
+  it('opts into desktop focus on opening and restores the trigger on Escape', async () => {
+    mountPopover({ focusContent: true });
+    const trigger = wrapper.get('[data-test="trigger"]');
+    trigger.element.focus();
+    await openPopover();
+    const action = wrapper.get('[data-test="panel-action"]');
+    expect(document.activeElement).toBe(action.element);
+    action.element.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    );
+    await flushPromises();
+    expect(desktopPopover().exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
+  });
+
+  it('restores focus when the mobile sheet is cancelled', async () => {
+    belowMd.value = true;
+    mountPopover({ mobileSheet: true, focusContent: true });
+    // jsdom has no layout; expose the control to the shared dialog focus helper.
+    const rects = vi
+      .spyOn(HTMLElement.prototype, 'getClientRects')
+      .mockReturnValue([{}]);
+    const trigger = wrapper.get('[data-test="trigger"]');
+    trigger.element.focus();
+    await openPopover();
+    rects.mockRestore();
+    expect(document.activeElement).toBe(
+      wrapper.get('[data-test="panel-action"]').element
+    );
+    await mobileBackdrop().trigger('cancel');
+    expect(mobileBackdrop().exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
+    expect(wrapper.emitted('hide')).toHaveLength(1);
+  });
+
+  it('closes the native dialog when its anchor is unmounted', async () => {
+    belowMd.value = true;
+    mountPopover({ mobileSheet: true, focusContent: true });
+    await openPopover();
+    const dialog = mobileBackdrop().element;
+    wrapper.unmount();
+    expect(dialog.close).toHaveBeenCalledOnce();
+    expect(dialog.open).toBe(false);
+    expect(document.querySelector('[data-popover-content]')).toBeNull();
+  });
+
+  it('preserves the default desktop focus behavior', async () => {
+    mountPopover();
+    const trigger = wrapper.get('[data-test="trigger"]');
+    trigger.element.focus();
+    await openPopover();
+    expect(document.activeElement).toBe(trigger.element);
+  });
+
   describe('rendering and toggling', () => {
     it('renders the trigger slot and keeps the content hidden initially', () => {
       mountPopover();
@@ -259,6 +331,35 @@ describe('Popover', () => {
       mountPopover({ closeOnScroll: false });
       await scrollWithTriggerMovedBy(100);
       expect(desktopPopover().exists()).toBe(true);
+    });
+
+    it('repositions while the anchor remains visible when opted in', async () => {
+      mountPopover({ repositionOnScroll: true, closeOnScroll: false });
+      await openPopover();
+      wrapper.find('span').element.getBoundingClientRect = () => ({
+        top: 120,
+        bottom: 144,
+        left: 120,
+        right: 144,
+      });
+      document.dispatchEvent(new Event('scroll'));
+      await flushPromises();
+      expect(desktopPopover().exists()).toBe(true);
+    });
+
+    it('closes when an opted-in anchor scrolls outside the viewport', async () => {
+      mountPopover({ repositionOnScroll: true, closeOnScroll: false });
+      await openPopover();
+      wrapper.find('span').element.getBoundingClientRect = () => ({
+        top: -30,
+        bottom: -6,
+        left: 120,
+        right: 144,
+      });
+      document.dispatchEvent(new Event('scroll'));
+      await flushPromises();
+      expect(desktopPopover().exists()).toBe(false);
+      expect(wrapper.emitted('hide')).toHaveLength(1);
     });
   });
 });

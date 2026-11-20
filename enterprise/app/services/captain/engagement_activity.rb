@@ -10,11 +10,13 @@ class Captain::EngagementActivity
   end
 
   def perform
+    content = translated_content
     @conversation.messages.create!(
       account_id: @conversation.account_id,
       inbox_id: @conversation.inbox_id,
       message_type: :activity,
-      content: translated_content,
+      content: content,
+      content_attributes: ActivityMessageNames.attributes(content, ERB::Util.html_escape(translation_params[:assistant])),
       additional_attributes: { captain_skip_reason: @result }
     )
   end

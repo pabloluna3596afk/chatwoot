@@ -15,6 +15,7 @@ module LabelActivityMessageHandler
     return unless labels.size.positive?
 
     content = I18n.t("conversations.activity.labels.#{change_type}", user_name: user_name, labels: labels.join(', '))
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
+    names = [*activity_actor_names(determine_user_name), *labels]
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, names: names)) if content
   end
 end

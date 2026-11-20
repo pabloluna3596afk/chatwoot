@@ -27,6 +27,7 @@ const mountCard = ({
       setup() {
         provideMessageContext({
           content: ref('Needs help\nWith a second line <script>'),
+          id: ref(12),
           sender: ref(sender),
           contentAttributes: ref(converted.contentAttributes),
         });
@@ -37,7 +38,15 @@ const mountCard = ({
     {
       global: {
         plugins: [createI18n({ legacy: false, locale, messages: { en, es } })],
-        stubs: { BaseBubble: { template: '<div><slot /></div>' } },
+        stubs: {
+          BaseBubble: {
+            template: '<div><slot /></div>',
+          },
+          CaptainGenerationDetails: {
+            props: ['messageId'],
+            template: '<span data-captain-icon :data-message-id="messageId" />',
+          },
+        },
       },
     }
   );
@@ -72,8 +81,22 @@ describe('CaptainHandoff', () => {
       'Needs help\nWith a second line <script>'
     );
     expect(wrapper.find('script').exists()).toBe(false);
-    expect(wrapper.get('p').classes()).toContain('whitespace-pre-wrap');
+    expect(wrapper.get('p span.whitespace-pre-wrap').exists()).toBe(true);
     expect(wrapper.find('ul').exists()).toBe(false);
+  });
+
+  it('places Captain access at the start of the handoff note', () => {
+    const wrapper = mountCard();
+    const note = wrapper.get('p');
+    const icon = note.get('[data-captain-icon]');
+    expect(icon.attributes('data-message-id')).toBe('12');
+    expect(note.element.children[0].classList).toContain('size-6');
+    expect(note.get('span.whitespace-pre-wrap').text()).toBe(
+      'Needs help\nWith a second line <script>'
+    );
+    expect(
+      wrapper.get('[data-bubble-name="captain-handoff"]').attributes()
+    ).toHaveProperty('captain-details-at-start');
   });
 
   it('renders summary lines when provided', () => {

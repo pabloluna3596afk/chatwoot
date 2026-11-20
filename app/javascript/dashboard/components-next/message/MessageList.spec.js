@@ -113,3 +113,47 @@ describe('MessageList automatic translation', () => {
     expect(MessageApi.autoTranslate).not.toHaveBeenCalled();
   });
 });
+
+describe('MessageList minute grouping', () => {
+  beforeEach(() => {
+    featureEnabled = false;
+  });
+
+  it.each([
+    [1795125601, 1795125659, true],
+    [1795125659, 1795125660, false],
+    [1795125659, 1795129201, false],
+  ])('groups timestamps %s and %s: %s', (first, second, grouped) => {
+    const wrapper = render([
+      { id: 1, senderId: 9, messageType: 1, createdAt: first },
+      { id: 2, senderId: 9, messageType: 1, createdAt: second },
+    ]);
+    const messages = wrapper.findAllComponents({ name: 'Message' });
+    expect(messages[0].attributes('group-with-next')).toBe(String(grouped));
+    expect(messages[1].attributes('group-with-next')).toBe('false');
+  });
+
+  it('does not group a private note with a public reply', () => {
+    const wrapper = render([
+      {
+        id: 1,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125601,
+        private: true,
+      },
+      {
+        id: 2,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125602,
+        private: false,
+      },
+    ]);
+    expect(
+      wrapper
+        .findAllComponents({ name: 'Message' })[0]
+        .attributes('group-with-next')
+    ).toBe('false');
+  });
+});

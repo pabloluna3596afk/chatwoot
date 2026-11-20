@@ -4,8 +4,6 @@ import { useIntervalFn } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { MESSAGE_STATUS } from './constants';
 
-import Icon from 'next/icon/Icon.vue';
-
 const { status } = defineProps({
   status: {
     type: String,
@@ -58,7 +56,7 @@ const statusColor = computed(() => {
   const statusIconMap = {
     [MESSAGE_STATUS.SENT]: 'text-n-slate-10',
     [MESSAGE_STATUS.DELIVERED]: 'text-n-slate-10',
-    [MESSAGE_STATUS.READ]: 'text-[#7EB6FF]',
+    [MESSAGE_STATUS.READ]: 'text-n-blue-11',
   };
 
   return statusIconMap[status];
@@ -77,17 +75,20 @@ const tooltipText = computed(() => {
 </script>
 
 <template>
-  <Icon
+  <span
     v-if="status === MESSAGE_STATUS.PROGRESS"
     v-tooltip.top-start="tooltipText"
-    :icon="progessIcon"
-    class="text-n-slate-10"
+    :class="progessIcon"
+    class="size-3.5 text-n-slate-10"
+    role="img"
+    :aria-label="tooltipText"
   />
-  <Icon
+  <span
     v-else
     v-tooltip.top-start="tooltipText"
-    :icon="statusIcon"
-    :class="statusColor"
-    class="size-[14px]"
+    :class="[statusIcon, statusColor]"
+    class="size-3.5"
+    role="img"
+    :aria-label="tooltipText"
   />
 </template>

@@ -49,6 +49,18 @@ RSpec.shared_examples 'calendar template button replies' do |template_name|
     allow(Integrations::GoogleCalendar::Client).to receive(:new).and_return(client)
   end
 
+  %w[customer_confirmed customer_cancelled customer_cancel_failed customer_reschedule_requested answer_ignored_past
+     answer_ignored_cancelled].each do |key|
+    it "stores the literal contact and appointment names for #{key}" do
+      described_class.new(tap_button('Confirmar')).send(:say, key, appointment)
+
+      message = conversation.messages.activity.last
+      names = message.content_attributes.dig('activity', 'names')
+      expect(names).to eq([contact.name, appointment.summary])
+      names.each { |name| expect(message.content).to include(name) }
+    end
+  end
+
   describe 'Confirmar' do
     it 'confirms the appointment, keeps the history and tells the team' do
       described_class.new(tap_button('Confirmar')).perform

@@ -272,17 +272,19 @@ RSpec.describe Conversation do
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                              content: "#{old_assignee.name} added #{label.title}" }))
+                              content: "#{old_assignee.name} added #{label.title}",
+                              content_attributes: { activity: { names: [old_assignee.name, label.title] } } }))
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
                               content: "Conversation was marked resolved by #{old_assignee.name}",
                               content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved',
-                                                                previous_status: 'open' } } }))
+                                                                previous_status: 'open', names: [old_assignee.name] } } }))
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                              content: "Assigned to #{new_assignee.name} by #{old_assignee.name}" }))
+                              content: "Assigned to #{new_assignee.name} by #{old_assignee.name}",
+                              content_attributes: { activity: { names: [new_assignee.name, old_assignee.name] } } }))
     end
 
     it 'words the activities in the language of the account, whatever the language of the process is' do
@@ -347,7 +349,8 @@ RSpec.describe Conversation do
       expect { conversation.update_labels(labels) }
         .to have_enqueued_job(Conversations::ActivityMessageJob)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                              content: "#{agent.name} added #{labels.join(', ')}"  })
+                              content: "#{agent.name} added #{labels.join(', ')}",
+                              content_attributes: { activity: { names: [agent.name, *labels] } } })
 
       expect(conversation.label_list).to match_array(labels)
     end
@@ -357,7 +360,8 @@ RSpec.describe Conversation do
       expect { conversation.update_labels(labels) }
         .to have_enqueued_job(Conversations::ActivityMessageJob)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-                              content: "#{agent.name} added #{labels.join(', ')}"  })
+                              content: "#{agent.name} added #{labels.join(', ')}",
+                              content_attributes: { activity: { names: [agent.name, *labels] } } })
       expect(conversation.label_list).to match_array(labels)
 
       updated_labels = [second_label, third_label].map(&:title)
@@ -367,11 +371,13 @@ RSpec.describe Conversation do
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id,
-                              message_type: :activity, content: "#{agent.name} added #{updated_labels.join(', ')}" }))
+                              message_type: :activity, content: "#{agent.name} added #{updated_labels.join(', ')}",
+                              content_attributes: { activity: { names: [agent.name, *updated_labels] } } }))
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id,
-                              message_type: :activity, content: "#{agent.name} removed #{labels.join(', ')}" }))
+                              message_type: :activity, content: "#{agent.name} removed #{labels.join(', ')}",
+                              content_attributes: { activity: { names: [agent.name, *labels] } } }))
     end
   end
 
@@ -547,7 +553,8 @@ RSpec.describe Conversation do
       mute!
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once).with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id,
-                                                                    message_type: :activity, content: "#{user.name} has muted the conversation" }))
+                                                                    message_type: :activity, content: "#{user.name} has muted the conversation",
+                                                                    content_attributes: { activity: { names: [user.name] } } }))
     end
 
     context 'when contact is missing' do
@@ -589,7 +596,8 @@ RSpec.describe Conversation do
       unmute!
       expect(Conversations::ActivityMessageJob)
         .to(have_been_enqueued.at_least(:once).with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id,
-                                                                    message_type: :activity, content: "#{user.name} has unmuted the conversation" }))
+                                                                    message_type: :activity, content: "#{user.name} has unmuted the conversation",
+                                                                    content_attributes: { activity: { names: [user.name] } } }))
     end
 
     context 'when contact is missing' do

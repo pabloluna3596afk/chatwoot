@@ -4,15 +4,17 @@ module SlaActivityMessageHandler
   private
 
   def create_sla_change_activity(change_type, user_name)
+    name = sla_policy_name
     content = case change_type
               when 'added'
-                I18n.t('conversations.activity.sla.added', user_name: user_name, sla_name: sla_policy_name)
+                I18n.t('conversations.activity.sla.added', user_name: user_name, sla_name: name)
               when 'removed'
-                I18n.t('conversations.activity.sla.removed', user_name: user_name, sla_name: sla_policy_name)
+                I18n.t('conversations.activity.sla.removed', user_name: user_name, sla_name: name)
               when 'updated'
-                I18n.t('conversations.activity.sla.updated', user_name: user_name, sla_name: sla_policy_name)
+                I18n.t('conversations.activity.sla.updated', user_name: user_name, sla_name: name)
               end
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
+    names = [*activity_actor_names(determine_user_name), name]
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, names: names)) if content
   end
 
   def sla_policy_name

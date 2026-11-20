@@ -47,7 +47,8 @@ class Whatsapp::CallPermissionRequestService
     content = I18n.t('conversations.activity.whatsapp_call.permission_requested', contact_name: conversation.contact.name)
     ::Conversations::ActivityMessageJob.perform_later(
       conversation,
-      { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity, content: content }
+      { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity, content: content,
+        content_attributes: ActivityMessageNames.attributes(content, conversation.contact.name) }
     )
   end
 
