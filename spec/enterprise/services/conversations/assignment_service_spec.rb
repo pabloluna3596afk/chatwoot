@@ -146,7 +146,7 @@ describe Conversations::AssignmentService do
 
     expect do
       described_class.new(conversation: conversation.reload, assignee_id: agent.id).perform
-    end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
+    end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content), kind_of(String)).exactly(:once)
                                                                .and change { activity_job_count }.by(1)
 
     expect(conversation.reload).to have_attributes(status: 'open', assignee: agent, ai_assignee: nil)

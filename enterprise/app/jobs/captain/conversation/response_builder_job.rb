@@ -246,24 +246,23 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   def v2_handoff_tool_completed? = @v2_handoff_tool_completed == true
 
   def process_v1_handoff(source: 'tool', reason_category: 'unknown', note_key: 'handoff_without_reason')
-    @conversation.class.transaction do
-      perform_v1_handoff(source: source, reason_category: reason_category, note_key: note_key)
-    end
-  end
-
-  def perform_v1_handoff(source:, reason_category:, note_key:)
     I18n.with_locale(@assistant.account.locale) do
       Rails.logger.info(
         "[CAPTAIN][ResponseBuilderJob] V1 handoff requested for account=#{account.id} conversation=#{@conversation.display_id} " \
         "source=#{@response&.dig('action_source') || 'legacy'} reason=#{@response&.dig('action_reason')}"
       )
+      # Keep delivery callbacks before the transition that starts the human reply timer.
       create_handoff_message
-      routing = Captain::HandoffRouter.new(conversation: @conversation, assistant: @assistant).plan
-      @conversation.bot_handoff!(routing: routing)
-      return report_v1_handoff_not_executed if conversation_pending?
-
-      create_recorded_handoff_note(routing, source, reason_category, note_key)
+      @conversation.class.transaction { perform_v1_handoff(source: source, reason_category: reason_category, note_key: note_key) }
     end
+  end
+
+  def perform_v1_handoff(source:, reason_category:, note_key:)
+    routing = Captain::HandoffRouter.new(conversation: @conversation, assistant: @assistant).plan
+    @conversation.bot_handoff!(routing: routing)
+    return report_v1_handoff_not_executed if conversation_pending?
+
+    create_recorded_handoff_note(routing, source, reason_category, note_key)
   end
 
   def process_v2_handoff
