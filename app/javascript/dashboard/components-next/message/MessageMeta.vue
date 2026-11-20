@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
-import { messageBubbleStamp, messageStamp } from 'shared/helpers/timeHelper';
+import { messageBubbleStamp } from 'shared/helpers/timeHelper';
+import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
 import MessageStatus from './MessageStatus.vue';
 import MessageSourceIndicator from './MessageSourceIndicator.vue';
 import { useInbox } from 'dashboard/composables/useInbox';
@@ -36,9 +37,8 @@ const {
 } = useMessageContext();
 
 const readableTime = computed(() => messageBubbleStamp(createdAt.value));
-const fullReadableTime = computed(() =>
-  messageStamp(createdAt.value, 'd MMM yyyy, HH:mm')
-);
+const exactTimestamp = useExactTimestamp({ showTimeZone: true });
+const fullReadableTime = computed(() => exactTimestamp(createdAt.value));
 const showStatusIndicator = computed(() => {
   if (isPrivate.value) return false;
   // Don't show status for failed messages, we already show error message
