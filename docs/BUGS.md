@@ -1,3 +1,11 @@
+### B-NEW-290 - Detalles de decisiones de Captain y metadatos de mensajes (2026-11-20)
+
+- **Archivos:** `components-next/message/`, `components-next/popover/`, `store/captain/decisions.js`, `composables/useActivityTime.js`, `enterprise/app/models/enterprise/activity_message_handler.rb`, `lib/seeders/captain_decisions_demo.rb` y tarea rake.
+- **Problema:** el componente de detalles estaba desmontado; agrupar ocultaba los orígenes; los iconos no tenían nombres accesibles en el DOM y las actividades de cierre no siempre identificaban a Captain mediante datos estructurados.
+- **Cambio:** montaje del componente existente con consulta bajo demanda al endpoint del PR #383, estados de error y permisos del servidor; origen, Captain, candado, hora y estado en orden lógico; reloj compartido para actividades y hoja inferior móvil opcional. La atribución Enterprise añade `activity.source` para acciones ejecutadas por Captain, sin cambiar el endpoint. El estado leído usa el token `text-n-blue-11` en lugar de un azul fijo; el contraste renderizado queda pendiente de revisión visual.
+- **Cómo probar:** ejecutar `dev:captain_decisions_demo` en una base local aislada y abrir la conversación ficticia con cada rol; revisar agrupación por minuto, privado, correo, medios, FlowResponse, carga, error, ausencia y permisos. Pruebas y límites en `docs-crm/codex/detalles-pr2-construccion.md` del directorio padre.
+- **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
+
 ### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
