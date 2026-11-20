@@ -300,7 +300,8 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
             inbox_id: resolvable_pending_conversation.inbox_id,
             message_type: :activity,
             content: expected_content,
-            content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved', previous_status: 'pending' } }
+            content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved', previous_status: 'pending',
+                                              source: { type: 'captain', name: captain_assistant.name }, names: [captain_assistant.name] } }
           }
         )
     end
@@ -424,7 +425,8 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
             inbox_id: resolvable_pending_conversation.inbox_id,
             message_type: :activity,
             content: expected_content,
-            content_attributes: { activity: { type: 'conversation_status_changed', status: 'open', previous_status: 'pending' } }
+            content_attributes: { activity: { type: 'conversation_status_changed', status: 'open', previous_status: 'pending',
+                                              source: { type: 'captain', name: captain_assistant.name }, names: [captain_assistant.name] } }
           }
         )
     end

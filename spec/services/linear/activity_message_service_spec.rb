@@ -25,7 +25,8 @@ RSpec.describe Linear::ActivityMessageService, type: :service do
                   account_id: conversation.account_id,
                   inbox_id: conversation.inbox_id,
                   message_type: :activity,
-                  content: "Linear issue ENG-123 was created by #{user.name}"
+                  content: "Linear issue ENG-123 was created by #{user.name}",
+                  content_attributes: { activity: { names: [user.name] } }
                 })
       end
 
@@ -100,7 +101,8 @@ RSpec.describe Linear::ActivityMessageService, type: :service do
                   account_id: conversation.account_id,
                   inbox_id: conversation.inbox_id,
                   message_type: :activity,
-                  content: "Linear issue ENG-456 was linked by #{user.name}"
+                  content: "Linear issue ENG-456 was linked by #{user.name}",
+                  content_attributes: { activity: { names: [user.name] } }
                 })
       end
 
@@ -136,7 +138,8 @@ RSpec.describe Linear::ActivityMessageService, type: :service do
                   account_id: conversation.account_id,
                   inbox_id: conversation.inbox_id,
                   message_type: :activity,
-                  content: "Linear issue ENG-789 was unlinked by #{user.name}"
+                  content: "Linear issue ENG-789 was unlinked by #{user.name}",
+                  content_attributes: { activity: { names: [user.name] } }
                 })
       end
 

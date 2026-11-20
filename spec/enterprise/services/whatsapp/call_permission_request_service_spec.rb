@@ -30,6 +30,11 @@ describe Whatsapp::CallPermissionRequestService do
     expect(first_status).to eq('permission_requested')
     expect(second_status).to eq('permission_pending')
     expect(provider_service).to have_received(:send_call_permission_request).once
+    expect(Conversations::ActivityMessageJob).to have_received(:perform_later) do |_record, params|
+      names = params.dig(:content_attributes, :activity, :names)
+      expect(names).to eq([contact.name])
+      names.each { |name| expect(params[:content]).to include(name) }
+    end
   end
 
   it 'throttles pre-upgrade permission requests stored directly on the conversation' do

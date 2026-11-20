@@ -71,6 +71,9 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
       2.times { described_class.new.perform }
       expect(outgoing).to be_empty
       expect(conversation.messages.activity.count).to eq(1)
+      message = conversation.messages.activity.last
+      expect(message.content_attributes.dig('activity', 'names')).to eq([event.summary])
+      expect(message.content).to include(event.summary)
       expect(event.reload.customer_reminder_status).to eq('no_template')
       channel.update!(message_templates: templates)
       described_class.new.perform

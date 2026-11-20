@@ -35,7 +35,8 @@ class Linear::ActivityMessageService
       account_id: conversation.account_id,
       inbox_id: conversation.inbox_id,
       message_type: :activity,
-      content: content
+      content: content,
+      content_attributes: ActivityMessageNames.attributes(content, user.name)
     }
   end
 end

@@ -4,12 +4,14 @@ module AssigneeActivityMessageHandler
   private
 
   def create_assignee_change_activity(user_name)
+    names = activity_actor_names(user_name)
     user_name = activity_message_owner(user_name)
 
     return unless user_name
 
     content = generate_assignee_change_activity_content(user_name)
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
+    names << assignee.name if assignee && !self_assign?(assignee_id)
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, names: names)) if content
   end
 
   # A conversation given to Captain or to a bot (no person is assigned, so there is no assignee change to report).
@@ -20,7 +22,8 @@ module AssigneeActivityMessageHandler
     content = I18n.t('conversations.activity.ai_assignee.assigned', assistant: ai_assignee.name, actor: activity_actor_name(user_name))
     ::Conversations::ActivityMessageJob.perform_later(
       self,
-      activity_message_params(content, content_attributes: { activity: { type: 'ai_assignee_changed', source: activity_source(user_name) } })
+      activity_message_params(content, names: [*activity_actor_names(user_name), ai_assignee.name],
+                                       content_attributes: { activity: { type: 'ai_assignee_changed', source: activity_source(user_name) } })
     )
   end
 
