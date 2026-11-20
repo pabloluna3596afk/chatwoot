@@ -147,6 +147,73 @@ describe('Activity', () => {
     wrapper.unmount();
   });
 
+  it('bolds only the first exact occurrence of each supplied name', () => {
+    const wrapper = mountActivity(
+      { activity: { names: ['Alex Rivera'] } },
+      'Maria assigned Alex Rivera to Alex Rivera Jr.'
+    );
+
+    const matches = wrapper.findAll('[data-activity-content] b.nm');
+    expect(matches).toHaveLength(1);
+    expect(matches[0].text()).toBe('Alex Rivera');
+    expect(matches[0].classes()).toEqual(
+      expect.arrayContaining(['font-semibold', 'text-n-slate-12'])
+    );
+    wrapper.unmount();
+  });
+
+  it('matches accented names with Unicode word boundaries', () => {
+    const wrapper = mountActivity(
+      { activity: { names: ['José'] } },
+      'José asignó Josefa al equipo'
+    );
+
+    expect(wrapper.findAll('[data-activity-content] b.nm')).toHaveLength(1);
+    expect(wrapper.get('[data-activity-content] b.nm').text()).toBe('José');
+    wrapper.unmount();
+  });
+
+  it('matches names containing regular expression characters literally', () => {
+    const wrapper = mountActivity(
+      { activity: { names: ['A+B', 'C.D'] } },
+      'A+B assigned C.D'
+    );
+
+    expect(
+      wrapper.findAll('[data-activity-content] b.nm').map(node => node.text())
+    ).toEqual(['A+B', 'C.D']);
+    wrapper.unmount();
+  });
+
+  it('sanitizes hostile HTML before matching and never matches attributes', () => {
+    const wrapper = mountActivity(
+      { activity: { names: ['tracker.png', 'Agent'] } },
+      maliciousContent
+    );
+    const content = wrapper.get('[data-activity-content]');
+
+    expect(content.find('img').attributes('onerror')).toBeUndefined();
+    expect(content.findAll('b.nm').map(node => node.text())).toEqual(['Agent']);
+    wrapper.unmount();
+  });
+
+  it('does not add bold markup when activity names are absent', () => {
+    const wrapper = mountActivity({}, 'Maria assigned Alex Rivera');
+
+    expect(wrapper.find('[data-activity-content] b.nm').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('does not add bold markup when names occur only as part of other words', () => {
+    const wrapper = mountActivity(
+      { activity: { names: ['Alex'] } },
+      'Alexandra assigned the conversation'
+    );
+
+    expect(wrapper.find('[data-activity-content] b.nm').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it.each(['Version v1.2 is active.', 'Use this etc...'])(
     'does not alter internal versions or ellipses in %s',
     text => {

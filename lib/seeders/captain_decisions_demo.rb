@@ -40,11 +40,22 @@ class Seeders::CaptainDecisionsDemo
         en: 'Maria assigned this conversation to Alex Rivera',
         es: 'Maria asignó esta conversación a Alex Rivera'
       },
+      names: { en: ['Maria', 'Alex Rivera'], es: ['Maria', 'Alex Rivera'] },
+      source_type: 'User'
+    },
+    {
+      name: 'team_assignment',
+      content: {
+        en: 'Maria assigned this conversation to the Support team',
+        es: 'Maria asignó esta conversación al equipo de Soporte'
+      },
+      names: { en: ['Maria', 'Support'], es: ['Maria', 'Soporte'] },
       source_type: 'User'
     },
     {
       name: 'label_added',
       content: { en: 'Maria added the label priority', es: 'Maria añadió la etiqueta priority' },
+      names: { en: %w[Maria priority], es: %w[Maria priority] },
       source_type: 'User'
     },
     {
@@ -53,6 +64,7 @@ class Seeders::CaptainDecisionsDemo
         en: 'Automation marked this conversation as pending',
         es: 'La automatización marcó esta conversación como pendiente'
       },
+      names: { en: ['Automation'], es: ['automatización'] },
       source_type: 'User',
       content_attributes: { messageSource: { type: 'automation', id: 31, name: 'Demo follow-up' } }
     }
@@ -104,14 +116,19 @@ class Seeders::CaptainDecisionsDemo
   def scenario_message(scenario, index)
     source_id = "#{MARKER}:#{scenario.fetch(:name)}"
     occurred_at = 30.minutes.ago + index.minutes
+    content = localized(scenario.fetch(:content))
     attributes = scenario.fetch(:attributes, {})
-    attributes = attributes.merge(activity: { source: { type: 'captain', name: NAME } }) if scenario[:activity]
+    attributes = attributes.deep_merge(activity: { source: { type: 'captain', name: NAME } }) if scenario[:activity]
+    attributes = attributes.deep_merge(ActivityMessageNames.attributes(content, 'Captain')) if scenario[:activity]
     message = @conversation.messages.find_by(source_id: source_id)
-    return message.update_columns(content: localized(scenario.fetch(:content))) && message if message
+    if message
+      message.update_columns(content: content, content_attributes: attributes)
+      return message
+    end
 
     insert(
       Message, account_id: @account.id, inbox_id: @conversation.inbox_id, conversation_id: @conversation.id,
-               source_id: source_id, content: localized(scenario.fetch(:content)),
+               source_id: source_id, content: content,
                content_type: :text, status: :sent,
                message_type: scenario[:activity] ? :activity : :outgoing, private: scenario.fetch(:private, false),
                sender_type: 'Captain::Assistant', sender_id: @assistant.id, content_attributes: attributes,
@@ -127,15 +144,23 @@ class Seeders::CaptainDecisionsDemo
 
   def seed_activity_scenario(scenario, index)
     source_id = "#{MARKER}:activity:#{scenario.fetch(:name)}"
-    return if @conversation.messages.exists?(source_id: source_id)
+    content = localized(scenario.fetch(:content))
+    content_attributes = scenario.fetch(:content_attributes, {}).deep_merge(
+      ActivityMessageNames.attributes(content, localized(scenario.fetch(:names, {})))
+    )
+    message = @conversation.messages.find_by(source_id: source_id)
+    if message
+      message.update_columns(content: content, content_attributes: content_attributes)
+      return message
+    end
 
     insert(
       Message, account_id: @account.id, inbox_id: @conversation.inbox_id, conversation_id: @conversation.id,
-               source_id: source_id, content: localized(scenario.fetch(:content)),
+               source_id: source_id, content: content,
                content_type: :text, status: :sent,
                message_type: :activity, private: false, sender_type: scenario.fetch(:source_type),
                sender_id: @account.users.order(:id).pick(:id),
-               content_attributes: scenario.fetch(:content_attributes, {}), created_at: 20.minutes.ago + index.minutes
+               content_attributes: content_attributes, created_at: 20.minutes.ago + index.minutes
     )
   end
 
