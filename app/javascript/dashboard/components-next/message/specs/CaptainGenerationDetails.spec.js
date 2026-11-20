@@ -159,6 +159,30 @@ describe('Captain decision content', () => {
     expect(wrapper.find('time').exists()).toBe(false);
   });
 
+  it('uses a state pill and keeps origin and rule values in a key-value grid', () => {
+    const wrapper = content({
+      decisions: [
+        {
+          ...decision,
+          outcome: 'confirmed',
+          evidence: { settings: { inactivityThresholdMinutes: 30 } },
+        },
+      ],
+    });
+    expect(wrapper.find('.bg-n-teal-3').exists()).toBe(true);
+    expect(wrapper.findAll('dl dt').map(node => node.text())).toEqual([
+      'Origin',
+      'Rule',
+    ]);
+    expect(wrapper.findAll('dl dd').map(node => node.text())).toEqual([
+      'Model',
+      'Inactivity threshold: 30 minutes',
+    ]);
+    expect(wrapper.findAll('li').map(node => node.text())).not.toContain(
+      'Inactivity threshold: 30 minutes'
+    );
+  });
+
   it('shows the silence notice without claiming resolution or evaluation cost', () => {
     const wrapper = content({
       decisions: [{ ...decision, kind: 'close_unanswered', origin: 'time' }],

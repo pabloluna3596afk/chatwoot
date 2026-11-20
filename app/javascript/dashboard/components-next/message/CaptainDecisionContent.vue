@@ -69,6 +69,18 @@ const technicalRows = decision =>
       field,
       text: t(`${key}.TECHNICAL.${field}`, { value: technicalValue(value) }),
     }));
+const outcomeClass = outcome => {
+  if (['created', 'completed', 'confirmed'].includes(outcome)) {
+    return 'bg-n-teal-3 text-n-teal-11';
+  }
+  if (outcome === 'pending') return 'bg-n-amber-3 text-n-amber-12';
+  if (['failed', 'rejected', 'cancelled'].includes(outcome)) {
+    return 'bg-n-ruby-3 text-n-ruby-11';
+  }
+  return 'bg-n-alpha-2 text-n-slate-11';
+};
+const settingRows = decision =>
+  Object.entries(decision.evidence?.settings || {});
 </script>
 
 <template>
@@ -76,10 +88,10 @@ const technicalRows = decision =>
     :role="mobile ? undefined : 'dialog'"
     :aria-label="t('CONVERSATION.CAPTAIN_DECISION.TITLE')"
     :aria-busy="loading"
-    class="w-full md:w-96 max-w-full text-sm text-n-slate-12 [overflow-wrap:anywhere]"
+    class="w-full md:w-96 max-w-full overflow-hidden rounded-[14px] border border-n-weak bg-n-solid-1 text-sm text-n-slate-12 shadow-xl [overflow-wrap:anywhere]"
   >
     <header
-      class="sticky top-0 flex items-center justify-between gap-3 border-b border-n-weak bg-n-solid-1 px-4 py-2"
+      class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-n-weak bg-n-solid-1 px-4 py-2.5"
     >
       <div class="flex flex-wrap items-center gap-2">
         <h2 class="m-0 text-sm font-semibold">
@@ -87,7 +99,8 @@ const technicalRows = decision =>
         </h2>
         <span
           v-if="!loading && !entry?.error && decisions.length === 1"
-          class="rounded-full bg-n-blue-3 text-n-blue-11 px-2 py-0.5 text-xs font-medium"
+          class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+          :class="outcomeClass(decisions[0].outcome)"
         >
           <span class="sr-only">{{
             t('CONVERSATION.CAPTAIN_DECISION.OUTCOME')
@@ -104,7 +117,7 @@ const technicalRows = decision =>
         <Icon icon="i-lucide-x" class="size-4" aria-hidden="true" />
       </button>
     </header>
-    <div class="p-4 flex flex-col gap-4">
+    <div class="flex flex-col gap-3.5 p-4">
       <p v-if="loading" role="status" class="m-0">
         {{ t('CONVERSATION.CAPTAIN_DECISION.LOADING') }}
       </p>
@@ -134,15 +147,18 @@ const technicalRows = decision =>
             t('CONVERSATION.CAPTAIN_DECISION.OUTCOME')
           }}</span
           ><span
-            class="rounded-full bg-n-blue-3 text-n-blue-11 px-2 py-0.5 text-xs font-medium"
+            class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+            :class="outcomeClass(decision.outcome)"
             >{{ t(`${key}.OUTCOMES.${decision.outcome}`) }}</span
           >
         </div>
         <div>
-          <h3 class="text-xs font-semibold text-n-slate-11 mb-1">
+          <h3
+            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+          >
             {{ t('CONVERSATION.CAPTAIN_DECISION.WHY') }}
           </h3>
-          <p class="m-0">
+          <p class="m-0 rounded-lg bg-n-solid-2 px-3 py-2">
             {{
               decision.reasonText ||
               t('CONVERSATION.CAPTAIN_DECISION.NO_REASON')
@@ -150,16 +166,12 @@ const technicalRows = decision =>
           </p>
         </div>
         <div>
-          <h3 class="text-xs font-semibold text-n-slate-11 mb-1">
+          <h3
+            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+          >
             {{ t('CONVERSATION.CAPTAIN_DECISION.EVIDENCE') }}
           </h3>
-          <p
-            v-if="
-              !facts(decision).length &&
-              !Object.keys(decision.evidence?.settings || {}).length
-            "
-            class="m-0"
-          >
+          <p v-if="!facts(decision).length" class="m-0">
             {{
               t(
                 decision.kind === 'reply' &&
@@ -170,18 +182,14 @@ const technicalRows = decision =>
               )
             }}
           </p>
-          <ul v-else class="m-0 ps-4 list-disc">
+          <ul v-if="facts(decision).length" class="m-0 ps-4 list-disc">
             <li v-for="fact in facts(decision)" :key="fact">{{ fact }}</li>
-            <li
-              v-for="(value, setting) in decision.evidence?.settings"
-              :key="setting"
-            >
-              {{ t(`${key}.SETTINGS.${setting}`, { minutes: value }) }}
-            </li>
           </ul>
         </div>
         <div v-for="group in sourceGroups(decision)" :key="group.label">
-          <h3 class="text-xs font-semibold text-n-slate-11 mb-1">
+          <h3
+            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+          >
             {{ t(`${key}.${group.label}`) }}
           </h3>
           <ul class="m-0 ps-4 list-disc">
@@ -204,7 +212,9 @@ const technicalRows = decision =>
           </ul>
         </div>
         <div v-if="decision.evidence?.tools?.length">
-          <h3 class="text-xs font-semibold text-n-slate-11 mb-1">
+          <h3
+            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+          >
             {{ t('CONVERSATION.CAPTAIN_DECISION.ACTIONS') }}
           </h3>
           <ul class="m-0 ps-4 list-disc">
@@ -218,7 +228,9 @@ const technicalRows = decision =>
           </ul>
         </div>
         <div>
-          <h3 class="text-xs font-semibold text-n-slate-11 mb-1">
+          <h3
+            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+          >
             {{ t('CONVERSATION.CAPTAIN_DECISION.AFTERWARDS') }}
           </h3>
           <ul
@@ -233,33 +245,46 @@ const technicalRows = decision =>
             {{ t('CONVERSATION.CAPTAIN_DECISION.NO_LATER_EVENTS') }}
           </p>
         </div>
-        <p class="m-0 text-n-slate-11">
-          {{ t('CONVERSATION.CAPTAIN_DECISION.ORIGIN') }}:
-          {{ t(`${key}.ORIGINS.${decision.origin}`) }}
-        </p>
+        <dl
+          class="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-lg bg-n-solid-2 px-3 py-2 text-[13px]"
+        >
+          <dt class="text-n-slate-11">
+            {{ t('CONVERSATION.CAPTAIN_DECISION.ORIGIN') }}
+          </dt>
+          <dd class="m-0">{{ t(`${key}.ORIGINS.${decision.origin}`) }}</dd>
+          <template
+            v-for="[setting, value] in settingRows(decision)"
+            :key="setting"
+          >
+            <dt class="text-n-slate-11">{{ t(`${key}.RULE`) }}</dt>
+            <dd class="m-0">
+              {{ t(`${key}.SETTINGS.${setting}`, { minutes: value }) }}
+            </dd>
+          </template>
+        </dl>
         <RouterLink
           v-if="decision.canChangeSetting"
           :to="decision.settingDestination"
-          class="text-n-blue-11 underline"
+          class="inline-flex min-h-8 items-center text-n-blue-11 underline underline-offset-2"
           @click="$emit('close')"
         >
           {{ t('CONVERSATION.CAPTAIN_DECISION.CHANGE_SETTING') }}
         </RouterLink>
         <p
           v-if="decision.kind === 'close_unanswered'"
-          class="m-0 rounded-lg bg-n-amber-3 text-n-amber-12 p-2 text-xs"
+          class="m-0 rounded-lg border border-n-amber-6 bg-n-amber-3 p-2.5 text-xs text-n-amber-12"
         >
           {{ t('CONVERSATION.CAPTAIN_DECISION.SILENCE_WARNING') }}
         </p>
         <p
           v-if="isEvaluation(decision)"
-          class="m-0 rounded-lg bg-n-amber-3 text-n-amber-12 p-2 text-xs"
+          class="m-0 rounded-lg border border-n-amber-6 bg-n-amber-3 p-2.5 text-xs text-n-amber-12"
         >
           {{ t('CONVERSATION.CAPTAIN_DECISION.EVALUATION_COST_NOTICE') }}
         </p>
         <footer
           v-if="technicalRows(decision).length"
-          class="border-t border-n-weak pt-2 text-xs text-n-slate-11"
+          class="border-t border-dashed border-n-weak pt-2 font-mono text-xs text-n-slate-11"
         >
           <p
             v-for="row in technicalRows(decision)"
