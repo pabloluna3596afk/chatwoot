@@ -333,7 +333,7 @@ RSpec.describe Conversation, type: :model do
           .to have_enqueued_job(Conversations::ActivityMessageJob).with(
             conversation,
             hash_including(content: "Pablo assigned the conversation to #{assistant.name}, who is now handling it",
-                           content_attributes: { activity: { type: 'conversation_status_changed', status: 'pending',
+                           content_attributes: { activity: { type: 'conversation_status_changed', status: 'pending', previous_status: 'open',
                                                              source: { type: 'user', name: 'Pablo' } } })
           )
       ensure
@@ -349,7 +349,8 @@ RSpec.describe Conversation, type: :model do
           .to have_enqueued_job(Conversations::ActivityMessageJob).with(
             conversation,
             hash_including(content_attributes: hash_including(
-              activity: { type: 'conversation_status_changed', status: 'pending', source: { type: 'automation_rule', name: 'Derivar a Aurora' } }
+              activity: { type: 'conversation_status_changed', status: 'pending', previous_status: 'open',
+                          source: { type: 'automation_rule', name: 'Derivar a Aurora' } }
             ))
           )
       ensure
