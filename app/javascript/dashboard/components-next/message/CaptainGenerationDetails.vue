@@ -101,7 +101,7 @@ const devDetails = computed(() => {
       })
     );
   }
-  return details.join(' � ') || null;
+  return details.join(' · ') || null;
 });
 
 // With the sparkle at the row start, the meta gets pushed to the opposite end;
