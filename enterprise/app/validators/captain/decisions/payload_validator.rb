@@ -3,13 +3,14 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
   ID_LISTS = %w[document_ids cited_document_ids faq_ids used_faq_ids].freeze
   MESSAGE_IDS = %w[last_customer_message_id evaluated_through_message_id].freeze
   FLAGS = %w[complete customer_confirmed expects_customer_reply probable_complete].freeze
+  COUNTS = %w[nudge_attempt nudges_sent wait_seconds].freeze
   ENUMS = {
     'action' => %w[reply resolve handoff],
     'cancellation_cause' => %w[new_incoming human_reply conversation_changed turn_changed],
     'error' => %w[evaluation_failed evaluation_interrupted],
     'reason_category' => %w[customer_request missing_knowledge unsupported_request policy_restriction tool_failure pending_clarification unknown]
   }.freeze
-  SETTINGS = %w[inactivity_threshold_minutes completion_grace_minutes].freeze
+  SETTINGS = %w[inactivity_threshold_minutes completion_grace_minutes inactivity_after_minutes max_nudges max_replies_per_conversation].freeze
 
   def validate(record)
     validate_evidence(record)
@@ -27,7 +28,7 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
   private
 
   def validate_evidence(record)
-    validate_object(record, :evidence, ID_LISTS + MESSAGE_IDS + FLAGS + ENUMS.keys + %w[tools team_id assignee_id]) do |key, value|
+    validate_object(record, :evidence, ID_LISTS + MESSAGE_IDS + FLAGS + COUNTS + ENUMS.keys + %w[tools team_id assignee_id]) do |key, value|
       evidence_value_valid?(key, value)
     end
     return unless record.evidence.is_a?(Hash)
@@ -42,9 +43,17 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
     return id_list?(value) if ID_LISTS.include?(key)
     return positive_id?(value) if MESSAGE_IDS.include?(key) || %w[team_id assignee_id].include?(key)
     return [true, false].include?(value) if FLAGS.include?(key)
+    return count_value_valid?(key, value) if COUNTS.include?(key)
     return tool_list?(value) if key == 'tools'
 
     ENUMS.fetch(key).include?(value)
+  end
+
+  def count_value_valid?(key, value)
+    return false unless value.is_a?(Integer)
+    return value >= 0 if key == 'wait_seconds'
+
+    value.between?(key == 'nudge_attempt' ? 1 : 0, 2)
   end
 
   def id_list?(value)
@@ -80,7 +89,9 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
   end
 
   def validate_settings(record)
-    validate_object(record, :settings_snapshot, SETTINGS) { |_key, value| value.is_a?(Integer) && value.positive? }
+    validate_object(record, :settings_snapshot, SETTINGS) do |key, value|
+      value.is_a?(Integer) && (key == 'max_nudges' ? value.between?(0, 2) : value.positive?)
+    end
   end
 
   def validate_technical(record)

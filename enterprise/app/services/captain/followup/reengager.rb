@@ -90,7 +90,7 @@ class Captain::Followup::Reengager
     drops = Captain::TemplateMessage.drops(conversation, assistant)
     payload, text = Captain::TemplateMessage.build(entry, settings.reengagement_template['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
-    create_message(text, additional_attributes: { template_params: payload })
+    @decision_anchor = create_message(text, additional_attributes: { template_params: payload })
     record('at' => now.utc.iso8601, 'status' => 'sent')
     :sent
   rescue Variables::DeliveryRenderer::Error => e
@@ -111,13 +111,15 @@ class Captain::Followup::Reengager
   end
 
   def skip_with_note(note_key, reason)
-    create_message(translate(note_key), private: true)
+    @decision_anchor = create_message(translate(note_key), private: true)
     skip(reason)
   end
 
   def record(outcome)
     attributes = conversation.additional_attributes || {}
+    closed_at = state.fetch('closed_at')
     conversation.update!(additional_attributes: attributes.merge(STATE_KEY => state.merge('reengagement' => outcome)))
+    Captain::Decisions::FollowupRecording.new(conversation, assistant, now: now).reengage(@decision_anchor, closed_at, outcome)
   end
 
   def create_message(content, **attributes)

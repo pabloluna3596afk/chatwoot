@@ -6,16 +6,21 @@ class Captain::Followup::Closer
     @now = now
     @note_key = note_key
     @send_resolution_message = send_resolution_message
+    @inactivity_threshold_minutes = assistant.inactivity_threshold_minutes
   end
 
-  def perform
+  def perform(inactivity_threshold_minutes: @inactivity_threshold_minutes)
     Captain::Conversation::ResolutionTransition.perform(conversation, assistant) do
       Current.executed_by = assistant
       conversation.with_captain_activity_context(reason: 'no reply to the follow-up', reason_type: :inference) do
-        create_note
+        turn = Captain::Decisions::Recorder.capture(conversation) { Captain::Conversation::Turn.last_message(conversation) }
+        note = create_note
         create_resolution_message if send_resolution_message
         conversation.resolved!
         mark_closed
+        Captain::Decisions::FollowupRecording.new(conversation, assistant, now: now).close(
+          note, turn, inactivity_threshold_minutes: inactivity_threshold_minutes
+        )
       end
       :closed
     end

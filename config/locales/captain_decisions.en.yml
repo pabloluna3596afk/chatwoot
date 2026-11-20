@@ -1,6 +1,9 @@
 en:
   captain:
     decisions:
+      reopen: "A new customer message reopened the conversation."
+      human_control: "A person took control of the conversation; Captain stopped handling it."
+      disengage: "Captain stopped handling the conversation under the current ownership or eligibility rules."
       tool_resolve: "The resolution tool closed the conversation."
       time_resolve: "The configured inactivity threshold was reached. This does not confirm that the issue was resolved."
       evaluation_resolve: "The evaluation found no outstanding questions."
@@ -12,3 +15,14 @@ en:
       signal_rejected: "The review did not confirm completion."
       signal_cancelled: "The review was cancelled because the conversation or turn changed."
       signal_failed: "The completion review failed."
+      followup_close: "The conversation was closed after %{minutes} minutes without a reply and %{count} reminders. Silence does not confirm that the issue was resolved."
+      followup_nudge: "Reminder %{attempt} of %{max} was created after the configured %{minutes}-minute interval."
+      reengage_sent: "The re-engagement template was created locally. This does not confirm delivery to the customer."
+      reengage_cooldown: "Re-engagement was skipped because this customer was already contacted within the seven-day cooldown."
+      reengage_channel: "Re-engagement was skipped because this channel does not support WhatsApp templates."
+      reengage_paid_templates_off: "Re-engagement was skipped because paid templates are not allowed."
+      reengage_no_template: "Re-engagement was skipped because no template was selected."
+      reengage_template_unavailable: "Re-engagement was skipped because the selected template is unavailable under the current messaging policy."
+      reengage_captain_template_cap_reached: "Re-engagement was skipped because the daily Captain template limit was reached."
+      reengage_template_variables_missing: "Re-engagement was skipped because required template variables are missing."
+      reengage_template_changed: "Re-engagement was skipped because the template changed and its variable mapping is no longer valid."

@@ -581,11 +581,16 @@
         "new_incoming": "El cliente envió un nuevo mensaje.",
         "handoff": "Se transfirió la conversación.",
         "resolved": "Se resolvió la conversación.",
-        "reopened": "Se reabrió la conversación."
+        "reopened": "Se reabrió la conversación.",
+        "human_control": "Una persona tomó el control de la conversación.",
+        "disengage": "Captain dejó de atender la conversación."
       },
       "SETTINGS": {
         "inactivityThresholdMinutes": "Umbral de inactividad: {minutes} minutos",
-        "completionGraceMinutes": "Revisar el cierre después de {minutes} minutos"
+        "completionGraceMinutes": "Revisar el cierre después de {minutes} minutos",
+        "inactivityAfterMinutes": "Intervalo de recordatorios: {minutes} minutos",
+        "maxNudges": "Máximo de recordatorios: {minutes}",
+        "maxRepliesPerConversation": "Máximo de respuestas por conversación: {minutes}"
       },
       "FACTS": {
         "complete": {
