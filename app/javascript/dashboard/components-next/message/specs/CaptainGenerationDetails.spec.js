@@ -252,6 +252,9 @@ describe('Captain decision request path', () => {
     });
     expect(API.getForMessage).not.toHaveBeenCalled();
     const trigger = wrapper.get('button');
+    expect(trigger.attributes('aria-label')).toBe(
+      en.CONVERSATION.CAPTAIN_DECISION.OPEN
+    );
     expect(trigger.attributes('aria-expanded')).toBe('false');
     expect(trigger.classes()).toContain('size-6');
     await trigger.trigger('click');

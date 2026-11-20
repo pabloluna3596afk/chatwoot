@@ -15,6 +15,7 @@ import { CHAT_SKIN } from 'dashboard/helper/chatSkin';
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
   overlayMeta: { type: Boolean, default: false },
+  captainDetailsAtStart: { type: Boolean, default: false },
 });
 
 const {
@@ -103,7 +104,10 @@ const metaClass = computed(() => [
     <ReplyPreview v-if="inReplyTo" />
     <slot />
     <template v-if="shouldShowMeta">
-      <CaptainGenerationDetails v-if="showCaptain" :message-id="id">
+      <CaptainGenerationDetails
+        v-if="showCaptain && !props.captainDetailsAtStart"
+        :message-id="id"
+      >
         <template #meta="{ trigger }">
           <MessageMeta
             :show-timestamp="!shouldGroupWithNext"

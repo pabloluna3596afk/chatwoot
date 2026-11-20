@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useActivityTime } from 'dashboard/composables/useActivityTime';
 import BaseBubble from './Base.vue';
 import CaptainGenerationDetails from '../CaptainGenerationDetails.vue';
+import MessageSourceIndicator from '../MessageSourceIndicator.vue';
 import { hasCaptainDetails } from '../helpers/captainDecision';
 import { useMessageContext } from '../provider.js';
 
@@ -21,19 +22,33 @@ const showCaptain = computed(() =>
 
 <template>
   <BaseBubble
-    class="mx-auto w-[90%] text-center leading-[1.4]"
+    class="mx-auto flex w-fit max-w-[90%] items-center justify-center gap-x-1.5 px-3 py-1 text-center leading-[1.4]"
     data-bubble-name="activity"
   >
-    <span v-dompurify-html="content" />
-    {{ ' ' }}
-    <time
-      v-tooltip.top="exactTime"
-      :datetime="isoTime"
-      :aria-label="exactTime"
-      class="text-xs text-n-slate-11"
-      >{{ relativeTime }}</time
+    <span
+      v-if="showCaptain"
+      class="flex size-6 shrink-0 items-center justify-center self-start"
     >
-    {{ ' ' }}
-    <CaptainGenerationDetails v-if="showCaptain" :message-id="id" />
+      <CaptainGenerationDetails :message-id="id" />
+    </span>
+    <MessageSourceIndicator
+      v-else
+      :content-attributes="contentAttributes"
+      icon-class="size-4 shrink-0 self-start text-n-slate-11"
+    />
+    <span class="min-w-0 flex-1 text-center" data-activity-layout>
+      <span v-dompurify-html="content" data-activity-content />
+      {{ ' ' }}
+      <span aria-hidden="true" class="before:content-['\00b7']" />
+      {{ ' ' }}
+      <time
+        v-tooltip.top="exactTime"
+        :datetime="isoTime"
+        :aria-label="exactTime"
+        class="whitespace-nowrap text-xs text-n-slate-11"
+      >
+        {{ relativeTime }}
+      </time>
+    </span>
   </BaseBubble>
 </template>

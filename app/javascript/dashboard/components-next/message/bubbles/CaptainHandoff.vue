@@ -2,13 +2,14 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseBubble from './Base.vue';
+import CaptainGenerationDetails from '../CaptainGenerationDetails.vue';
 import { useMessageContext } from '../provider.js';
 
 const props = defineProps({
   summaryLines: { type: Array, default: () => [] },
 });
 
-const { content, contentAttributes, sender } = useMessageContext();
+const { id, content, contentAttributes, sender } = useMessageContext();
 const { t, te } = useI18n();
 const assistantName = computed(
   () => sender.value?.name || t('CONVERSATION.BOT_HANDOFF_FALLBACK_ASSIGNEE')
@@ -22,7 +23,11 @@ const visibleSummaryLines = computed(() => props.summaryLines.slice(0, 3));
 </script>
 
 <template>
-  <BaseBubble class="px-3 py-2" data-bubble-name="captain-handoff">
+  <BaseBubble
+    class="px-3 py-2"
+    data-bubble-name="captain-handoff"
+    captain-details-at-start
+  >
     <div class="flex flex-col gap-2">
       <div class="flex flex-wrap gap-2">
         <span
@@ -37,8 +42,11 @@ const visibleSummaryLines = computed(() => props.summaryLines.slice(0, 3));
           {{ t(reasonKey) }}
         </span>
       </div>
-      <p class="m-0 whitespace-pre-wrap text-sm text-n-slate-12">
-        {{ content }}
+      <p class="m-0 flex items-start gap-1.5 text-sm text-n-slate-12">
+        <span class="flex size-6 shrink-0 items-center justify-center">
+          <CaptainGenerationDetails :message-id="id" />
+        </span>
+        <span class="min-w-0 whitespace-pre-wrap">{{ content }}</span>
       </p>
       <ul
         v-if="visibleSummaryLines.length"
