@@ -88,7 +88,7 @@ const settingRows = decision =>
     :role="mobile ? undefined : 'dialog'"
     :aria-label="t('CONVERSATION.CAPTAIN_DECISION.TITLE')"
     :aria-busy="loading"
-    class="w-full md:w-96 max-w-full overflow-hidden rounded-[14px] border border-n-weak bg-n-solid-1 text-sm text-n-slate-12 shadow-xl [overflow-wrap:anywhere]"
+    class="w-full md:w-96 max-w-full rounded-[14px] border border-n-weak bg-n-solid-1 text-sm text-n-slate-12 shadow-xl [overflow-wrap:anywhere]"
   >
     <header
       class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-n-weak bg-n-solid-1 px-4 py-2.5"
