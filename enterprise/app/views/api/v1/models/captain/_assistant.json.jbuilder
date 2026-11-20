@@ -2,6 +2,8 @@ json.account_id resource.account_id
 json.avatar_url resource.avatar_or_default_url
 json.config resource.config.merge(
   'auto_resolve_mode' => resource.auto_resolve_mode,
+  'completion_signal_enabled' => resource.completion_signal_enabled?,
+  'completion_grace_minutes' => resource.completion_grace_minutes,
   'auto_resolve_after' => resource.inactivity_threshold_minutes,
   'send_inactivity_resolution_message' => resource.send_inactivity_resolution_message?,
   'appointments' => resource.appointments.to_h,

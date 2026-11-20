@@ -10,6 +10,7 @@ class Captain::FollowupValidator < ActiveModel::Validator
 
     settings = Settings.new(raw)
     validate_numbers(record, settings)
+    validate_inactivity_threshold(record, settings)
     validate_template(record, settings)
   end
 
@@ -33,7 +34,11 @@ class Captain::FollowupValidator < ActiveModel::Validator
 
       record.errors.add(:config, "followup #{key} must be between #{range.min} and #{range.max}")
     end
+  end
 
+  def validate_inactivity_threshold(record, settings)
+    return unless settings.inactivity_enabled?
+    return unless settings.max_nudges.is_a?(Integer) && settings.max_nudges.positive?
     return if record.inactive_conversation_resolution_disabled? ||
               !settings.inactivity_after_minutes.is_a?(Integer) ||
               settings.inactivity_after_minutes < record.inactivity_threshold_minutes

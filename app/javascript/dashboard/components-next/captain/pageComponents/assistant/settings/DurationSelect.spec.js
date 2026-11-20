@@ -2,6 +2,7 @@ import { shallowMount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
 import Select from 'dashboard/components-next/select/Select.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import DurationSelect from './DurationSelect.vue';
 
 vi.mock('vue-i18n', () => ({
@@ -18,6 +19,22 @@ const mountComponent = modelValue =>
   });
 
 describe('DurationSelect', () => {
+  it('uses desktop comboboxes with the same conversion and keeps mobile selects', async () => {
+    const wrapper = mountComponent(120);
+    const desktop = wrapper.get('[data-testid="duration-desktop"]');
+    expect(desktop.classes()).toContain('sm:flex');
+    expect(desktop.findComponent(Select).exists()).toBe(false);
+    expect(wrapper.get('[data-testid="duration-mobile"]').classes()).toContain(
+      'sm:hidden'
+    );
+    const selects = desktop.findAllComponents(ComboBox);
+    expect(selects[0].props('modelValue')).toBe(2);
+    selects[1].vm.$emit('update:modelValue', 5);
+    expect(wrapper.emitted('update:modelValue').at(-1)[0]).toBe(125);
+    await wrapper.setProps({ modelValue: 125 });
+    selects[0].vm.$emit('update:modelValue', 0);
+    expect(wrapper.emitted('update:modelValue').at(-1)[0]).toBe(5);
+  });
   it('shows the hour and minute parts of the duration', () => {
     const selects = mountComponent(75).findAllComponents(Select);
 

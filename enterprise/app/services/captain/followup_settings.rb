@@ -1,7 +1,7 @@
 # Per-assistant follow-up settings, stored under assistant.config['followup'].
 #
 # Inactivity: after `inactivity_after_minutes` without a reply to Captain's last message, Captain sends up
-# to `max_nudges` short "¿Sigues ahí?" messages (free, inside the 24 h window) and, `close_after_minutes`
+# to `max_nudges` short "¿Sigues ahí?" messages (free, inside the 24 h window) and, the assistant's `auto_resolve_after`
 # after the last one with no answer, closes the conversation. Re-engagement is off by default: after the
 # window closes it is always an approved WhatsApp template, which Meta bills, so it also needs the
 # assistant's "paid templates" switch.
@@ -47,7 +47,6 @@ class Captain::FollowupSettings
   def self.cast_integer(value)
     Integer(value.to_s, exception: false) || value
   end
-
 
   attr_reader :values
 

@@ -1017,26 +1017,26 @@
         "INACTIVITY_RESOLUTION": {
           "TITLE": "Qué hace Captain si la conversación se queda sin respuesta",
           "DESCRIPTION": "Aplica pasado el tiempo que elijas, haya preguntado o no «¿Sigues ahí?».",
-          "MODE_LABEL": "Acción cuando el cliente deja de responder",
+          "MODE_LABEL": "Cierre automático",
           "REVIEW_AFTER": "Esperar antes de actuar",
           "RESOLVE_AFTER": "Esperar antes de actuar",
           "ALWAYS_WARNING": "Captain resolverá toda conversación después del tiempo elegido, sin revisarla. Algunas conversaciones que todavía necesitaban ayuda podrían cerrarse.",
           "PENDING_INFO": "La conversación queda pendiente hasta que el cliente responda.",
           "RESOLUTION_MESSAGE": {
-            "TITLE": "Enviar un mensaje de despedida al cerrar",
-            "DESCRIPTION": "Captain envía este mensaje antes de cerrar la conversación por inactividad."
+            "TITLE": "Enviar un mensaje al cerrar por inactividad",
+            "DESCRIPTION": "Solo si el canal permite responder. Un final confirmado se cierra sin otro mensaje."
           },
           "MODES": {
             "DISABLED": {
-              "LABEL": "Esperar al cliente",
+              "LABEL": "No cerrar automáticamente",
               "DESCRIPTION": "Captain no cierra la conversación; queda pendiente hasta que el cliente responda. Puede transferirla si el cliente lo pide."
             },
             "LEGACY": {
-              "LABEL": "Resolver siempre",
+              "LABEL": "Cerrar solo por tiempo",
               "DESCRIPTION": "Captain resuelve toda conversación después del tiempo elegido."
             },
             "EVALUATED": {
-              "LABEL": "Dejar que Captain lo evalúe (recomendado)",
+              "LABEL": "Dejar que {assistantName} lo evalúe (recomendado)",
               "DESCRIPTION": "Captain decide si resolver la conversación o transferirla."
             }
           },
@@ -1231,22 +1231,22 @@
         },
         "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
         "FOLLOWUP": {
-          "TOGGLE": "Preguntar «¿Sigues ahí?»",
-          "TOGGLE_HELP": "Si el cliente deja de responder, {assistantName} le escribe un mensaje corto con botones, solo dentro de las 24 h. Viene activado.",
-          "AFTER": "Preguntar tras",
-          "NUDGES": "Mensajes de seguimiento",
+          "TOGGLE": "Enviar recordatorios",
+          "TOGGLE_HELP": "Preguntar «¿Sigues ahí?» mientras se espera una respuesta del cliente y el canal permite responder. Apagar los recordatorios no desactiva el cierre automático.",
+          "AFTER": "Intervalo entre recordatorios",
+          "NUDGES": "Máximo de recordatorios",
           "HINT": "Solo en las conversaciones que atiende {assistantName}, nunca si una persona la tomó y nunca fuera de las 24 h. Si el cliente responde, el conteo empieza de nuevo.",
           "NUDGES_ONE": "1 mensaje",
           "NUDGES_TWO": "2 mensajes",
           "MINUTES": "{count} min",
           "HOURS": "{count} h",
-          "REENGAGEMENT": "Reenganchar con una plantilla",
-          "REENGAGEMENT_HELP": "Cuando {assistantName} cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Viene desactivado. Sale entre las 08:00 y las 21:00.",
+          "REENGAGEMENT": "Volver a contactar con una plantilla",
+          "REENGAGEMENT_HELP": "Solo después de un cierre por inactividad y de que venza la ventana de respuesta. Requiere una plantilla permitida y el permiso de plantillas con costo; se aplican los límites de envío.",
           "PAID_HINT": "Para enviar plantillas, activa «Permitir plantillas con costo» en Plantillas y Flows.",
           "TEMPLATE": "Plantilla de reenganche",
-          "GOODBYE_LINK": "Traspaso y cierre",
-          "AFTER_ERROR": "Debe ser menor que el tiempo de espera de arriba.",
-          "GOODBYE_SENTENCE": "El mensaje de despedida se edita en {link}."
+          "AFTER_ERROR": "El intervalo de recordatorio ({interval} min) debe ser menor que el tiempo sin actividad ({minutes} min). Reduce el intervalo, aumenta el tiempo o desactiva los recordatorios.",
+          "INTERVAL_HELP": "El primero se envía después de este tiempo. Si hay un segundo, espera el mismo intervalo.",
+          "DISABLE": "Desactivar recordatorios"
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Completa todas las variables de la plantilla antes de guardar.",
@@ -1377,7 +1377,26 @@
           "ON_SIGNAL": "Alta si el cliente está molesto o tiene prisa",
           "ALWAYS": "Alta siempre",
           "HELP": "{assistantName} nunca baja una prioridad que ya está puesta."
-        }
+        },
+        "CLOSURE": {
+          "DETECT": "Detectar cuándo terminó la conversación",
+          "DETECT_HELP": "Si el cliente confirma o se despide y no queda nada pendiente, {assistantName} comprobará si puede cerrar. Si el cliente vuelve a escribir, se cancela. Esta comprobación puede ocurrir antes del tiempo sin actividad.",
+          "GRACE": "Esperar antes de comprobar",
+          "TITLE": "Cierre automático",
+          "HELP": "Solo se aplica mientras {assistantName} atiende la conversación. Una persona asignada conserva el control.",
+          "INACTIVITY": "Tiempo sin actividad",
+          "INACTIVITY_HELP": "Si hay recordatorios, este tiempo vuelve a contar desde el último. No es el tiempo total desde el inicio de la espera. Puede haber unos minutos de demora.",
+          "SUMMARY": "Sin recordatorios. Actuar después de {minutes} min sin actividad, según el modo de cierre.",
+          "NUDGES_SUMMARY": "Primer recordatorio a los {interval} min; máximo {count}. Cierre por falta de respuesta {minutes} min después del último.",
+          "SILENCE_HELP": "Cerrar por falta de respuesta no significa que la consulta quedó solucionada.",
+          "DISABLED": "El cierre automático y los recordatorios están desactivados.",
+          "DISABLED_NUDGES": "El cierre automático está desactivado. Se enviarán recordatorios.",
+          "NO_REPLY": "Cuando el cliente no responde",
+          "FIVE_MINUTES": "Para usar recordatorios, el tiempo sin actividad debe superar 5 min.",
+          "CONVERSATION_ENDS": "Cuando la conversación termina",
+          "AFTER_CLOSING": "Después del cierre por inactividad"
+        },
+        "HANDOFF_TITLE": "Cuando necesita a una persona"
       },
       "EDIT": {
         "TITLE": "Actualizar el asistente",
@@ -1393,9 +1412,9 @@
           "DESCRIPTION": "Personaliza lo que dice el asistente al terminar una conversación o al transferirla a una persona."
         },
         "SYSTEM_SETTINGS": {
-          "TITLE": "Traspaso y cierre",
-          "DESCRIPTION": "Qué hace Captain al pasar una conversación a una persona o al cerrarla.",
-          "DESCRIPTION_V2": "Qué hace Captain al pasar una conversación a una persona o al cerrarla."
+          "TITLE": "Traspaso",
+          "DESCRIPTION": "Configura el mensaje, el destino y la prioridad al pasar la conversación a una persona.",
+          "DESCRIPTION_V2": "Configura el mensaje, el destino y la prioridad al pasar la conversación a una persona."
         },
         "AUDIENCE": {
           "TITLE": "Audiencia",
@@ -1429,8 +1448,8 @@
           "BUTTON_TEXT": "Eliminar {assistantName}"
         },
         "FOLLOWUP": {
-          "TITLE": "Seguimiento",
-          "DESCRIPTION": "Qué hace {assistantName} cuando el cliente deja de responder: preguntar si sigue ahí, cerrar por inactividad y, si lo activas, reenganchar con una plantilla."
+          "TITLE": "Cierre y seguimiento",
+          "DESCRIPTION": "Configura qué ocurre si el cliente deja de responder o la conversación termina."
         },
         "MESSAGING": {
           "TITLE": "Envíos por bandeja",
@@ -1526,7 +1545,7 @@
           "CHANGED": "Cambió",
           "LINK": "Tiene enlace",
           "USED_BY_APPOINTMENTS": "La usa Citas",
-          "USED_BY_FOLLOWUP": "La usa Seguimiento"
+          "USED_BY_FOLLOWUP": "La usa Cierre y seguimiento"
         },
         "EMPTY": {
           "FLOWS": "Este número no tiene Flows.",

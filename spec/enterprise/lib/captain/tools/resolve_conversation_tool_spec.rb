@@ -32,7 +32,8 @@ RSpec.describe Captain::Tools::ResolveConversationTool do
     end
 
     it 'creates the configured resolution message' do
-      assistant.update!(config: assistant.config.merge('resolution_message' => 'Thanks for contacting us.'))
+      assistant.update!(config: assistant.config.merge('resolution_message' => 'Thanks for contacting us.',
+                                                       'send_inactivity_resolution_message' => true))
 
       tool.perform(tool_context, reason: 'Issue resolved')
 
@@ -41,7 +42,8 @@ RSpec.describe Captain::Tools::ResolveConversationTool do
     end
 
     it 'rolls back the resolution message when resolving fails' do
-      assistant.update!(config: assistant.config.merge('resolution_message' => 'Thanks for contacting us.'))
+      assistant.update!(config: assistant.config.merge('resolution_message' => 'Thanks for contacting us.',
+                                                       'send_inactivity_resolution_message' => true))
       allow(tool).to receive(:find_conversation).and_return(conversation)
       allow(conversation).to receive(:resolved!).and_raise(ActiveRecord::RecordInvalid.new(conversation))
 

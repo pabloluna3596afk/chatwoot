@@ -5,7 +5,7 @@ RSpec.describe Captain::Conversation::ResolutionMessageService do
   let(:assistant) { create(:captain_assistant, account: account, config: assistant_config) }
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
-  let(:assistant_config) { { 'resolution_message' => 'Thanks for contacting us.' } }
+  let(:assistant_config) { { 'resolution_message' => 'Thanks for contacting us.', 'send_inactivity_resolution_message' => true } }
 
   before { account.enable_features('captain_integration_v2') }
 
@@ -41,6 +41,13 @@ RSpec.describe Captain::Conversation::ResolutionMessageService do
 
     expect do
       described_class.new(conversation: conversation, assistant: assistant).perform
+    end.not_to change(conversation.messages, :count)
+  end
+
+  it 'does not send a goodbye outside the reply window' do
+    allow(conversation).to receive(:can_reply?).and_return(false)
+    expect do
+      described_class.new(conversation: conversation, assistant: assistant).perform(use_default_message: true)
     end.not_to change(conversation.messages, :count)
   end
 end

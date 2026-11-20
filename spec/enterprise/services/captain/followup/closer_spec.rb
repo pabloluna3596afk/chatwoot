@@ -3,10 +3,14 @@ require 'rails_helper'
 RSpec.describe Captain::Followup::Closer do
   let(:account) { create(:account, locale: 'en') }
   let(:assistant) { create(:captain_assistant, account: account) }
-  let(:conversation) { create(:conversation, account: account, status: :pending, additional_attributes: { 'keep' => 'value' }) }
+  let(:inbox) { create(:inbox, account: account) }
+  let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending, additional_attributes: { 'keep' => 'value' }).reload }
   let(:now) { Time.current.change(usec: 0) }
 
-  before { account.enable_features!('captain_integration_v2') }
+  before do
+    account.enable_features!('captain_integration_v2')
+    create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+  end
 
   after { Current.reset }
 
@@ -42,5 +46,24 @@ RSpec.describe Captain::Followup::Closer do
     assistant.update!(send_inactivity_resolution_message: true)
     described_class.new(conversation, assistant, send_resolution_message: false).perform
     expect(conversation.messages.where(private: false, message_type: :outgoing)).to be_empty
+  end
+
+  it 'does not close or send twice when repeated' do
+    closer = described_class.new(conversation, assistant)
+    expect(closer.perform).to eq(:closed)
+    expect { closer.perform }.not_to(change { conversation.messages.count })
+  end
+
+  it 'leaves a human-assigned conversation unchanged' do
+    conversation.update!(assignee: create(:user, account: account))
+    expect { described_class.new(conversation, assistant).perform }.not_to(change { conversation.messages.count })
+    expect(conversation.reload).to be_pending
+  end
+
+  it 'does not close another assistant conversation' do
+    other = create(:captain_assistant, account: account)
+    conversation.update!(ai_assignee: other)
+    expect { described_class.new(conversation, assistant).perform }.not_to(change { conversation.messages.count })
+    expect(conversation.reload).to be_pending
   end
 end

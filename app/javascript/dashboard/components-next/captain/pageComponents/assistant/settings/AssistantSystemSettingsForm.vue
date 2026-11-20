@@ -32,7 +32,7 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
-const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+const { nameRich } = useAssistantName(() => props.assistant);
 
 const { isCloudFeatureEnabled } = useAccount();
 const store = useStore();
@@ -61,9 +61,7 @@ const MAX_REPLIES_LIMIT = 1000;
 
 const initialState = {
   handoffMessage: '',
-  resolutionMessage: '',
   instructions: '',
-  sendInactivityResolutionMessage: true,
   maxReplies: DEFAULT_MAX_REPLIES,
   handoffRouting: {},
   handoffPriority: 'off',
@@ -81,7 +79,6 @@ const minLengthMessage = helpers.withMessage(
 );
 const validationRules = {
   handoffMessage: { minLength: minLengthMessage },
-  resolutionMessage: { minLength: minLengthMessage },
   instructions: { minLength: minLengthMessage },
   maxReplies: {
     required: requiredMessage,
@@ -108,7 +105,6 @@ const getErrorMessage = field => {
 
 const formErrors = computed(() => ({
   handoffMessage: getErrorMessage('handoffMessage'),
-  resolutionMessage: getErrorMessage('resolutionMessage'),
   instructions: getErrorMessage('instructions'),
   maxReplies: getErrorMessage('maxReplies'),
 }));
@@ -116,10 +112,7 @@ const formErrors = computed(() => ({
 const updateStateFromAssistant = assistant => {
   const { config = {} } = assistant;
   state.handoffMessage = config.handoff_message;
-  state.resolutionMessage = config.resolution_message;
   state.instructions = config.instructions;
-  state.sendInactivityResolutionMessage =
-    config.send_inactivity_resolution_message ?? true;
   state.maxReplies = config.max_replies_per_conversation ?? DEFAULT_MAX_REPLIES;
   state.handoffRouting = Object.fromEntries(
     routingKinds.map(kind => [
@@ -131,20 +124,10 @@ const updateStateFromAssistant = assistant => {
   submitted.value = false;
 };
 
-const fieldsToValidate = () => {
-  if (!isCaptainV2Enabled.value) {
-    return [
-      'handoffMessage',
-      'resolutionMessage',
-      'instructions',
-      'maxReplies',
-    ];
-  }
-
-  const fields = ['handoffMessage', 'maxReplies'];
-  if (state.sendInactivityResolutionMessage) fields.push('resolutionMessage');
-  return fields;
-};
+const fieldsToValidate = () =>
+  isCaptainV2Enabled.value
+    ? ['handoffMessage', 'maxReplies']
+    : ['handoffMessage', 'instructions', 'maxReplies'];
 
 const handleSystemMessagesUpdate = async () => {
   submitted.value = true;
@@ -176,15 +159,8 @@ const handleSystemMessagesUpdate = async () => {
     },
   };
 
-  if (isCaptainV2Enabled.value) {
-    Object.assign(payload.config, {
-      send_inactivity_resolution_message: state.sendInactivityResolutionMessage,
-      resolution_message: state.resolutionMessage,
-    });
-  } else {
-    payload.config.resolution_message = state.resolutionMessage;
+  if (!isCaptainV2Enabled.value)
     payload.config.instructions = state.instructions;
-  }
 
   emit('submit', payload);
 };
@@ -200,34 +176,9 @@ watch(
 
 <template>
   <div class="flex flex-col gap-6">
-    <SettingsToggleSection
-      v-if="isCaptainV2Enabled"
-      v-model="state.sendInactivityResolutionMessage"
-      :header="
-        t(
-          'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
-        )
-      "
-      :description="
-        nameRichFrom(
-          t(
-            'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.DESCRIPTION'
-          )
-        )
-      "
-    >
-      <template v-if="state.sendInactivityResolutionMessage" #editor>
-        <Editor
-          v-model="state.resolutionMessage"
-          :placeholder="
-            t('CAPTAIN.ASSISTANTS.FORM.RESOLUTION_MESSAGE.PLACEHOLDER')
-          "
-          :message="formErrors.resolutionMessage"
-          :message-type="formErrors.resolutionMessage ? 'error' : 'info'"
-          class="z-0 [&_.editor-wrapper]:!min-h-32 [&_.editor-wrapper]:!border-0 [&_.editor-wrapper]:!bg-transparent [&_.editor-wrapper]:!p-0"
-        />
-      </template>
-    </SettingsToggleSection>
+    <h3 class="m-0 text-heading-3 text-n-slate-12">
+      {{ t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_TITLE') }}
+    </h3>
     <SettingsToggleSection
       hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.LABEL')"
@@ -331,16 +282,6 @@ watch(
         />
       </div>
     </SettingsToggleSection>
-
-    <Editor
-      v-if="!isCaptainV2Enabled"
-      v-model="state.resolutionMessage"
-      :label="t('CAPTAIN.ASSISTANTS.FORM.RESOLUTION_MESSAGE.LABEL')"
-      :placeholder="t('CAPTAIN.ASSISTANTS.FORM.RESOLUTION_MESSAGE.PLACEHOLDER')"
-      :message="formErrors.resolutionMessage"
-      :message-type="formErrors.resolutionMessage ? 'error' : 'info'"
-      class="z-0"
-    />
 
     <Editor
       v-if="!isCaptainV2Enabled"

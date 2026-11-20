@@ -3724,3 +3724,20 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - La barra inferior cambia sin Transition out-in, evitando intervalos sin acciones. Los botones de enviar/plantillas y los adjuntos conservan sus componentes, props y handlers.
 - Origen: los mecanismos ya existen en upstream/develop `8b33b543fc` y en `dbfed3e8ea`, anterior a #379. No se atribuye a #379 una regresion visual reproducida: no se uso navegador por instruccion del brief.
 - Prueba: Vitest de conversation/specs, CopilotReplyBottomPanel y useCopilotReply en UTC y America/Guayaquil; contenido largo, limites con paneles, Escape en input, modo, descartar, desmontaje y A-B-A con resultado tardio. Ver informe externo `docs-crm/codex/copilot-editor.md`. Falta smoke visual con dimensiones reales; sin migraciones, push, PR ni despliegue.
+
+### B-NEW-287 — Cierre de conversaciones de Captain (2026-11-19)
+
+- **Archivos:** `Captain::Assistant`, `FollowupValidator`, formularios `AssistantSystemSettingsForm`/`AssistantFollowupForm` y `ClosureSummary`; contrato `ResponseSchema`, `CompletionSignal`, `ReviewCompletionSignalsJob`, `ResolutionTransition`, callbacks de conversación/mensaje/bandeja y eventos de resolución.
+- **Problema:** Seguimiento reenviaba `config.messaging` al guardar y podía recibir 409 por el guard de versión; modo y plazo de cierre estaban ocultos en Seguimiento; cualquier despedida contaba como espera del cliente y podía provocar un recordatorio innecesario.
+- **Cambio:** defaults 30/10/1 y despedida apagada solo al crear asistentes de atención; los registros existentes conservan su configuración. Detección estructurada habilitada en nuevos y opt-in en existentes, gracia 5/10/15, revisión por minuto y cancelación por actividad o cambio de propietario. Cierre confirmado silencioso, sin reenganche; rechazo/error vuelve al flujo normal sin traspaso automático. Motivos separados en eventos e informes existentes.
+- **Cómo probar:** pruebas de defaults históricos (incluido 120), formularios y validación; señal, carreras, idempotencia, ventana vencida, humano y motivos de cierre. Detalle, resultados y limitaciones en `docs-crm/codex/cierre-captain-construccion.md` (documentación local externa al repositorio).
+- **Alcance:** sin migraciones, navegador, push, PR ni despliegue. Agradecimientos posteriores a la resolución fuera de alcance; revisión visual pendiente del dueño.
+
+### B-NEW-288 — Captain: cierre y recordatorios en un mismo borrador (2026-11-19)
+
+- **Archivos:** `AssistantFollowupForm.vue`, `AssistantSystemSettingsForm.vue`, `ClosureSummary.vue`, `DurationSelect.vue`, `SettingsPageLayout.vue`, `integrations.json` en/es y sus specs; requests/modelo de followup.
+- **Problema:** el tiempo sin actividad y el intervalo de recordatorio se guardaban en pestañas distintas. Reducir el cierre a 10 minutos podía bloquear ambos formularios contra valores guardados de la otra pestaña.
+- **Cambio:** «Cierre y seguimiento» reúne ambos relojes, detección del final y reenganche en un borrador y un PATCH. Muestra la desigualdad junto a los campos y preserva followup completo, incluido reenganche y `close_after_minutes`, sin reenviar messaging ni traspaso. «Traspaso» conserva su guardado y permiso administrativo. Sin cambios en la regla del servidor ni en los valores históricos.
+- **Cómo probar:** configurar cierre de 10 y recordatorio de 5 juntos; o cierre de 10 sin recordatorios. Con cierre de 5, comprobar el error y usar «Desactivar recordatorios». Revisar el resumen con un aviso a los 10 y cierre 30 después; alternar modos, máximo 0 y V2; abrir un asistente con 120 y guardarlo sin normalización.
+- **Verificación:** Vitest, 269 pruebas en UTC y 269 en America/Guayaquil; ESLint sin errores; RuboCop Docker, 2 archivos inspeccionados sin infracciones. Detalle y resultados Rails en el informe externo `docs-crm/codex/pestanas-c-construccion.md`.
+- **Alcance:** sin migraciones, navegador, push, PR ni despliegue. Revisión visual pendiente del dueño.

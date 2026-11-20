@@ -2,6 +2,7 @@ module Enterprise::Conversation
   attr_accessor :captain_activity_reason, :captain_activity_reason_type
 
   def self.prepended(base)
+    base.before_update :cancel_completion_signal
     base.after_create :create_captain_skip_activity
     base.after_update :create_captain_skip_activity, if: :saved_change_to_status?
   end
@@ -34,6 +35,13 @@ module Enterprise::Conversation
   end
 
   private
+
+  def cancel_completion_signal
+    return unless will_save_change_to_status? || will_save_change_to_assignee_id? ||
+                  will_save_change_to_assignee_agent_bot_id? || will_save_change_to_ai_assignee_type?
+
+    ::Captain::Conversation::CompletionSignal.cancel(self)
+  end
 
   def determine_conversation_status
     super

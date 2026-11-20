@@ -102,6 +102,8 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
 
     {
       complete: message['complete'] == true,
+      customer_confirmed: message['customer_confirmed'] == true,
+      expects_customer_reply: message['expects_customer_reply'] == true,
       reason: message['reason'] || 'No reason provided'
     }
   end

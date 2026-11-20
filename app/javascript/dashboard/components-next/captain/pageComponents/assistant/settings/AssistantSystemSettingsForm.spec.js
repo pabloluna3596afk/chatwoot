@@ -3,29 +3,33 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
-import Switch from 'dashboard/components-next/switch/Switch.vue';
 import AssistantSystemSettingsForm from './AssistantSystemSettingsForm.vue';
 import DurationSelect from './DurationSelect.vue';
 import HandoffRoutingRow from './HandoffRoutingRow.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 const teamsState = vi.hoisted(() => ({ teams: [], dispatch: vi.fn() }));
+const features = vi.hoisted(() => ({ v2: true }));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: teamsState.dispatch }),
   useMapGetter: () => computed(() => teamsState.teams),
 }));
 beforeEach(() => {
+  features.v2 = true;
   teamsState.teams = [{ id: 7, name: 'Support' }];
   teamsState.dispatch.mockReset().mockResolvedValue();
 });
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '1', assistantId: '2' } }),
+}));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
 
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ isCloudFeatureEnabled: () => true }),
+  useAccount: () => ({ isCloudFeatureEnabled: () => features.v2 }),
 }));
 
 const assistant = {
@@ -58,38 +62,53 @@ const submitForm = async wrapper => {
 };
 
 describe('AssistantSystemSettingsForm', () => {
+  it('keeps the legacy instructions editor and saves it without closing fields', async () => {
+    features.v2 = false;
+    const wrapper = mountComponent({
+      assistant: { config: { instructions: 'Support instructions' } },
+    });
+    expect(
+      wrapper.find('editor-stub[modelvalue="Support instructions"]').exists()
+    ).toBe(true);
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config).toMatchObject({
+      instructions: 'Support instructions',
+    });
+    expect(wrapper.emitted('submit')[0][0].config).not.toHaveProperty(
+      'resolution_message'
+    );
+  });
+  it('omits messaging from the patch even when the assistant includes it', async () => {
+    const wrapper = mountComponent({
+      assistant: {
+        ...assistant,
+        config: { ...assistant.config, messaging: { version: 2, revision: 4 } },
+      },
+    });
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config).not.toHaveProperty(
+      'messaging'
+    );
+  });
+
   it('explains which message is sent outside business hours', () => {
     expect(mountComponent().text()).toContain(
       'CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.OUTSIDE_HOURS_HELP'
     );
   });
 
-  it('keeps only the goodbye message control in system settings', () => {
+  it('saves only handoff settings and leaves closing in its own form', async () => {
     const wrapper = mountComponent();
-    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(0);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
-    expect(wrapper.findAllComponents(Switch)).toHaveLength(1);
-    expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
-    );
-  });
-
-  it('saves system messages without changing the mode or the inactivity timer', async () => {
-    const wrapper = mountComponent();
+    expect(wrapper.findComponent(DurationSelect).exists()).toBe(false);
     await submitForm(wrapper);
-
-    expect(wrapper.emitted('submit')[0][0]).toEqual({
-      config: {
-        handoff_message: assistant.config.handoff_message,
-        resolution_message: assistant.config.resolution_message,
-        send_inactivity_resolution_message: true,
-        handoff_routing: {
-          new: { mode: 'inbox', team_id: null },
-          reopened: { mode: 'inbox', team_id: null },
-        },
-        handoff_priority: 'off',
-        max_replies_per_conversation: 20,
+    expect(wrapper.emitted('submit')[0][0].config).toEqual({
+      handoff_message: assistant.config.handoff_message,
+      max_replies_per_conversation: 20,
+      handoff_routing: {
+        new: { mode: 'inbox', team_id: null },
+        reopened: { mode: 'inbox', team_id: null },
       },
+      handoff_priority: 'off',
     });
   });
 

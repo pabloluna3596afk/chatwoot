@@ -20,13 +20,16 @@ class Captain::ConversationEvents
       )
     end
 
-    def resolved(conversation:, assistant:, source:, at:)
+    def resolved(conversation:, assistant:, source:, at:, reason: nil)
+      reason ||= 'evaluated_completion' if source == Sources::INFERENCE
+      reason ||= 'no_response' if source == Sources::TIME_BASED
       dispatch(
         Events::Types::CAPTAIN_CONVERSATION_RESOLVED,
         at: at,
         conversation: conversation,
         assistant: assistant,
-        source: source
+        source: source,
+        **(reason ? { reason: reason } : {})
       )
     end
 

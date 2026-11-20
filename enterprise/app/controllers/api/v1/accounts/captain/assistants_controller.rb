@@ -205,17 +205,13 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
                        { template_reminder: [:name, :language, { processed_params: {} }] }] }
     ]
     if Current.account.feature_enabled?('captain_integration_v2')
-      assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message]
+      assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message, :completion_signal_enabled, :completion_grace_minutes]
     end
 
     permitted = params.require(:assistant).permit(:name, :description, :avatar,
                                                   config: assistant_config_attributes)
 
-    # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
-    if params[:assistant][:config].try(:key?, :reply_delay_seconds)
-      permitted[:config][:reply_delay_seconds] =
-        params[:assistant][:config].slice(:reply_delay_seconds).permit!.to_h['reply_delay_seconds']
-    end
+    preserve_typed_config_params(permitted)
 
     permit_rule_lists(permitted)
 
@@ -231,6 +227,16 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     end
 
     permitted
+  end
+
+  def preserve_typed_config_params(permitted)
+    # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
+    %i[reply_delay_seconds completion_signal_enabled completion_grace_minutes].each do |key|
+      next unless params[:assistant][:config].try(:key?, key)
+      next if key != :reply_delay_seconds && !Current.account.feature_enabled?('captain_integration_v2')
+
+      permitted[:config][key] = params[:assistant][:config].slice(key).permit!.to_h[key.to_s]
+    end
   end
 
   def string_list?(value)

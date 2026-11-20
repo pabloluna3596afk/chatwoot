@@ -21,7 +21,11 @@ vi.mock('dashboard/composables/useAccount', () => ({
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: mocks.dispatch }),
   useMapGetter: () => computed(() => []),
-  useFunctionGetter: () => computed(() => ({ id: 7, config: {} })),
+  useFunctionGetter: () =>
+    computed(() => ({
+      id: 7,
+      config: { messaging: { version: 2, revision: 4 } },
+    })),
 }));
 
 describe('Handoff settings persistence', () => {
@@ -55,8 +59,6 @@ describe('Handoff settings persistence', () => {
         id: 7,
         config: {
           handoff_message: undefined,
-          resolution_message: undefined,
-          send_inactivity_resolution_message: true,
           max_replies_per_conversation: 20,
           handoff_routing: {
             new: { mode: 'inbox', team_id: null },

@@ -190,6 +190,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       next if captain_v2_enabled? && newer_customer_message_arrived?
 
       message = create_messages
+      record_completion_signal(message)
       Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
       finish_reply_usage!
     end
@@ -201,6 +202,14 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     end
     capture_assistant_session(result_message: message, credits_consumed: 1.0)
     record_v2_response_completed(message) if captain_v2_enabled?
+  end
+
+  def record_completion_signal(message)
+    return unless captain_v2_enabled? && message.additional_attributes.key?(Captain::Assistant::ResponseParts::MESSAGE_ATTRIBUTE_KEY)
+
+    Captain::Conversation::CompletionSignal.new(@conversation, @assistant).record(
+      message: message, response: @response, incoming_id: @responding_to_message_id
+    )
   end
 
   def process_v2_handoff_response

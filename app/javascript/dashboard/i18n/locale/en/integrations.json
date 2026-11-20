@@ -1017,26 +1017,26 @@
         "INACTIVITY_RESOLUTION": {
           "TITLE": "What Captain does when the conversation goes unanswered",
           "DESCRIPTION": "Applies after the time you choose, whether or not it asked \"Are you still there?\".",
-          "MODE_LABEL": "Action when the customer stops replying",
+          "MODE_LABEL": "Automatic closing",
           "REVIEW_AFTER": "Wait before acting",
           "RESOLVE_AFTER": "Wait before acting",
           "ALWAYS_WARNING": "Captain will resolve every conversation after the selected time without reviewing it. Some conversations that still need help may be closed.",
           "PENDING_INFO": "The conversation remains pending until the customer replies.",
           "RESOLUTION_MESSAGE": {
-            "TITLE": "Send a goodbye message when closing",
-            "DESCRIPTION": "Captain sends this message before closing the conversation for inactivity."
+            "TITLE": "Send a message when closing for inactivity",
+            "DESCRIPTION": "Only when the channel allows a reply. A confirmed ending closes without another message."
           },
           "MODES": {
             "DISABLED": {
-              "LABEL": "Wait for the customer",
+              "LABEL": "Do not close automatically",
               "DESCRIPTION": "Captain does not close the conversation; it stays pending until the customer replies. It can hand it off if the customer asks."
             },
             "LEGACY": {
-              "LABEL": "Always resolve",
+              "LABEL": "Close only by time",
               "DESCRIPTION": "Captain resolves every conversation after the selected time."
             },
             "EVALUATED": {
-              "LABEL": "Let Captain review it (recommended)",
+              "LABEL": "Let {assistantName} evaluate it (recommended)",
               "DESCRIPTION": "Captain decides whether to resolve the conversation or hand it off."
             }
           },
@@ -1231,22 +1231,22 @@
         },
         "TEMPLATE_PLACEHOLDER": "Select an approved template",
         "FOLLOWUP": {
-          "TOGGLE": "Ask \"Are you still there?\"",
-          "TOGGLE_HELP": "When the customer stops answering, {assistantName} sends one short message with buttons, only inside the 24 h window. It is on by default.",
-          "AFTER": "Ask after",
-          "NUDGES": "Follow-up messages",
+          "TOGGLE": "Send reminders",
+          "TOGGLE_HELP": "Ask “Are you still there?” while waiting for the customer to reply and the channel allows a response. Turning reminders off does not disable automatic closing.",
+          "AFTER": "Reminder interval",
+          "NUDGES": "Maximum reminders",
           "HINT": "Only in conversations {assistantName} is handling, never once a person took it and never outside the 24 h window. If the customer answers, the count starts over.",
           "NUDGES_ONE": "1 message",
           "NUDGES_TWO": "2 messages",
           "MINUTES": "{count} min",
           "HOURS": "{count} h",
-          "REENGAGEMENT": "Re-engage with a template",
-          "REENGAGEMENT_HELP": "When {assistantName} closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It is off by default. It goes out between 08:00 and 21:00.",
+          "REENGAGEMENT": "Contact again with a template",
+          "REENGAGEMENT_HELP": "Only after closing for inactivity and after the reply window expires. Requires an allowed template and permission to send paid templates; sending limits apply.",
           "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows.",
           "TEMPLATE": "Re-engagement template",
-          "GOODBYE_LINK": "Handoff and closing",
-          "AFTER_ERROR": "It must be shorter than the waiting time above.",
-          "GOODBYE_SENTENCE": "The goodbye message is edited in {link}."
+          "AFTER_ERROR": "The reminder interval ({interval} min) must be shorter than the time without activity ({minutes} min). Reduce the interval, increase the time, or turn reminders off.",
+          "INTERVAL_HELP": "The first is sent after this time. A second reminder waits for the same interval.",
+          "DISABLE": "Turn reminders off"
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Fill in every variable of the template before saving.",
@@ -1377,7 +1377,26 @@
           "ON_SIGNAL": "High if the customer is upset or in a hurry",
           "ALWAYS": "Always high",
           "HELP": "{assistantName} never lowers a priority that is already set."
-        }
+        },
+        "CLOSURE": {
+          "DETECT": "Detect when the conversation has ended",
+          "DETECT_HELP": "If the customer confirms or says goodbye and nothing is pending, {assistantName} will check whether it can close. If the customer writes again, the check is cancelled. This check may happen before the inactivity timeout.",
+          "GRACE": "Wait before checking",
+          "TITLE": "Automatic closing",
+          "HELP": "Only applies while {assistantName} handles the conversation. An assigned person stays in control.",
+          "INACTIVITY": "Time without activity",
+          "INACTIVITY_HELP": "If reminders are enabled, this time starts again after the last reminder. It is not the total time since the wait began. There may be a few minutes of delay.",
+          "SUMMARY": "No reminders. Act after {minutes} min without activity, according to the closing mode.",
+          "NUDGES_SUMMARY": "First reminder after {interval} min; maximum {count}. Close for no reply {minutes} min after the last reminder.",
+          "SILENCE_HELP": "Closing for no reply does not mean the issue was solved.",
+          "DISABLED": "Automatic closing and reminders are off.",
+          "DISABLED_NUDGES": "Automatic closing is off. Reminders will be sent.",
+          "NO_REPLY": "When the customer does not reply",
+          "FIVE_MINUTES": "To use reminders, the time without activity must exceed 5 min.",
+          "CONVERSATION_ENDS": "When the conversation ends",
+          "AFTER_CLOSING": "After closing for inactivity"
+        },
+        "HANDOFF_TITLE": "When a person is needed"
       },
       "EDIT": {
         "TITLE": "Update the assistant",
@@ -1393,9 +1412,9 @@
           "DESCRIPTION": "Customize what the assistant says when ending a conversation or transferring to a human."
         },
         "SYSTEM_SETTINGS": {
-          "TITLE": "Handoff and closing",
-          "DESCRIPTION": "What Captain does when it hands a conversation to a person or closes it.",
-          "DESCRIPTION_V2": "What Captain does when it hands a conversation to a person or closes it."
+          "TITLE": "Handoff",
+          "DESCRIPTION": "Configure the message, destination, and priority when handing the conversation to a person.",
+          "DESCRIPTION_V2": "Configure the message, destination, and priority when handing the conversation to a person."
         },
         "AUDIENCE": {
           "TITLE": "Audience",
@@ -1429,8 +1448,8 @@
           "BUTTON_TEXT": "Delete {assistantName}"
         },
         "FOLLOWUP": {
-          "TITLE": "Follow-up",
-          "DESCRIPTION": "What {assistantName} does when the customer stops answering: ask if they are still there, close for inactivity and, if you turn it on, re-engage with a template."
+          "TITLE": "Closing and follow-up",
+          "DESCRIPTION": "Configure what happens when the customer stops replying or the conversation ends."
         },
         "MESSAGING": {
           "TITLE": "Sending by inbox",
@@ -1526,7 +1545,7 @@
           "CHANGED": "Changed",
           "LINK": "Has a link",
           "USED_BY_APPOINTMENTS": "Used by Appointments",
-          "USED_BY_FOLLOWUP": "Used by Follow-up"
+          "USED_BY_FOLLOWUP": "Used by Closing and follow-up"
         },
         "EMPTY": {
           "FLOWS": "This number has no Flows.",
