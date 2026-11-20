@@ -141,3 +141,9 @@ plan_feature_overrides_expiry_job:
   cron: '0 5 * * *'
   class: 'Plans::ExpireAccountFeatureOverridesJob'
   queue: scheduled_jobs
+
+# Daily retention of operational Captain decision evidence.
+captain_decisions_retention_job:
+  cron: '30 4 * * *'
+  class: 'Captain::PurgeDecisionsJob'
+  queue: purgable

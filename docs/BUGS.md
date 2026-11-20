@@ -3741,3 +3741,12 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Cómo probar:** configurar cierre de 10 y recordatorio de 5 juntos; o cierre de 10 sin recordatorios. Con cierre de 5, comprobar el error y usar «Desactivar recordatorios». Revisar el resumen con un aviso a los 10 y cierre 30 después; alternar modos, máximo 0 y V2; abrir un asistente con 120 y guardarlo sin normalización.
 - **Verificación:** Vitest, 269 pruebas en UTC y 269 en America/Guayaquil; ESLint sin errores; RuboCop Docker, 2 archivos inspeccionados sin infracciones. Detalle y resultados Rails en el informe externo `docs-crm/codex/pestanas-c-construccion.md`.
 - **Alcance:** sin migraciones, navegador, push, PR ni despliegue. Revisión visual pendiente del dueño.
+
+
+### B-NEW-289 — Detalles de las decisiones de Captain y lectura segura por rol (2026-11-19)
+
+- **Archivos:** migración `20261119120000_create_captain_decisions.rb`, modelo `Captain::Decision`, validadores y servicios `Captain::Decisions`, puntos de respuesta/resolución/traspaso/señal, endpoint de decisiones, endpoint de sesiones y `CaptainGenerationDetails.vue` (adaptación de contrato, sin montar UI).
+- **Problema:** no había un registro durable de los motivos y resultados por acción; la API de sesiones entregaba contexto crudo, modelo y créditos sin filtrar por rol.
+- **Cambio:** tabla aditiva con referencias coherentes, claves idempotentes y límites PostgreSQL; escritor aislado con savepoints dentro de la transacción de la acción; evidencias con esquema cerrado y anclas existentes. API humana con permisos de conversación y nota privada. Agente sin datos técnicos, administrador solo créditos, SuperAdmin modelo/créditos/costo si constan. Las sesiones devuelven un resumen permitido sin argumentos, transcripciones ni resultados crudos. Purga diaria a 90 días desde `occurred_at` y cascada por cuenta/conversación.
+- **Cómo probar:** consultar decisiones de respuesta y de las actividades/notas de resolución y traspaso con cada rol; probar notas privadas, bots, otra cuenta, cero/ausencia/no aplica, reintentos y registro fallido. RSpec cubre los caminos y contratos; informe y resultados en `docs-crm/codex/detalles-pr1-construccion.md` fuera del repo.
+- **Despliegue:** aplicar la migración antes de usar el backend; PR 2 montará la pantalla. Sin backfill, llamadas nuevas de IA, push, PR ni despliegue en esta sesión. La retención de sesiones y de la contabilidad no cambia.
