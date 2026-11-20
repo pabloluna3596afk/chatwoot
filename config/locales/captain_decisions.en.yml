@@ -1,6 +1,7 @@
 en:
   captain:
     decisions:
+      loop_guard: "Captain detected a repetitive exchange and stopped replying."
       tool_resolve: "The resolution tool closed the conversation."
       time_resolve: "The configured inactivity threshold was reached. This does not confirm that the issue was resolved."
       evaluation_resolve: "The evaluation found no outstanding questions."

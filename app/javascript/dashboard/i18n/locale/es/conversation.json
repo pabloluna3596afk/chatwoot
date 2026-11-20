@@ -585,7 +585,9 @@
       },
       "SETTINGS": {
         "inactivityThresholdMinutes": "Umbral de inactividad: {minutes} minutos",
-        "completionGraceMinutes": "Revisar el cierre después de {minutes} minutos"
+        "completionGraceMinutes": "Revisar el cierre después de {minutes} minutos",
+        "loopGuardReplies": "Umbral de respuestas: {minutes}",
+        "loopGuardWindowSeconds": "Ventana de repetición: {minutes} segundos"
       },
       "FACTS": {
         "complete": {

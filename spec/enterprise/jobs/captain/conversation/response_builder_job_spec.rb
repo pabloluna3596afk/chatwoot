@@ -37,6 +37,32 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    it 'stops a fourteen-turn courtesy simulator after four real V2 reply jobs' do
+      account.enable_features!(:captain_integration_v2)
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+      conversation.update!(ai_assignee: assistant)
+      allow(mock_agent_runner_service).to receive(:generate_response).and_return(
+        'response_parts' => [{ 'text' => 'You are welcome', 'citation_indexes' => [] }],
+        'probable_complete' => true, 'expects_customer_reply' => false
+      )
+      reviewer = instance_double(Captain::ConversationCompletionService, perform: { complete: true, reason: 'Done' })
+      allow(Captain::ConversationCompletionService).to receive(:new).and_return(reviewer)
+      start = 1.second.from_now
+      14.times do |index|
+        travel_to(start + (index * 10.seconds)) do
+          next unless conversation.reload.pending?
+
+          message = create(:message, conversation: conversation, account: account, message_type: :incoming, content: 'Thanks')
+          described_class.perform_now(conversation, assistant, message.id)
+        end
+      end
+      expect(conversation.reload).to be_resolved
+      expect(conversation.messages.outgoing.where(private: false).count).to eq(4)
+      expect(mock_agent_runner_service).to have_received(:generate_response).exactly(4).times
+      expect(reviewer).to have_received(:perform).once
+      expect(account.current_usage_period.reload.responses_consumed).to eq(4)
+    end
+
     [true, false].each do |v2|
       it "still delivers V#{v2 ? 2 : 1} when the decision insert fails" do
         v2 ? account.enable_features!(:captain_integration_v2) : account.disable_features!(:captain_integration_v2)

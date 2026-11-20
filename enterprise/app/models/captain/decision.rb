@@ -1,7 +1,7 @@
 class Captain::Decision < ApplicationRecord
   self.table_name = 'captain_decisions'
 
-  KINDS = %w[reply resolve handoff completion_signal completion_review close_unanswered nudge reengage].freeze
+  KINDS = %w[loop_guard reply resolve handoff completion_signal completion_review close_unanswered nudge reengage].freeze
   OUTCOMES = %w[created completed pending confirmed rejected cancelled skipped failed].freeze
   ORIGINS = %w[model rule tool time].freeze
   TRIGGERS = %w[customer_message tool inactivity completion_signal evaluation error reply_limit usage_limit].freeze

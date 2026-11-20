@@ -1,6 +1,7 @@
 es:
   captain:
     decisions:
+      loop_guard: "Captain detectó un intercambio repetitivo y detuvo las respuestas."
       tool_resolve: "La herramienta de resolución cerró la conversación."
       time_resolve: "Se alcanzó el umbral de inactividad configurado. Esto no confirma que la consulta se haya solucionado."
       evaluation_resolve: "La evaluación no encontró preguntas pendientes."

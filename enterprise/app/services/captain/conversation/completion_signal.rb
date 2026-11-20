@@ -6,6 +6,8 @@ class Captain::Conversation::CompletionSignal
   EVALUATION_LEASE = 5.minutes
 
   def self.cancel(conversation, cause: 'conversation_changed')
+    return if Captain::Conversation::LoopGuard.cancel(conversation, cause)
+
     state = conversation.additional_attributes[KEY]
     return unless state && ACTIVE_STATUSES.include?(state['status'])
 

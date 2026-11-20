@@ -585,7 +585,9 @@
       },
       "SETTINGS": {
         "inactivityThresholdMinutes": "Inactivity threshold: {minutes} minutes",
-        "completionGraceMinutes": "Closure review after {minutes} minutes"
+        "completionGraceMinutes": "Closure review after {minutes} minutes",
+        "loopGuardReplies": "Reply threshold: {minutes}",
+        "loopGuardWindowSeconds": "Repetition window: {minutes} seconds"
       },
       "FACTS": {
         "complete": {
