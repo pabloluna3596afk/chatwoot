@@ -472,7 +472,7 @@ RSpec.describe Captain::Followup do
     it 'records an unsupported channel once without adding a note' do
       web_inbox = create(:inbox, account: account)
       web_conversation = create(:conversation, account: account, inbox: web_inbox, contact: contact, status: :resolved,
-                                              additional_attributes: conversation.additional_attributes).reload
+                                               additional_attributes: conversation.additional_attributes).reload
       allow(web_conversation).to receive(:can_reply?).and_return(false)
       service = described_class.new(web_conversation, assistant, now: now)
       expect { expect(service.perform).to eq(:skipped) }.not_to(change { web_conversation.messages.count })

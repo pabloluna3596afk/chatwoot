@@ -1,6 +1,26 @@
 module Captain::Conversation::DecisionRecording
   private
 
+  def create_recorded_handoff_note(routing, source, reason_category, note_key)
+    note = @conversation.messages.create!(
+      message_type: :outgoing, private: true, sender: @assistant, account: account, inbox: inbox,
+      content: [I18n.t("captain.notes.#{note_key}", assistant: @assistant.name), routing.note].compact.join("\n"),
+      content_attributes: { captain_handoff: { reason_category: reason_category, source: source } }
+    )
+    record_legacy_handoff_decision(note, source)
+  end
+
+  def record_legacy_handoff_decision(note, source)
+    trigger = { 'reply_limit' => 'reply_limit', 'generation_failure' => 'error' }.fetch(source, 'tool')
+    Captain::Decisions::Recorder.record(
+      conversation: @conversation, assistant: @assistant, decision_key: "handoff:#{@conversation.id}:#{job_id}",
+      anchor_message: note, kind: 'handoff', outcome: 'completed', origin: trigger == 'tool' ? 'model' : 'rule',
+      trigger: trigger, reason_code: "#{trigger}_handoff", reason_text: note.content.first(Captain::Decision::REASON_TEXT_LIMIT)
+    ) do
+      { settings_snapshot: trigger == 'reply_limit' ? { 'max_replies_per_conversation' => @assistant.max_replies } : {} }
+    end
+  end
+
   def record_reply_decision(message)
     @reply_decision = Captain::Decisions::Recorder.record(
       conversation: @conversation, assistant: @assistant, decision_key: "reply:#{@conversation.id}:#{job_id}",

@@ -24,6 +24,21 @@ RSpec.describe Captain::Conversation::UsageLimitHandoff do
     expect(conversation.messages.where(private: true).last).to have_attributes(
       sender: assistant, content: I18n.t('captain.notes.unavailable.quota_exhausted', assistant: assistant.name, locale: 'es')
     )
+    expect(conversation.captain_decisions.find_by!(trigger: 'usage_limit')).to have_attributes(
+      kind: 'handoff', anchor_message: conversation.messages.where(private: true).last, reason_locale: 'es'
+    )
+  end
+
+  it 'does not duplicate the usage decision on a repeated handoff' do
+    service.perform
+    expect { service.perform }.not_to(change { conversation.captain_decisions.where(trigger: 'usage_limit').count })
+  end
+
+  it 'keeps the effective handoff when its decision write fails' do
+    allow(Captain::Decision).to receive(:create_or_find_by!).and_raise(ActiveRecord::StatementInvalid)
+    service.perform
+    expect(conversation.reload).to be_open
+    expect(conversation.messages.where(private: true).count).to eq(1)
   end
 
   it 'uses routing on usage-limit handoff without changing the customer reply' do
@@ -82,5 +97,8 @@ RSpec.describe Captain::Conversation::UsageLimitHandoff do
     expect(conversation.messages.where(private: false)).to be_empty
     expect(conversation.messages.where(private: true).count).to eq(1)
     expect(conversation.reload).to be_open
+    expect(conversation.captain_decisions.find_by!(reason_code: 'captain_unavailable')).to have_attributes(
+      kind: 'reply', outcome: 'skipped', anchor_message: conversation.messages.where(private: true).sole
+    )
   end
 end

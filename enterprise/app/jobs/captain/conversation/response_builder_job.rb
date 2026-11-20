@@ -246,6 +246,12 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   def v2_handoff_tool_completed? = @v2_handoff_tool_completed == true
 
   def process_v1_handoff(source: 'tool', reason_category: 'unknown', note_key: 'handoff_without_reason')
+    @conversation.class.transaction do
+      perform_v1_handoff(source: source, reason_category: reason_category, note_key: note_key)
+    end
+  end
+
+  def perform_v1_handoff(source:, reason_category:, note_key:)
     I18n.with_locale(@assistant.account.locale) do
       Rails.logger.info(
         "[CAPTAIN][ResponseBuilderJob] V1 handoff requested for account=#{account.id} conversation=#{@conversation.display_id} " \
@@ -256,11 +262,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       @conversation.bot_handoff!(routing: routing)
       return report_v1_handoff_not_executed if conversation_pending?
 
-      @conversation.messages.create!(
-        message_type: :outgoing, private: true, sender: @assistant, account: account, inbox: inbox,
-        content: [I18n.t("captain.notes.#{note_key}", assistant: @assistant.name), routing.note].compact.join("\n"),
-        content_attributes: { captain_handoff: { reason_category: reason_category, source: source } }
-      )
+      create_recorded_handoff_note(routing, source, reason_category, note_key)
     end
   end
 
