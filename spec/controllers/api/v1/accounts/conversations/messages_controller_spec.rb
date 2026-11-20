@@ -123,7 +123,8 @@ RSpec.describe 'Conversation Messages API', type: :request do
                                     content_attributes: {
                                       activity: {
                                         type: 'conversation_status_changed',
-                                        status: 'open'
+                                        status: 'open',
+                                        previous_status: 'resolved'
                                       }
                                     } }))
         end
