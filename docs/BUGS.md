@@ -34,6 +34,12 @@
 - **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
 
 - **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
+### B-NEW-290 - Cita de respuesta coherente en el composer (2026-11-20)
+
+- **Archivos:** `components/widgets/conversation/ReplyToMessage.vue`, `components-next/message/ReplyPreview.vue` y `specs/ReplyToMessage.spec.js`.
+- **Problema:** la barra de respuesta usaba un resumen diferente al de las burbujas, sin autor, tipo ni miniatura reconocible.
+- **Arreglo:** reutiliza `ReplyPreview` con variante de composer a ancho completo, acento y tokens existentes, extracto de dos l?neas y cancelaci?n accesible de 24 px. Conserva el contrato `dismiss`.
+- **C?mo probar:** responder a texto, foto, audio o archivo; cambiar el mensaje citado y cancelar. Specs en ingl?s/espa?ol y suites vecinas en UTC/America/Guayaquil. Verificaci?n visual clara/oscura y 390 px pendiente del PM; sin navegador, push, PR ni despliegue.
 
 ### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 

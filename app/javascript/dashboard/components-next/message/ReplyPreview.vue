@@ -15,9 +15,16 @@ import {
 } from './media/attachment';
 import { useMediaState } from './media/useMediaState';
 
-const { inReplyTo, channelType } = useMessageContext();
+const props = defineProps({
+  message: { type: Object, default: null },
+  composer: { type: Boolean, default: false },
+});
+const context = props.composer ? null : useMessageContext();
+const channelType = computed(() => context?.channelType.value || '');
 const { t } = useI18n();
-const message = computed(() => useCamelCase(inReplyTo.value, { deep: true }));
+const message = computed(() =>
+  useCamelCase(props.message || context?.inReplyTo.value, { deep: true })
+);
 const attachment = computed(() => message.value?.attachments?.[0] || {});
 const hasThumbnail = computed(() =>
   ['image', 'video', 'ig_reel'].includes(attachment.value.fileType)
@@ -71,9 +78,11 @@ const scrollToMessage = () =>
     type="button"
     class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
     :class="
-      attachment.fileType
-        ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
-        : ''
+      composer
+        ? '!mx-0 !mb-0 !p-2 !bg-n-alpha-1'
+        : attachment.fileType
+          ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
+          : ''
     "
     @click="scrollToMessage"
   >
@@ -115,7 +124,7 @@ const scrollToMessage = () =>
       <span
         v-dompurify-html="text"
         :class="
-          attachment.fileType
+          composer || attachment.fileType
             ? 'text-xs leading-4 text-n-slate-12 line-clamp-2 break-all'
             : 'text-xs text-n-slate-11 truncate'
         "

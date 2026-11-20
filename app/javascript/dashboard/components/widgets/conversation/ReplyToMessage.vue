@@ -1,5 +1,5 @@
 <script setup>
-import MessagePreview from 'dashboard/components/widgets/conversation/MessagePreview.vue';
+import ReplyPreview from 'next/message/ReplyPreview.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 
 defineProps({
@@ -13,26 +13,20 @@ const emit = defineEmits(['dismiss']);
 </script>
 
 <template>
-  <div
-    class="reply-editor bg-n-slate-9/10 rounded-md py-1 ps-2 pe-1 text-xs tracking-wide mt-2 flex items-center gap-1.5"
-  >
-    <fluent-icon class="flex-shrink-0 icon" icon="arrow-reply" size="14" />
-    <div class="flex-grow gap-1 mt-px text-xs truncate">
-      {{ $t('CONVERSATION.REPLYBOX.REPLYING_TO') }}
-      <MessagePreview
-        :message="message"
-        :show-message-type="false"
-        :default-empty-message="$t('CONVERSATION.REPLY_MESSAGE_NOT_FOUND')"
-        class="inline"
-      />
-    </div>
+  <div class="reply-editor mt-2 flex w-full min-w-0 items-start gap-1.5">
+    <ReplyPreview
+      :message="message"
+      composer
+      class="flex-1"
+      :aria-label="$t('CONVERSATION.REPLYBOX.REPLYING_TO')"
+    />
     <Button
       v-tooltip="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
-      ghost
-      xs
-      slate
+      :aria-label="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
+      intent="tertiary"
+      size="xs"
       icon="i-lucide-x"
-      class="flex-shrink-0"
+      class="shrink-0 !size-6 focus-visible:ring-2 focus-visible:ring-n-brand"
       @click.stop="emit('dismiss')"
     />
   </div>
