@@ -10,8 +10,14 @@ class Captain::EngagementActivity
   end
 
   def perform
+    @conversation.class.transaction { create_activity }
+  end
+
+  private
+
+  def create_activity
     content = translated_content
-    @conversation.messages.create!(
+    message = @conversation.messages.create!(
       account_id: @conversation.account_id,
       inbox_id: @conversation.inbox_id,
       message_type: :activity,
@@ -19,9 +25,11 @@ class Captain::EngagementActivity
       content_attributes: ActivityMessageNames.attributes(content, ERB::Util.html_escape(translation_params[:assistant])),
       additional_attributes: { captain_skip_reason: @result }
     )
+    Captain::Decisions::ControlRecording.new(@conversation, @assistant).record(
+      'disengage', message.id, trigger: 'engagement', anchor: message, reason_text: content
+    )
+    message
   end
-
-  private
 
   def translation_params
     condition = @result[:condition]

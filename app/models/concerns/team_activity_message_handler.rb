@@ -15,7 +15,7 @@ module TeamActivityMessageHandler
     names << params[:team_name]
     names << params[:assignee_name] if key == 'assigned_with_assignee'
 
-    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, names: names)) if content
+    enqueue_activity_message(activity_message_params(content, names: names)) if content
   end
 
   def generate_team_change_activity_key

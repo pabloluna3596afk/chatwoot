@@ -27,6 +27,26 @@ RSpec.describe 'Captain decisions', type: :request do
     expect(response.body).not_to include('test-model', '0.001')
   end
 
+  %w[close_unanswered nudge reengage reopen human_control disengage].each do |kind|
+    it "returns #{kind} through the same role allowlists" do
+      decision.update!(kind: kind, origin: 'time', reason_code: kind, reason_text: "Recorded #{kind}", technical_details: {})
+      [agent, admin, super_admin].each do |user|
+        get "#{path}?message_id=#{message.id}&role=SuperAdmin&dev=true", headers: user.create_new_auth_token
+        expect(response).to have_http_status(:success)
+        payload = response.parsed_body.first
+        expect(payload).to include('kind' => kind, 'reason_text' => "Recorded #{kind}")
+        if user == agent
+          expect(payload['technical']).to eq({})
+        elsif user == admin
+          expect(payload['technical']).to eq('credits_consumed' => { 'status' => 'not_applicable' })
+        else
+          expect(payload['technical'].keys).to match_array(%w[model credits_consumed cost])
+        end
+        expect(payload).not_to have_key('technical_details')
+      end
+    end
+  end
+
   it 'returns only recorded credits, including zero, to administrators' do
     get "#{path}/#{decision.id}", headers: admin.create_new_auth_token
     expect(response).to have_http_status(:success)

@@ -1,9 +1,12 @@
 module Enterprise::Conversation
-  attr_accessor :captain_activity_reason, :captain_activity_reason_type, :captain_decision_key
+  attr_accessor :captain_activity_reason, :captain_activity_reason_type, :captain_decision_key,
+                :captain_control_event, :captain_control_decision_key, :captain_control_source
 
   def self.prepended(base)
     base.has_many :captain_decisions, class_name: 'Captain::Decision', dependent: :delete_all
     base.before_update :cancel_completion_signal
+    base.before_update { self.captain_control_decision_key = nil }
+    base.after_update :record_captain_control_transition
     base.after_create :create_captain_skip_activity
     base.after_update :create_captain_skip_activity, if: :saved_change_to_status?
   end
@@ -39,6 +42,13 @@ module Enterprise::Conversation
   end
 
   private
+
+  def record_captain_control_transition
+    return if @captain_skip_assistant
+
+    decision = Captain::Decisions::ControlRecording.transition(self)
+    self.captain_control_decision_key = decision&.decision_key
+  end
 
   def cancel_completion_signal
     return unless will_save_change_to_status? || will_save_change_to_assignee_id? ||

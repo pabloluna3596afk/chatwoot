@@ -75,12 +75,14 @@ RSpec.describe Message do
         create(:message, message_type: :outgoing, conversation: conversation)
       end.to have_enqueued_job(Conversations::ActivityMessageJob).with(
         conversation,
-        {
+        hash_including(
           account_id: conversation.account_id,
           inbox_id: conversation.inbox_id,
           message_type: :activity,
-          content: auto_open_activity_content
-        }
+          content: auto_open_activity_content,
+          content_attributes: hash_including(activity: hash_including(event: 'human_control'))
+        ),
+        kind_of(String)
       )
     end
 
@@ -97,12 +99,14 @@ RSpec.describe Message do
         message.save!
       end.to have_enqueued_job(Conversations::ActivityMessageJob).with(
         conversation,
-        {
+        hash_including(
           account_id: conversation.account_id,
           inbox_id: conversation.inbox_id,
           message_type: :activity,
-          content: auto_open_activity_content
-        }
+          content: auto_open_activity_content,
+          content_attributes: hash_including(activity: hash_including(event: 'human_control'))
+        ),
+        kind_of(String)
       )
     end
 
