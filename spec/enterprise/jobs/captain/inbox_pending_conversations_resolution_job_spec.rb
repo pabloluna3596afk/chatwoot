@@ -77,6 +77,17 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       decision = resolvable_pending_conversation.captain_decisions.sole
       expect(decision.reason_code).to eq('time_resolve')
       expect(decision.outcome).to eq('completed')
+      expect(decision.anchor_message).to eq(resolvable_pending_conversation.messages.outgoing.where(private: false).sole)
+    end
+
+    it 'links the time-based decision to its activity when no goodbye is sent' do
+      inbox.account.enable_features!(:captain_integration_v2)
+      captain_assistant.update!(config: captain_assistant.config.merge('send_inactivity_resolution_message' => false))
+
+      described_class.perform_now(inbox)
+
+      decision = resolvable_pending_conversation.captain_decisions.sole
+      expect(Conversations::ActivityMessageJob).to have_been_enqueued.with(resolvable_pending_conversation, anything, decision.decision_key)
       perform_enqueued_jobs(only: Conversations::ActivityMessageJob)
       expect(decision.reload.anchor_message).to be_activity
     end

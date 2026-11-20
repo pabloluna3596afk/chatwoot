@@ -125,19 +125,15 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
         conversation.reload
         next unless conversation.pending? && inactive_for_initial_action?(conversation)
 
-        create_resolution_message(conversation)
-        record_inactivity_decision(conversation, key: key, code: 'time_resolve', kind: 'resolve', origin: 'time')
+        message = create_resolution_message(conversation)
+        record_inactivity_decision(conversation, key: key, code: 'time_resolve', kind: 'resolve', origin: 'time', anchor_message: message)
         conversation.resolved!
       end
     end
     return unless resolved
 
-    Captain::ConversationEvents.resolved(
-      conversation: conversation,
-      assistant: captain_assistant,
-      source: Captain::ConversationEvents::Sources::TIME_BASED,
-      at: Time.current
-    )
+    Captain::ConversationEvents.resolved(conversation: conversation, assistant: captain_assistant,
+                                         source: Captain::ConversationEvents::Sources::TIME_BASED, at: Time.current)
   rescue ActiveRecord::RecordNotFound
     nil
   end
