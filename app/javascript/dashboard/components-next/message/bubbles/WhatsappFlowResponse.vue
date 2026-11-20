@@ -94,7 +94,7 @@ const copyData = async () => {
         @click="copyData"
       />
       <MessageMeta
-        v-if="!shouldGroupWithNext"
+        :show-timestamp="!shouldGroupWithNext"
         class="text-n-slate-11 ms-auto"
       />
     </div>

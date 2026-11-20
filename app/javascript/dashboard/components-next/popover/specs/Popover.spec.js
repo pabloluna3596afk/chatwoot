@@ -59,6 +59,39 @@ describe('Popover', () => {
     document.body.innerHTML = '';
   });
 
+  it('opts into a mobile bottom sheet while preserving the default centered modal', async () => {
+    belowMd.value = true;
+    mountPopover({ mobileSheet: true });
+    await openPopover();
+    expect(mobileBackdrop().classes()).toContain('items-end');
+    expect(wrapper.get('[data-popover-content]').classes()).toContain(
+      'max-h-[82dvh]'
+    );
+    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalled();
+    wrapper.unmount();
+    mountPopover();
+    await openPopover();
+    expect(mobileBackdrop().classes()).toContain('items-start');
+    expect(wrapper.get('[data-popover-content]').classes()).not.toContain(
+      'max-h-[82dvh]'
+    );
+  });
+
+  it('opts into desktop focus on opening and restores the trigger on Escape', async () => {
+    mountPopover({ focusContent: true });
+    const trigger = wrapper.get('[data-test="trigger"]');
+    trigger.element.focus();
+    await openPopover();
+    const action = wrapper.get('[data-test="panel-action"]');
+    expect(document.activeElement).toBe(action.element);
+    action.element.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    );
+    await flushPromises();
+    expect(desktopPopover().exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
+  });
+
   describe('rendering and toggling', () => {
     it('renders the trigger slot and keeps the content hidden initially', () => {
       mountPopover();

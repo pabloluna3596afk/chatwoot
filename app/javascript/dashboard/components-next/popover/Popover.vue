@@ -1,5 +1,13 @@
 <script setup>
-import { ref, computed, watch, nextTick, provide, useId } from 'vue';
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  provide,
+  useId,
+  onBeforeUnmount,
+} from 'vue';
 import { vOnClickOutside } from '@vueuse/components';
 import {
   useBreakpoints,
@@ -15,6 +23,8 @@ const props = defineProps({
   ariaLabel: { type: String, default: '' },
   labelledby: { type: String, default: '' },
   describedby: { type: String, default: '' },
+  mobileSheet: { type: Boolean, default: false },
+  focusContent: { type: Boolean, default: false },
   align: {
     type: String,
     default: 'end',
@@ -66,6 +76,12 @@ const show = async () => {
     await nextTick();
     updatePosition();
   }
+  if (props.focusContent) {
+    await nextTick();
+    (popoverRef.value || mobileContentRef.value)
+      ?.querySelector('button')
+      ?.focus();
+  }
   emit('show');
 };
 
@@ -73,6 +89,7 @@ const hide = () => {
   if (!isActive.value) return;
   modalRef.value?.close();
   isActive.value = false;
+  if (props.focusContent) triggerRef.value?.querySelector('button')?.focus();
   emit('hide');
 };
 
@@ -146,6 +163,7 @@ useKeyboardEvents({
 });
 
 defineExpose({ show, hide, toggle });
+onBeforeUnmount(() => modalRef.value?.close());
 </script>
 
 <template>
@@ -163,7 +181,12 @@ defineExpose({ show, hide, toggle });
       :aria-describedby="describedby || undefined"
       tabindex="-1"
       data-popover-backdrop
-      class="fixed inset-0 m-0 border-0 p-0 w-full max-w-none h-dvh max-h-none z-[9999] flex items-start pt-[clamp(3rem,15dvh,12rem)] pb-[max(1rem,env(safe-area-inset-bottom))] justify-center bg-transparent [&::backdrop]:bg-n-alpha-black1"
+      class="fixed inset-0 m-0 border-0 p-0 w-full max-w-none h-dvh max-h-none z-[9999] flex justify-center bg-transparent [&::backdrop]:bg-n-alpha-black1"
+      :class="
+        mobileSheet
+          ? 'items-end'
+          : 'items-start pt-[clamp(3rem,15dvh,12rem)] pb-[max(1rem,env(safe-area-inset-bottom))]'
+      "
       @cancel.prevent="$event.target === modalRef && hide()"
       @close="$event.target === modalRef && hide()"
     >
@@ -174,12 +197,17 @@ defineExpose({ show, hide, toggle });
           { ignore: clickOutsideIgnore },
         ]"
         data-popover-content
-        class="relative flex flex-col w-full max-w-lg max-h-full mx-4 bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl"
+        class="relative flex flex-col w-full bg-n-alpha-3 backdrop-blur-[100px] shadow-xl"
+        :class="
+          mobileSheet
+            ? 'max-h-[82dvh] rounded-t-xl pb-[env(safe-area-inset-bottom)]'
+            : 'max-w-lg max-h-full mx-4 rounded-xl'
+        "
       >
         <div
           class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
         >
-          <slot name="content" :hide="hide" />
+          <slot name="content" :hide="hide" :is-mobile="isMobile" />
         </div>
       </div>
     </dialog>
@@ -198,7 +226,7 @@ defineExpose({ show, hide, toggle });
         class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
         :class="{ 'border border-n-strong': showContentBorder }"
       >
-        <slot name="content" :hide="hide" />
+        <slot name="content" :hide="hide" :is-mobile="isMobile" />
       </div>
     </div>
   </TeleportWithDirection>

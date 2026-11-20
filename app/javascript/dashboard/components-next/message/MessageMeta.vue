@@ -3,11 +3,14 @@ import { computed } from 'vue';
 import { messageBubbleStamp, messageStamp } from 'shared/helpers/timeHelper';
 import MessageStatus from './MessageStatus.vue';
 import MessageSourceIndicator from './MessageSourceIndicator.vue';
-import Icon from 'next/icon/Icon.vue';
 import { useInbox } from 'dashboard/composables/useInbox';
 import { useMessageContext } from './provider.js';
 
 import { MESSAGE_STATUS, MESSAGE_TYPES } from './constants';
+
+defineProps({
+  showTimestamp: { type: Boolean, default: true },
+});
 
 const {
   isAFacebookInbox,
@@ -130,26 +133,29 @@ const statusToShow = computed(() => {
   return MESSAGE_STATUS.PROGRESS;
 });
 
-const showSourceIndicator = computed(
-  () =>
-    !isPrivate.value &&
-    !contentAttributes.value?.systemAudit &&
-    !contentAttributes.value?.system_audit
-);
+const isoTime = computed(() => new Date(createdAt.value * 1000).toISOString());
 </script>
 
 <template>
-  <div class="text-xs flex items-center gap-1.5">
-    <div class="inline">
-      <time v-tooltip.top="fullReadableTime" class="inline">{{
-        readableTime
-      }}</time>
-    </div>
-    <MessageSourceIndicator
-      v-if="showSourceIndicator"
-      :content-attributes="contentAttributes"
+  <div class="text-xs flex items-center gap-1.5 min-h-6">
+    <MessageSourceIndicator :content-attributes="contentAttributes" />
+    <slot name="captain" />
+    <span
+      v-if="isPrivate"
+      class="i-lucide-lock-keyhole size-3 text-n-amber-12"
+      role="img"
+      :aria-label="$t('MESSAGE_META.PRIVATE_NOTE')"
     />
-    <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
-    <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />
+    <time
+      v-if="showTimestamp"
+      v-tooltip.top="fullReadableTime"
+      :datetime="isoTime"
+      :aria-label="fullReadableTime"
+      >{{ readableTime }}</time
+    >
+    <MessageStatus
+      v-if="showTimestamp && showStatusIndicator"
+      :status="statusToShow"
+    />
   </div>
 </template>

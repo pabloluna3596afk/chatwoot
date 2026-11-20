@@ -527,6 +527,99 @@
       "LOCATION": "Location",
       "CONTACT": "Contact",
       "UNAVAILABLE": "{type} unavailable"
+    },
+    "CAPTAIN_DECISION": {
+      "OPEN": "View Captain decision details",
+      "TITLE": "Decision details",
+      "OUTCOME": "Outcome",
+      "WHY": "Why",
+      "EVIDENCE": "Evidence",
+      "ACTIONS": "Actions",
+      "AFTERWARDS": "What happened next",
+      "ORIGIN": "Origin",
+      "SOURCES_USED": "Sources used",
+      "SOURCES_CONSULTED": "Sources consulted",
+      "LOADING": "Loading details…",
+      "EMPTY": "No details are available for this message.",
+      "NO_REASON": "No reason was saved for this decision.",
+      "NO_EVIDENCE": "No evidence was recorded for this decision.",
+      "NO_LATER_EVENTS": "No subsequent changes were recorded.",
+      "ERROR": "We couldn't load the details.",
+      "FORBIDDEN": "You don't have access to these details.",
+      "RETRY": "Retry",
+      "CLOSE": "Close",
+      "CHANGE_SETTING": "Change this setting",
+      "SILENCE_WARNING": "Closing due to no reply does not confirm that the issue was resolved.",
+      "NOT_RECORDED": "Not recorded",
+      "NOT_APPLICABLE": "Not applicable",
+      "EVALUATION_COST_NOTICE": "The evaluation does not consume Captain credits; provider costs may apply.",
+      "SOURCE_UNAVAILABLE": "Source unavailable",
+      "TOOL_CALLED": "Called the {name} tool",
+      "OUTCOMES": {
+        "created": "Message created",
+        "completed": "Completed",
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      },
+      "ORIGINS": {
+        "model": "Model",
+        "rule": "Rule",
+        "time": "Time",
+        "tool": "Tool"
+      },
+      "TECHNICAL": {
+        "model": "Model: {value}",
+        "creditsConsumed": "Credits deducted: {value}",
+        "cost": "Cost: {value}"
+      },
+      "LATER": {
+        "new_incoming": "The customer sent a new message.",
+        "handoff": "The conversation was handed off.",
+        "resolved": "The conversation was resolved.",
+        "reopened": "The conversation was reopened."
+      },
+      "SETTINGS": {
+        "inactivityThresholdMinutes": "Inactivity threshold: {minutes} minutes",
+        "completionGraceMinutes": "Closure review after {minutes} minutes"
+      },
+      "FACTS": {
+        "complete": {
+          "true": "No pending questions were detected.",
+          "false": "Pending questions were detected."
+        },
+        "customerConfirmed": {
+          "true": "The customer confirmed completion.",
+          "false": "The customer did not confirm completion."
+        },
+        "expectsCustomerReply": {
+          "true": "A customer reply was expected.",
+          "false": "No customer reply was expected."
+        },
+        "probableComplete": {
+          "true": "A possible closure was detected.",
+          "false": "No possible closure was detected."
+        },
+        "action": {
+          "reply": "Recorded action: reply",
+          "resolve": "Recorded action: resolve",
+          "handoff": "Recorded action: handoff"
+        },
+        "cancellationCause": {
+          "new_incoming": "Cancelled after a new customer message.",
+          "human_reply": "Cancelled after a human reply.",
+          "conversation_changed": "Cancelled after the conversation changed.",
+          "turn_changed": "Cancelled after the turn changed."
+        },
+        "error": {
+          "evaluation_failed": "The evaluation failed.",
+          "evaluation_interrupted": "The evaluation was interrupted."
+        }
+      },
+      "NO_SOURCES_OR_TOOLS": "No sources or tools were recorded for this reply."
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -763,9 +856,16 @@
     "ERROR": "Audio transcription failed. Please try again"
   },
   "MESSAGE_SOURCE": {
-    "AUTOMATION": "Sent by automation «{name}»",
-    "MACRO": "Sent by macro «{name}»",
-    "FLOW": "Sent by flow «{name}»",
-    "FALLBACK": "Sent by {type} #{id}"
+    "AUTOMATION": "Origin: automation “{name}”",
+    "MACRO": "Origin: macro “{name}”",
+    "FLOW": "Origin: flow “{name}”",
+    "FALLBACK": "Origin: {type} #{id}",
+    "TYPE_AUTOMATION": "automation",
+    "TYPE_MACRO": "macro",
+    "TYPE_FLOW": "flow",
+    "WITHOUT_ID": "Origin: {type}"
+  },
+  "MESSAGE_META": {
+    "PRIVATE_NOTE": "Private note"
   }
 }
