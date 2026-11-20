@@ -1,0 +1,91 @@
+# Fictional, isolated data. Inserts bypass delivery, AI, webhooks and automation callbacks.
+class Seeders::CaptainDecisionsDemo
+  MARKER = 'captain-decisions-demo-v1'.freeze
+  NAME = 'Captain decisions demo (fictional)'.freeze
+  SCENARIOS = [
+    { name: 'reply', kind: 'reply', outcome: 'created', origin: 'model', trigger: 'customer_message',
+      content: 'Demo: We are open from 09:00 to 18:00.', reason: 'Answered the question about opening hours.',
+      technical: { model: 'demo-model', credits_consumed: 1, cost: 0.0004 } },
+    { name: 'handoff', kind: 'handoff', outcome: 'completed', origin: 'model', trigger: 'tool', private: true,
+      content: 'Demo: The customer asked to speak to a person.', reason: 'The customer requested human assistance.',
+      attributes: { captain_handoff: { reason_category: 'customer_request', source: 'tool' } }, technical: {} },
+    { name: 'evaluation', kind: 'resolve', outcome: 'completed', origin: 'model', trigger: 'evaluation', activity: true,
+      content: 'Demo: Captain resolved the conversation after an evaluation.', reason: 'No pending questions were detected.',
+      evidence: { complete: true }, technical: { credits_consumed: 0 } },
+    { name: 'silence', kind: 'close_unanswered', outcome: 'completed', origin: 'time', trigger: 'inactivity', activity: true,
+      content: 'Demo: Captain closed the conversation because the customer did not reply.',
+      reason: 'The inactivity threshold was reached without a customer reply.', technical: { credits_consumed: 0 } },
+    { name: 'signal', kind: 'completion_review', outcome: 'confirmed', origin: 'model', trigger: 'completion_signal', activity: true,
+      content: 'Demo: Captain confirmed closure.', reason: 'The review confirmed that no matters remained pending.',
+      evidence: { probable_complete: true, expects_customer_reply: false }, technical: { credits_consumed: 0 } },
+    { name: 'minimal', kind: 'reply', outcome: 'created', origin: 'model', trigger: 'customer_message',
+      content: 'Demo: Thank you.', reason: nil, technical: {} }
+  ].freeze
+
+  def initialize(account:)
+    @account = account
+  end
+
+  def perform!
+    abort 'dev:captain_decisions_demo is disabled in production' if Rails.env.production?
+
+    @account.with_lock do
+      prepare_conversation
+      SCENARIOS.each_with_index { |scenario, index| seed_scenario(scenario, index) }
+      puts "Fictional demo: /app/accounts/#{@account.id}/conversations/#{@conversation.display_id}" # rubocop:disable Rails/Output -- local preview URL
+    end
+  end
+
+  private
+
+  def insert(model, attributes)
+    model.find(model.insert!(attributes, returning: ['id']).rows.first.first) # rubocop:disable Rails/SkipsModelValidations -- no external side effects
+  end
+
+  def prepare_conversation
+    @assistant = @account.captain_assistants.find_by(name: NAME) || insert(Captain::Assistant, account_id: @account.id, name: NAME, config: {})
+    inbox = demo_inbox
+    contact = @account.contacts.find_by(identifier: MARKER) || insert(Contact, account_id: @account.id, identifier: MARKER, name: NAME)
+    contact_inbox = ContactInbox.find_by(contact_id: contact.id, inbox_id: inbox.id) ||
+                    insert(ContactInbox, contact_id: contact.id, inbox_id: inbox.id, source_id: MARKER)
+    @conversation = @account.conversations.find_by(contact_inbox_id: contact_inbox.id) ||
+                    insert(Conversation, account_id: @account.id, inbox_id: inbox.id, contact_id: contact.id,
+                                         contact_inbox_id: contact_inbox.id, uuid: SecureRandom.uuid,
+                                         additional_attributes: { captain_decisions_demo: MARKER }, last_activity_at: Time.current)
+  end
+
+  def demo_inbox
+    existing = @account.inboxes.find_by(name: NAME)
+    return existing if existing
+
+    channel = insert(Channel::Api, account_id: @account.id)
+    insert(Inbox, account_id: @account.id, name: NAME, channel_type: 'Channel::Api', channel_id: channel.id, enable_auto_assignment: false)
+  end
+
+  def scenario_message(scenario, index)
+    source_id = "#{MARKER}:#{scenario.fetch(:name)}"
+    occurred_at = 30.minutes.ago + index.minutes
+    attributes = scenario.fetch(:attributes, {})
+    attributes = attributes.merge(activity: { source: { type: 'captain', name: NAME } }) if scenario[:activity]
+    @conversation.messages.find_by(source_id: source_id) || insert(
+      Message, account_id: @account.id, inbox_id: @conversation.inbox_id, conversation_id: @conversation.id,
+               source_id: source_id, content: scenario.fetch(:content), content_type: :text, status: :sent,
+               message_type: scenario[:activity] ? :activity : :outgoing, private: scenario.fetch(:private, false),
+               sender_type: 'Captain::Assistant', sender_id: @assistant.id, content_attributes: attributes, created_at: occurred_at
+    )
+  end
+
+  def seed_scenario(scenario, index)
+    message = scenario_message(scenario, index)
+    source_id = "#{MARKER}:#{scenario.fetch(:name)}"
+    @account.captain_decisions.find_or_create_by!(decision_key: source_id) do |decision|
+      decision.assign_attributes(
+        conversation: @conversation, assistant: @assistant, anchor_message: message,
+        kind: scenario.fetch(:kind), outcome: scenario.fetch(:outcome), origin: scenario.fetch(:origin), trigger: scenario.fetch(:trigger),
+        reason_code: "demo_#{scenario.fetch(:name)}", reason_text: scenario[:reason], reason_locale: 'en', occurred_at: message.created_at,
+        evidence: scenario.fetch(:evidence, {}), technical_details: scenario.fetch(:technical),
+        settings_snapshot: scenario[:activity] ? { inactivity_threshold_minutes: 30 } : {}
+      )
+    end
+  end
+end
