@@ -97,11 +97,12 @@ class Calendar::CustomerReminders::Dispatcher
     notes = event.conversation.messages.activity.where("additional_attributes ->> 'calendar_reminder_missing' = ?", event.id.to_s)
     return if notes.exists?
 
+    content = I18n.t('conversations.activity.calendar.reminder_notice_not_sent', locale: event.account.locale, event_title: event.summary)
     event.conversation.messages.create!(
       account_id: event.account_id, inbox_id: event.conversation.inbox_id, message_type: :activity,
       additional_attributes: { 'calendar_reminder_missing' => event.id },
-      content: I18n.t('conversations.activity.calendar.reminder_notice_not_sent',
-                      locale: event.account.locale, event_title: event.summary)
+      content: content,
+      content_attributes: ActivityMessageNames.attributes(content, event.summary)
     )
   end
 end

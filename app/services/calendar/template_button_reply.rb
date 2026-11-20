@@ -103,9 +103,11 @@ class Calendar::TemplateButtonReply
   end
 
   def say(key, record)
+    content = I18n.t("conversations.activity.calendar.#{key}", event_title: record.summary, contact_name: @conversation.contact&.name)
     @conversation.messages.create!(
       account_id: @conversation.account_id, inbox_id: @conversation.inbox_id, message_type: :activity,
-      content: I18n.t("conversations.activity.calendar.#{key}", event_title: record.summary, contact_name: @conversation.contact&.name)
+      content: content,
+      content_attributes: ActivityMessageNames.attributes(content, @conversation.contact&.name, record.summary)
     )
   end
 
