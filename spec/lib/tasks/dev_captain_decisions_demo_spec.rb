@@ -20,11 +20,11 @@ RSpec.describe 'dev:captain_decisions_demo' do # rubocop:disable RSpec/DescribeC
       expect(conversation.messages.find_by!(source_id: 'captain-decisions-demo-v1:activity:human_assignment')
         .content_attributes.dig('activity', 'names')).to eq(['Maria', 'Alex Rivera'])
       expect(conversation.messages.find_by!(source_id: 'captain-decisions-demo-v1:activity:team_assignment')
-        .content_attributes.dig('activity', 'names')).to eq(['Maria', 'Support'])
+        .content_attributes.dig('activity', 'names')).to eq(%w[Maria Support])
       expect(conversation.messages.find_by!(source_id: 'captain-decisions-demo-v1:activity:label_added').content)
         .to eq('Maria added the label priority')
       expect(conversation.messages.find_by!(source_id: 'captain-decisions-demo-v1:activity:label_added')
-        .content_attributes.dig('activity', 'names')).to eq(['Maria', 'priority'])
+        .content_attributes.dig('activity', 'names')).to eq(%w[Maria priority])
       expect(account.captain_decisions.find_by!(decision_key: 'captain-decisions-demo-v1:evaluation')
         .anchor_message.content_attributes.dig('activity', 'names')).to eq(['Captain'])
       expect(conversation.messages.find_by!(source_id: 'captain-decisions-demo-v1:activity:automation')
@@ -45,7 +45,7 @@ RSpec.describe 'dev:captain_decisions_demo' do # rubocop:disable RSpec/DescribeC
     end
   end
 
-  it 'localizes fictional demo messages and decision reasons for a Spanish account' do
+  it 'localizes fictional demo messages and decision reasons for a Spanish account', :aggregate_failures do
     account.update!(locale: 'es')
     with_modified_env ACCOUNT_ID: account.id.to_s do
       expect { task.execute }.to output(/Fictional demo/).to_stdout

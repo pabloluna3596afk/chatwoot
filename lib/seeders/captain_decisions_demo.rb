@@ -24,7 +24,10 @@ class Seeders::CaptainDecisionsDemo
         en: 'Captain closed the conversation because the customer did not reply',
         es: 'Captain cerró la conversación porque el cliente no respondió'
       },
-      reason: { en: 'The inactivity threshold was reached without a customer reply.', es: 'Se cumplió el tiempo de inactividad sin respuesta del cliente.' },
+      reason: {
+        en: 'The inactivity threshold was reached without a customer reply.',
+        es: 'Se cumplió el tiempo de inactividad sin respuesta del cliente.'
+      },
       technical: { credits_consumed: 0 } },
     { name: 'signal', kind: 'completion_review', outcome: 'confirmed', origin: 'model', trigger: 'completion_signal', activity: true,
       content: { en: 'Captain confirmed closure', es: 'Captain confirmó el cierre' },
@@ -49,7 +52,7 @@ class Seeders::CaptainDecisionsDemo
         en: 'Maria assigned this conversation to the Support team',
         es: 'Maria asignó esta conversación al equipo de Soporte'
       },
-      names: { en: ['Maria', 'Support'], es: ['Maria', 'Soporte'] },
+      names: { en: %w[Maria Support], es: %w[Maria Soporte] },
       source_type: 'User'
     },
     {
@@ -92,17 +95,21 @@ class Seeders::CaptainDecisionsDemo
   end
 
   def prepare_conversation
-    @assistant = @account.captain_assistants.find_by(name: NAME) || insert(Captain::Assistant, account_id: @account.id, name: NAME, config: {})
+    @assistant = @account.captain_assistants.find_by(name: NAME) ||
+                 insert(Captain::Assistant, account_id: @account.id, name: NAME, config: {})
     inbox = demo_inbox
-    contact = @account.contacts.find_by(identifier: MARKER) ||
-              insert(Contact, account_id: @account.id, identifier: MARKER, name: CONTACT_NAME)
-    contact.update!(name: CONTACT_NAME) unless contact.name == CONTACT_NAME
+    contact = demo_contact
     contact_inbox = ContactInbox.find_by(contact_id: contact.id, inbox_id: inbox.id) ||
                     insert(ContactInbox, contact_id: contact.id, inbox_id: inbox.id, source_id: MARKER)
     @conversation = @account.conversations.find_by(contact_inbox_id: contact_inbox.id) ||
                     insert(Conversation, account_id: @account.id, inbox_id: inbox.id, contact_id: contact.id,
                                          contact_inbox_id: contact_inbox.id, uuid: SecureRandom.uuid,
                                          additional_attributes: { captain_decisions_demo: MARKER }, last_activity_at: Time.current)
+  end
+
+  def demo_contact
+    contact = @account.contacts.find_by(identifier: MARKER) || insert(Contact, account_id: @account.id, identifier: MARKER, name: CONTACT_NAME)
+    contact.tap { |record| record.update!(name: CONTACT_NAME) unless record.name == CONTACT_NAME }
   end
 
   def demo_inbox
@@ -122,7 +129,7 @@ class Seeders::CaptainDecisionsDemo
     attributes = attributes.deep_merge(ActivityMessageNames.attributes(content, 'Captain')) if scenario[:activity]
     message = @conversation.messages.find_by(source_id: source_id)
     if message
-      message.update_columns(content: content, content_attributes: attributes)
+      message.update_columns(content: content, content_attributes: attributes) # rubocop:disable Rails/SkipsModelValidations -- refresh isolated demo data without callbacks
       return message
     end
 
@@ -150,7 +157,7 @@ class Seeders::CaptainDecisionsDemo
     )
     message = @conversation.messages.find_by(source_id: source_id)
     if message
-      message.update_columns(content: content, content_attributes: content_attributes)
+      message.update_columns(content: content, content_attributes: content_attributes) # rubocop:disable Rails/SkipsModelValidations -- refresh isolated demo data without callbacks
       return message
     end
 
@@ -170,14 +177,18 @@ class Seeders::CaptainDecisionsDemo
     @account.captain_decisions.find_or_create_by!(decision_key: source_id) do |decision|
       decision.assign_attributes(
         conversation: @conversation, assistant: @assistant, anchor_message: message,
-        kind: scenario.fetch(:kind), outcome: scenario.fetch(:outcome), origin: scenario.fetch(:origin), trigger: scenario.fetch(:trigger),
-        reason_code: "demo_#{scenario.fetch(:name)}", reason_text: localized(scenario[:reason]), reason_locale: @account.locale, occurred_at: message.created_at,
+        kind: scenario.fetch(:kind), outcome: scenario.fetch(:outcome),
+        origin: scenario.fetch(:origin), trigger: scenario.fetch(:trigger),
+        reason_code: "demo_#{scenario.fetch(:name)}", reason_text: localized(scenario[:reason]),
+        reason_locale: @account.locale, occurred_at: message.created_at,
         evidence: scenario.fetch(:evidence, {}), technical_details: scenario.fetch(:technical),
         settings_snapshot: scenario[:activity] ? { inactivity_threshold_minutes: 30 } : {}
       )
     end
     decision = @account.captain_decisions.find_by!(decision_key: source_id)
-    decision.update_columns(reason_text: localized(scenario[:reason]),
-                            reason_locale: @account.locale == 'es' ? 'es' : 'en')
+    decision.update_columns( # rubocop:disable Rails/SkipsModelValidations -- demo data bypasses callbacks
+      reason_text: localized(scenario[:reason]),
+      reason_locale: @account.locale == 'es' ? 'es' : 'en'
+    )
   end
 end
