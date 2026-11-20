@@ -34,6 +34,13 @@
 - **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
 
 - **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
+### B-NEW-291 - Flecha al ?ltimo mensaje centrada y opaca (2026-11-20)
+
+- **Archivos:** `components/widgets/conversation/MessagesView.vue` y `specs/MessagesView.spec.js`.
+- **Problema:** el bot?n usaba chevron peque?o a la derecha y el hover de la variante s?lida reduc?a la opacidad del fondo.
+- **Arreglo:** bot?n de 40 px con `i-lucide-arrow-down`, centrado por encima del composer, fondo s?lido en reposo/hover y sombra creciente. Conserva contador, etiqueta accesible y foco visible.
+- **C?mo probar:** alejarse del final, recibir mensajes y pulsar la flecha; verificar ocultaci?n al llegar al final, contador y posici?n en escritorio/390 px. Specs de visibilidad, clases y acci?n en UTC/America/Guayaquil; revisi?n visual pendiente del PM. Sin push, PR ni despliegue.
+
 ### B-NEW-290 - Cita de respuesta coherente en el composer (2026-11-20)
 
 - **Archivos:** `components/widgets/conversation/ReplyToMessage.vue`, `components-next/message/ReplyPreview.vue` y `specs/ReplyToMessage.spec.js`.
