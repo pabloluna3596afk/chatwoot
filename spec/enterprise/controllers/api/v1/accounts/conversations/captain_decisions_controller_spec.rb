@@ -137,7 +137,7 @@ RSpec.describe 'Captain decisions', type: :request do
 
   it 'returns retained handoff and reopening facts in chronological order' do
     travel 1.minute do
-      create(:message, account: account, conversation: conversation, private: true,
+      create(:message, account: account, conversation: conversation, private: true, message_type: :outgoing, sender: assistant,
                        content_attributes: { captain_handoff: { source: 'tool' } })
     end
     travel 2.minutes do

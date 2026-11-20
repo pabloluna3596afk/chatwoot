@@ -6,7 +6,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     @captain_assistant = inbox.captain_assistant
     return if captain_assistant.blank? || captain_assistant.inactive_conversation_resolution_disabled?
 
-    @inactivity_cutoff_time = Time.current - captain_assistant.inactivity_threshold_minutes.minutes
+    @inactivity_threshold_minutes = captain_assistant.inactivity_threshold_minutes
+    @inactivity_cutoff_time = Time.current - inactivity_threshold_minutes.minutes
 
     if evaluate_conversation_completion?(inbox.account)
       perform_with_evaluation(inbox)
@@ -19,7 +20,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
 
   private
 
-  attr_reader :captain_assistant, :inactivity_cutoff_time
+  attr_reader :captain_assistant, :inactivity_cutoff_time, :inactivity_threshold_minutes
 
   def evaluate_conversation_completion?(account)
     account.feature_enabled?('captain_tasks') && captain_assistant.evaluate_inactive_conversations_before_resolving?
@@ -204,7 +205,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     Captain::Decisions::Action.record(
       conversation: conversation, assistant: captain_assistant, kind: kind, origin: attributes.fetch(:origin),
       trigger: evaluation[:error] ? 'error' : 'inactivity', reason_code: code, decision_key: key, anchor_message: attributes[:anchor_message],
-      evidence: evidence.compact, settings_snapshot: { inactivity_threshold_minutes: captain_assistant.inactivity_threshold_minutes },
+      evidence: evidence.compact, settings_snapshot: { inactivity_threshold_minutes: inactivity_threshold_minutes },
       technical_details: attributes[:origin] == 'model' ? { credits_consumed: 0 } : {}
     )
   end

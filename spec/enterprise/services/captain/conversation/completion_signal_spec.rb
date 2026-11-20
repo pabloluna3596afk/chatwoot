@@ -27,7 +27,8 @@ RSpec.describe Captain::Conversation::CompletionSignal do
   it 'records one linked candidate for the reply without writing evidence into message attributes' do
     signal.record(message: reply, response: response, incoming_id: incoming.id)
     decision = conversation.captain_decisions.sole
-    expect(decision).to have_attributes(kind: 'completion_signal', outcome: 'pending', anchor_message_id: reply.id, parent_decision_id: nil)
+    expect(decision).to have_attributes(kind: 'completion_signal', outcome: 'pending', anchor_message_id: reply.id, parent_decision_id: nil,
+                                        evidence: include('last_customer_message_id' => incoming.id))
     expect(decision.due_at).to be_present
     expect(reply.reload.additional_attributes).not_to have_key('captain_decisions')
   end

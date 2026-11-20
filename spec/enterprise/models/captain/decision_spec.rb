@@ -92,6 +92,17 @@ RSpec.describe Captain::Decision do
     expect(decision.errors[:base]).to include('decision payload exceeds 8 KiB')
   end
 
+  it 'includes PostgreSQL separator whitespace in the JSON size budget' do
+    decision.evidence = {
+      tools: Array.new(50) { 'x' * 80 }, document_ids: Array.new(100, 1_000_000_000),
+      cited_document_ids: Array.new(100, 1_000_000_000), faq_ids: Array.new(100, 1_000_000_000), used_faq_ids: Array.new(26, 1_000_000_000)
+    }
+    encoded = described_class.connection.quote(decision.evidence.to_json)
+    expect(described_class.connection.select_value("SELECT octet_length(#{encoded}::jsonb::text) + 4")).to eq(8200)
+    expect(decision).not_to be_valid
+    expect(decision.errors[:base]).to include('decision payload exceeds 8 KiB')
+  end
+
   it 'enforces database checks even when validations are bypassed' do
     decision.save!
     [{ reason_text: 'x' * 501 }, { evidence: [] }, { settings_snapshot: [] }, { technical_details: [] },

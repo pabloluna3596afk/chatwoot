@@ -7,7 +7,8 @@ class Captain::Decisions::CompletionSignalRecorder
   def record(status, snapshot, **facts)
     key = "signal:#{@conversation.id}:#{snapshot['reply_id']}:#{status}"
     Captain::Decisions::Recorder.record(conversation: @conversation, assistant: @assistant, decision_key: key) do
-      attributes(status, snapshot).merge(evidence: snapshot.slice('probable_complete', 'expects_customer_reply').merge(facts.stringify_keys))
+      evidence = snapshot.slice('probable_complete', 'expects_customer_reply').merge('last_customer_message_id' => snapshot.fetch('incoming_id'))
+      attributes(status, snapshot).merge(evidence: evidence.merge(facts.stringify_keys))
     end
   end
 

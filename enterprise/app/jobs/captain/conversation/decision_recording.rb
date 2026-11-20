@@ -3,7 +3,7 @@ module Captain::Conversation::DecisionRecording
 
   def record_reply_decision(message)
     @reply_decision = Captain::Decisions::Recorder.record(
-      conversation: @conversation, assistant: @assistant, decision_key: "reply:#{@conversation.id}:#{@responding_to_message_id || job_id}",
+      conversation: @conversation, assistant: @assistant, decision_key: "reply:#{@conversation.id}:#{job_id}",
       anchor_message: message, kind: 'reply', outcome: 'created', origin: 'model', trigger: 'customer_message',
       reason_code: 'model_reply'
     ) do

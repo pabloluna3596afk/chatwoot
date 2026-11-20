@@ -19,8 +19,8 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
     objects = [record.evidence, record.settings_snapshot, record.technical_details]
     return unless objects.all?(Hash)
 
-    # PostgreSQL jsonb text includes spaces after separators. Match its size budget conservatively.
-    bytes = objects.sum { |value| JSON.generate(value, space: ' ', object_nl: '', array_nl: '').bytesize }
+    # PostgreSQL jsonb text includes spaces after separators. Include container whitespace to keep this precheck conservative.
+    bytes = objects.sum { |value| JSON.generate(value, space: ' ', object_nl: ' ', array_nl: ' ').bytesize }
     record.errors.add(:base, 'decision payload exceeds 8 KiB') if bytes > Captain::Decision::PAYLOAD_LIMIT
   end
 

@@ -219,6 +219,19 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       allow(Captain::ConversationCompletionService).to receive(:new).and_return(mock_service)
     end
 
+    it 'records the inactivity threshold used before the evaluator ran' do
+      inbox.account.enable_features!(:captain_integration_v2)
+      applied_minutes = captain_assistant.inactivity_threshold_minutes
+      mock_service = instance_double(Captain::ConversationCompletionService)
+      allow(Captain::ConversationCompletionService).to receive(:new).and_return(mock_service)
+      allow(mock_service).to receive(:perform) do
+        captain_assistant.update!(config: captain_assistant.config.merge('auto_resolve_after' => applied_minutes + 5))
+        { complete: true, reason: 'Done' }
+      end
+      described_class.perform_now(inbox)
+      expect(resolvable_pending_conversation.captain_decisions.sole.settings_snapshot).to eq('inactivity_threshold_minutes' => applied_minutes)
+    end
+
     it 'resolves the conversation' do
       described_class.perform_now(inbox)
 

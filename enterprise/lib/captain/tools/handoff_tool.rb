@@ -119,9 +119,10 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
 
   def record_handoff_decision(conversation, note, state)
     turn_id = state[:responding_to_message_id] || conversation.messages.incoming.maximum(:id) || 'initial'
+    assignment_id = conversation.additional_attributes.fetch('captain_assignment_message_id', 0)
     Captain::Decisions::Action.record(
       conversation: conversation, assistant: @assistant, kind: 'handoff', origin: 'tool', trigger: 'tool',
-      reason_code: 'tool_handoff', decision_key: "handoff:tool:#{conversation.id}:#{turn_id}", anchor_message: note,
+      reason_code: 'tool_handoff', decision_key: "handoff:tool:#{conversation.id}:#{assignment_id}:#{turn_id}", anchor_message: note,
       evidence: { action: 'handoff', reason_category: note.content_attributes.dig('captain_handoff', 'reason_category'),
                   team_id: conversation.team_id, assignee_id: conversation.assignee_id }.compact
     )
