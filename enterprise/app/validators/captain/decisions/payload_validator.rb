@@ -33,7 +33,7 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
     return unless record.evidence.is_a?(Hash)
 
     ids = record.evidence.slice(*MESSAGE_IDS).values
-    return if ids.empty? || record.conversation&.messages&.where(id: ids)&.count == ids.uniq.size
+    return if ids.empty? || record.conversation&.messages&.where(id: ids, account_id: record.account_id)&.count == ids.uniq.size
 
     record.errors.add(:evidence, 'message references must belong to this conversation')
   end

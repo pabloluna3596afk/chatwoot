@@ -64,6 +64,13 @@ RSpec.describe Captain::Decision do
     expect(decision.errors[:evidence]).to be_present
   end
 
+  it 'rejects a message reference from another account even if it has this conversation ID' do
+    foreign_message = create(:message, account: create(:account), conversation: conversation)
+    decision.evidence = { last_customer_message_id: foreign_message.id }
+    expect(decision).not_to be_valid
+    expect(decision.errors[:evidence]).to include('message references must belong to this conversation')
+  end
+
   it 'requires a session for the same conversation, assistant and anchor' do
     message = create(:message, conversation: conversation, account: account)
     decision.anchor_message = message
