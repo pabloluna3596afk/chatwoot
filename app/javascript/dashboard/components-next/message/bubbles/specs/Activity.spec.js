@@ -74,4 +74,30 @@ describe('Activity', () => {
     ).toBe(true);
     wrapper.unmount();
   });
+
+  it('centers a long activity in the same bounded column without forced breaks', () => {
+    const wrapper = mountActivity(
+      { activity: { source: { type: 'captain' } } },
+      'Captain resolved the conversation after checking that no questions or requested actions remain pending.'
+    );
+    const bubble = wrapper.get('[data-bubble-name="activity"]');
+    expect(bubble.classes()).toEqual(
+      expect.arrayContaining(['mx-auto', 'w-[90%]', 'text-center'])
+    );
+    expect(wrapper.find('br').exists()).toBe(false);
+    expect(wrapper.get('time').element.previousElementSibling.textContent).toBe(
+      'Captain resolved the conversation after checking that no questions or requested actions remain pending.'
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps activity content centered in a right-to-left conversation', () => {
+    const wrapper = mountActivity({}, 'تم إغلاق المحادثة');
+    const bubble = wrapper.get('[data-bubble-name="activity"]');
+    bubble.element.setAttribute('dir', 'rtl');
+    expect(bubble.classes()).toContain('text-center');
+    expect(bubble.attributes('dir')).toBe('rtl');
+    expect(wrapper.find('br').exists()).toBe(false);
+    wrapper.unmount();
+  });
 });

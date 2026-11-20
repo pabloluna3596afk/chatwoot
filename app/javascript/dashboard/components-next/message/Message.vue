@@ -598,7 +598,7 @@ provideMessageContext({
       },
     ]"
   >
-    <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY">
+    <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY" class="w-full">
       <ActivityBubble :content="content" />
     </div>
     <div

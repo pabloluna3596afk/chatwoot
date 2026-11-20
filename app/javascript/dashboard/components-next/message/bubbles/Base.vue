@@ -42,7 +42,7 @@ const varaintBaseMap = {
     'bg-n-solid-amber text-n-amber-12 [&_.prosemirror-mention-node]:font-semibold',
   [MESSAGE_VARIANTS.USER]: CHAT_SKIN.bubble.incoming,
   [MESSAGE_VARIANTS.ACTIVITY]:
-    'bg-n-solid-2 shadow-sm px-3 py-1 text-n-slate-11 text-sm max-w-[min(92vw,35rem)]',
+    'bg-n-solid-2 shadow-sm px-3 py-1 text-n-slate-11 text-sm',
   [MESSAGE_VARIANTS.BOT]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.TEMPLATE]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.ERROR]: 'bg-n-ruby-4 text-n-ruby-12',
@@ -94,7 +94,9 @@ const metaClass = computed(() => [
       {
         'relative [&:has([role=status])_.media-meta]:static [&:has([role=status])_.media-meta]:w-fit [&:has([role=status])_.media-meta]:ms-auto':
           overlayMeta,
-        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
+        'max-w-lg':
+          variant !== MESSAGE_VARIANTS.EMAIL &&
+          variant !== MESSAGE_VARIANTS.ACTIVITY,
       },
     ]"
   >

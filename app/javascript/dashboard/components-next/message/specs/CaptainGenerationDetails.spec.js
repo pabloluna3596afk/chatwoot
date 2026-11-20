@@ -183,6 +183,23 @@ describe('Captain decision content', () => {
     );
   });
 
+  it('uses compact spacing and plain text for the reason and origin details', () => {
+    const wrapper = content({
+      decisions: [
+        {
+          ...decision,
+          evidence: { settings: { inactivityThresholdMinutes: 30 } },
+        },
+      ],
+    });
+    const panel = wrapper.get('[role="dialog"]');
+    expect(panel.classes()).toContain('md:w-96');
+    expect(panel.classes()).toContain('leading-[1.4]');
+    expect(wrapper.get('article').classes()).toContain('gap-2');
+    expect(wrapper.get('article p').classes()).not.toContain('rounded-lg');
+    expect(wrapper.get('dl').classes()).not.toContain('bg-n-solid-2');
+  });
+
   it('shows the silence notice without claiming resolution or evaluation cost', () => {
     const wrapper = content({
       decisions: [{ ...decision, kind: 'close_unanswered', origin: 'time' }],

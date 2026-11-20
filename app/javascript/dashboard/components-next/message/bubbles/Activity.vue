@@ -20,7 +20,10 @@ const showCaptain = computed(() =>
 </script>
 
 <template>
-  <BaseBubble class="text-center leading-5" data-bubble-name="activity">
+  <BaseBubble
+    class="mx-auto w-[90%] text-center leading-[1.4]"
+    data-bubble-name="activity"
+  >
     <span v-dompurify-html="content" />
     {{ ' ' }}
     <time

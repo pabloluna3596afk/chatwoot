@@ -88,10 +88,10 @@ const settingRows = decision =>
     :role="mobile ? undefined : 'dialog'"
     :aria-label="t('CONVERSATION.CAPTAIN_DECISION.TITLE')"
     :aria-busy="loading"
-    class="w-full md:w-96 max-w-full rounded-[14px] border border-n-weak bg-n-solid-1 text-sm text-n-slate-12 shadow-xl [overflow-wrap:anywhere]"
+    class="w-full max-w-full rounded-[14px] border border-n-weak bg-n-solid-1 text-sm leading-[1.4] text-n-slate-12 shadow-xl [overflow-wrap:anywhere] md:w-96"
   >
     <header
-      class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-n-weak bg-n-solid-1 px-4 py-2.5"
+      class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-n-weak bg-n-solid-1 px-3 py-2"
     >
       <div class="flex flex-wrap items-center gap-2">
         <h2 class="m-0 text-sm font-semibold">
@@ -117,7 +117,7 @@ const settingRows = decision =>
         <Icon icon="i-lucide-x" class="size-4" aria-hidden="true" />
       </button>
     </header>
-    <div class="flex flex-col gap-3.5 p-4">
+    <div class="flex flex-col gap-2 px-3 py-2">
       <p v-if="loading" role="status" class="m-0">
         {{ t('CONVERSATION.CAPTAIN_DECISION.LOADING') }}
       </p>
@@ -140,7 +140,7 @@ const settingRows = decision =>
       <article
         v-for="decision in loading || entry?.error ? [] : decisions"
         :key="decision.id"
-        class="flex flex-col gap-3"
+        class="flex flex-col gap-2"
       >
         <div v-if="decisions.length > 1" class="flex items-center gap-2">
           <span class="sr-only">{{
@@ -154,11 +154,11 @@ const settingRows = decision =>
         </div>
         <div>
           <h3
-            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+            class="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
           >
             {{ t('CONVERSATION.CAPTAIN_DECISION.WHY') }}
           </h3>
-          <p class="m-0 rounded-lg bg-n-solid-2 px-3 py-2">
+          <p class="m-0">
             {{
               decision.reasonText ||
               t('CONVERSATION.CAPTAIN_DECISION.NO_REASON')
@@ -167,7 +167,7 @@ const settingRows = decision =>
         </div>
         <div>
           <h3
-            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+            class="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
           >
             {{ t('CONVERSATION.CAPTAIN_DECISION.EVIDENCE') }}
           </h3>
@@ -188,7 +188,7 @@ const settingRows = decision =>
         </div>
         <div v-for="group in sourceGroups(decision)" :key="group.label">
           <h3
-            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+            class="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
           >
             {{ t(`${key}.${group.label}`) }}
           </h3>
@@ -213,7 +213,7 @@ const settingRows = decision =>
         </div>
         <div v-if="decision.evidence?.tools?.length">
           <h3
-            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+            class="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
           >
             {{ t('CONVERSATION.CAPTAIN_DECISION.ACTIONS') }}
           </h3>
@@ -229,7 +229,7 @@ const settingRows = decision =>
         </div>
         <div>
           <h3
-            class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
+            class="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-n-slate-11"
           >
             {{ t('CONVERSATION.CAPTAIN_DECISION.AFTERWARDS') }}
           </h3>
@@ -245,9 +245,7 @@ const settingRows = decision =>
             {{ t('CONVERSATION.CAPTAIN_DECISION.NO_LATER_EVENTS') }}
           </p>
         </div>
-        <dl
-          class="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-lg bg-n-solid-2 px-3 py-2 text-[13px]"
-        >
+        <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[13px]">
           <dt class="text-n-slate-11">
             {{ t('CONVERSATION.CAPTAIN_DECISION.ORIGIN') }}
           </dt>
