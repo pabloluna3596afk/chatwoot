@@ -186,6 +186,39 @@ describe('useDropdownPosition', () => {
       expect(fixedPosition.value.style.maxHeight).toBe('176px');
     });
 
+    it('keeps maxHeight valid when the anchor is at the viewport edge', () => {
+      winHeight.value = 60;
+      setTrigger({ top: 20, bottom: 40 });
+      setDropdown({ height: 500, width: 200 });
+      const { fixedPosition } = useDropdownPosition(
+        ref(null),
+        ref(null),
+        ref(true)
+      );
+
+      expect(fixedPosition.value.style.maxHeight).toBe('0px');
+    });
+
+    it('flips above after async content grows beyond the available space', () => {
+      winHeight.value = 768;
+      setTrigger({ top: 650, bottom: 690 });
+      setDropdown({ height: 180, width: 300 });
+      const popover = ref({
+        querySelector: () => ({ scrollHeight: 500 }),
+      });
+      const { fixedPosition, updatePosition } = useDropdownPosition(
+        ref(null),
+        popover,
+        ref(true),
+        { measureNaturalHeight: true }
+      );
+      updatePosition();
+
+      expect(fixedPosition.value.style.bottom).toBe('126px');
+      expect(fixedPosition.value.style.top).toBeUndefined();
+      expect(fixedPosition.value.style.maxHeight).toBe('626px');
+    });
+
     it('returns defaults when disabled', () => {
       const { fixedPosition } = useDropdownPosition(
         ref(null),

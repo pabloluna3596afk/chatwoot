@@ -38,6 +38,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  repositionOnScroll: {
+    type: Boolean,
+    default: false,
+  },
   showContentBorder: {
     type: Boolean,
     default: true,
@@ -63,7 +67,7 @@ const { fixedPosition, updatePosition } = useDropdownPosition(
   triggerRef,
   popoverRef,
   showPopover,
-  { align: props.align }
+  { align: props.align, measureNaturalHeight: props.repositionOnScroll }
 );
 
 const SCROLL_CLOSE_THRESHOLD = 24;
@@ -99,15 +103,50 @@ useEventListener(
   window,
   'scroll',
   event => {
-    if (!props.closeOnScroll || !showPopover.value) return;
+    if (!showPopover.value) return;
     if (popoverRef.value?.contains(event.target)) return;
-    const top = triggerRef.value?.getBoundingClientRect().top ?? 0;
+    const bounds = triggerRef.value?.getBoundingClientRect();
+    if (!bounds) {
+      hide();
+      return;
+    }
+    if (props.repositionOnScroll) {
+      if (
+        bounds.bottom <= 0 ||
+        bounds.top >= window.innerHeight ||
+        bounds.right <= 0 ||
+        bounds.left >= window.innerWidth
+      ) {
+        hide();
+        return;
+      }
+      updatePosition();
+      return;
+    }
+    if (!props.closeOnScroll) return;
+    const top = bounds.top;
     if (Math.abs(top - triggerTopAtOpen.value) > SCROLL_CLOSE_THRESHOLD) {
       hide();
     }
   },
   { capture: true, passive: true }
 );
+
+useEventListener(window, 'resize', () => {
+  if (!props.repositionOnScroll || !showPopover.value) return;
+  const bounds = triggerRef.value?.getBoundingClientRect();
+  if (
+    !bounds ||
+    bounds.bottom <= 0 ||
+    bounds.top >= window.innerHeight ||
+    bounds.right <= 0 ||
+    bounds.left >= window.innerWidth
+  ) {
+    hide();
+    return;
+  }
+  updatePosition();
+});
 
 const toggle = async () => {
   if (isActive.value) hide();
@@ -162,7 +201,7 @@ useKeyboardEvents({
   },
 });
 
-defineExpose({ show, hide, toggle });
+defineExpose({ show, hide, toggle, updatePosition });
 onBeforeUnmount(() => modalRef.value?.close());
 </script>
 
@@ -224,6 +263,7 @@ onBeforeUnmount(() => modalRef.value?.close());
     >
       <div
         class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
+        data-popover-scroll-content
         :class="{ 'border border-n-strong': showContentBorder }"
       >
         <slot name="content" :hide="hide" :is-mobile="isMobile" />

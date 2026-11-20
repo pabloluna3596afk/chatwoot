@@ -1,5 +1,5 @@
 <script setup>
-import { computed, h, ref, useId } from 'vue';
+import { computed, h, nextTick, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import Icon from 'next/icon/Icon.vue';
@@ -15,6 +15,7 @@ const store = useStore();
 const { conversationId, orientation } = useMessageContext();
 const panelId = `captain-decision-${useId()}`;
 const isOpen = ref(false);
+const popoverRef = ref(null);
 const lookup = computed(() => ({
   accountId: route.params.accountId,
   conversationId: conversationId.value,
@@ -23,8 +24,15 @@ const lookup = computed(() => ({
 const entry = computed(() =>
   store.getters['captainDecisions/getEntry'](lookup.value)
 );
-const fetchDetails = () =>
-  store.dispatch('captainDecisions/fetch', lookup.value);
+const fetchDetails = async () => {
+  try {
+    return await store.dispatch('captainDecisions/fetch', lookup.value);
+  } finally {
+    await nextTick();
+    const updatePosition = popoverRef.value?.updatePosition;
+    if (typeof updatePosition === 'function') updatePosition();
+  }
+};
 
 // The scoped component keeps the complete trigger between source and lock in
 // MessageMeta without coupling that shared row to Captain's request lifecycle.
@@ -32,9 +40,12 @@ const Trigger = () =>
   h(
     Popover,
     {
+      ref: popoverRef,
       align: orientation.value === 'left' ? 'start' : 'end',
       mobileSheet: true,
       focusContent: true,
+      closeOnScroll: false,
+      repositionOnScroll: true,
       ariaLabel: t('CONVERSATION.CAPTAIN_DECISION.TITLE'),
       onShow: () => {
         isOpen.value = true;

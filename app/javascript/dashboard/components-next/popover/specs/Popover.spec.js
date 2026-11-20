@@ -332,5 +332,34 @@ describe('Popover', () => {
       await scrollWithTriggerMovedBy(100);
       expect(desktopPopover().exists()).toBe(true);
     });
+
+    it('repositions while the anchor remains visible when opted in', async () => {
+      mountPopover({ repositionOnScroll: true, closeOnScroll: false });
+      await openPopover();
+      wrapper.find('span').element.getBoundingClientRect = () => ({
+        top: 120,
+        bottom: 144,
+        left: 120,
+        right: 144,
+      });
+      document.dispatchEvent(new Event('scroll'));
+      await flushPromises();
+      expect(desktopPopover().exists()).toBe(true);
+    });
+
+    it('closes when an opted-in anchor scrolls outside the viewport', async () => {
+      mountPopover({ repositionOnScroll: true, closeOnScroll: false });
+      await openPopover();
+      wrapper.find('span').element.getBoundingClientRect = () => ({
+        top: -30,
+        bottom: -6,
+        left: 120,
+        right: 144,
+      });
+      document.dispatchEvent(new Event('scroll'));
+      await flushPromises();
+      expect(desktopPopover().exists()).toBe(false);
+      expect(wrapper.emitted('hide')).toHaveLength(1);
+    });
   });
 });
