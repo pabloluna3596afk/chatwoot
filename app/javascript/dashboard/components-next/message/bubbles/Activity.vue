@@ -11,6 +11,11 @@ const { id, sender, senderType, content, createdAt, contentAttributes } =
   useMessageContext();
 
 const { isoTime, exactTime, relativeTime } = useActivityTime(createdAt);
+const displayContent = computed(() =>
+  (content.value || '')
+    .replace(/(?<!\.)\.(?=(?:\s|<\/[a-z][^>]*>)*\s*$)/i, '')
+    .replace(/\s+(?=(?:<\/[a-z][^>]*>)*\s*$)/gi, '')
+);
 const showCaptain = computed(() =>
   hasCaptainDetails({
     sender: sender?.value,
@@ -37,7 +42,7 @@ const showCaptain = computed(() =>
       icon-class="size-4 shrink-0 self-start text-n-slate-11"
     />
     <span class="min-w-0 flex-1 text-center" data-activity-layout>
-      <span v-dompurify-html="content" data-activity-content />
+      <span v-dompurify-html="displayContent" data-activity-content />
       {{ ' ' }}
       <span aria-hidden="true" class="before:content-['\00b7']" />
       {{ ' ' }}

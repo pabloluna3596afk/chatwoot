@@ -69,7 +69,7 @@ describe('Activity', () => {
     wrapper.unmount();
   });
 
-  it.each(['macro', 'automation'])(
+  it.each(['macro', 'automation', 'flow'])(
     'places the %s source icon before activity text',
     type => {
       const wrapper = mountActivity({ messageSource: { type, id: 3 } });
@@ -85,6 +85,76 @@ describe('Activity', () => {
         wrapper.get('[data-source-icon]').attributes('data-icon-class')
       ).toContain('self-start');
       expect(wrapper.find('time').exists()).toBe(true);
+      wrapper.unmount();
+    }
+  );
+
+  it.each([
+    ['assignment', {}, 'Maria assigned this conversation to Alex Rivera'],
+    ['team', {}, 'Maria assigned this conversation to Support'],
+    ['label', {}, 'Maria added the label priority'],
+    ['priority', {}, 'Maria changed priority to high'],
+    ['resolved', {}, 'Maria resolved the conversation'],
+    ['reopened', {}, 'Maria reopened the conversation'],
+    ['pending', {}, 'Maria marked the conversation pending'],
+    ['SLA', {}, 'Maria changed the SLA policy'],
+    [
+      'automation',
+      { messageSource: { type: 'automation', id: 3 } },
+      'Automation changed status',
+    ],
+    [
+      'macro',
+      { messageSource: { type: 'macro', id: 4 } },
+      'Macro added a reply',
+    ],
+    [
+      'flow',
+      { messageSource: { type: 'flow', id: 5 } },
+      'Flow updated the conversation',
+    ],
+  ])(
+    'renders %s activity in the shared compact activity pill',
+    (_type, attributes, text) => {
+      const wrapper = mountActivity(attributes, text);
+      const bubble = wrapper.get('[data-bubble-name="activity"]');
+
+      expect(bubble.classes()).toEqual(
+        expect.arrayContaining([
+          'mx-auto',
+          'w-fit',
+          'max-w-[90%]',
+          'px-3',
+          'py-1',
+        ])
+      );
+      expect(wrapper.get('[data-activity-content]').text()).toBe(text);
+      expect(wrapper.get('time').text()).not.toBe('');
+      expect(wrapper.get('[data-activity-layout]').exists()).toBe(true);
+      wrapper.unmount();
+    }
+  );
+
+  it('removes one final period and trailing spaces before closing HTML tags', () => {
+    const wrapper = mountActivity(
+      {},
+      'The conversation is resolved.  <strong>Done.   </strong>   '
+    );
+
+    expect(wrapper.get('[data-activity-content]').text()).toBe(
+      'The conversation is resolved.  Done'
+    );
+    wrapper.unmount();
+  });
+
+  it.each(['Version v1.2 is active.', 'Use this etc...'])(
+    'does not alter internal versions or ellipses in %s',
+    text => {
+      const wrapper = mountActivity({}, text);
+
+      expect(wrapper.get('[data-activity-content]').text()).toBe(
+        text.endsWith('.') && !text.endsWith('...') ? text.slice(0, -1) : text
+      );
       wrapper.unmount();
     }
   );
@@ -123,7 +193,7 @@ describe('Activity', () => {
   it('keeps long activity text wrap-capable in a compact centered pill', () => {
     const wrapper = mountActivity(
       { activity: { source: { type: 'captain' } } },
-      'Captain resolved the conversation after checking that no questions or requested actions remain pending.'
+      'Captain resolved the conversation after checking that no questions or requested actions remain pending'
     );
     const bubble = wrapper.get('[data-bubble-name="activity"]');
     expect(bubble.classes()).toEqual(
@@ -136,7 +206,7 @@ describe('Activity', () => {
     expect(bubble.classes()).not.toContain('flex-wrap');
     expect(wrapper.find('br').exists()).toBe(false);
     expect(wrapper.get('[data-activity-content]').text()).toBe(
-      'Captain resolved the conversation after checking that no questions or requested actions remain pending.'
+      'Captain resolved the conversation after checking that no questions or requested actions remain pending'
     );
     wrapper.unmount();
   });
