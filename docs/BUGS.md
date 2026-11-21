@@ -8,6 +8,14 @@
 - **Verificación:** cierre nuevo 58/58 y focal 15/15; ampliada de 433 con cinco fallos de preparación/recarga cerrados en esas repeticiones. Los tres casos antiguos también pasan en develop limpio; no se cambian sus expectativas. RuboCop CI: 29 archivos, 0 infracciones. Migración y roundtrip del schema verificados en bases Docker aisladas.
 - **Entrega:** aplicar migración aditiva antes de habilitar rutas; sin backfill, navegador, llamadas reales a Meta, push, PR ni despliegue.
 
+### B-NEW-294 - Freno de intercambios repetitivos de Captain (2026-11-20)
+
+- **Problema:** mensajes nuevos cada 8-15 segundos cancelaban continuamente la gracia de cierre; dos asistentes o una cadena de cortesías podian responderse indefinidamente antes de alcanzar el límite de 20 respuestas.
+- **Cambio:** `Captain::Conversation::LoopGuard` detecta cuatro respuestas en tres minutos con señales estructuradas de cierre sin espera, o alternancia rapida sin una espera explicita del cliente. Se ejecuta después del límite existente y antes de reservar créditos; la entrega bajo lock descarta generaciones que ya estaban en curso. El revisor existente confirma el cierre silencioso; rechazo/error produce traspaso con nota privada localizada y decisiones con consumo cero. Los entrantes repetitivos conservan la gracia existente.
+- **Configuración opcional:** `config.loop_guard_replies` (entero 4..20, defecto 4) y `config.loop_guard_window_seconds` (entero 30..300, defecto 180); validación estricta y actualizacion por API de administracion. Funciona sin activar la senal de cierre.
+- **Cómo probar:** ejecutar `rspec-local.sh` sobre jobs de Captain, servicios conversation/followup/decisions, modelos Message/Conversation/Assistant, controlador de asistentes y requests de configuración. El simulador con jobs V2 debe enviar cuatro respuestas, cerrar al quinto entrante y consumir cuatro unidades; revisar rechazo/error, humano, cambio de asistente, workers repetidos y conversación normal de diez preguntas.
+- **Entrega:** sin migraciones, navegador, push, PR ni despliegue. Evidencia y autoevaluacion: `docs-crm/codex/bucle-cortesias-construccion.md` en el directorio padre. Se modifica una línea del callback de `Enterprise::Message`; no se editan servicios followup.
+
 ### B-NEW-292 - Detalles de seguimiento y control de Captain (2026-11-20)
 
 - **Archivos:** servicios `captain/followup/`, escritores `captain/decisions/`, modelo/validación de decisiones, overlays Conversation/Message/ActivityMessageHandler, handlers de asignación, `UsageLimitHandoff` y traspaso legacy de `ResponseBuilderJob`.

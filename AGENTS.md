@@ -422,6 +422,7 @@ _Última actualización: 2026-07-12_
 | Item | Repo | Acción |
 |------|------|--------|
 | **Plantillas / B-NEW-293** (borradores y envío a revisión) | chatwoot | `feat/whatsapp-template-drafts`: aplicar migración aditiva `20261120120000` antes de habilitar API; CRUD admin, snapshots y reconciliación por WABA; pantalla en otro PR; sin backfill, push, PR ni despliegue |
+| **Captain / B-NEW-294** (bucle de cortesias) | chatwoot | `feat/captain-bucle-cortesias`: freno determinista antes de reservar creditos, revision de cierre sin consumo y traspaso silencioso; configuracion opcional; sin migraciones, push, PR ni despliegue |
 | **Detalles Captain PR 1 / B-NEW-289** (registro y permisos) | chatwoot | `feat/captain-decisiones`: migración aditiva `20261119120000` antes de habilitar backend; registro, endpoint y sesiones seguras; purga de decisiones a 90 días; UI en PR 2; sin backfill, push, PR ni despliegue |
 | **Captain mantenimiento / B-NEW-275..279** (permisos y conversion) | chatwoot | `feat/captain-mantenimiento`: Availability en recordatorios/reenganche, Permitir con lock/revision, reporte ligado al catalogo y backup exacto, claves/periodo diario estables y cooldown por contacto; regenerar reporte antes de convertir; sin migraciones, push, PR ni despliegue |
 | **Captain / B-NEW-268** (comportamientos generales) | chatwoot | `chore/captain-quitar-piloto`: reserva, historial, relevancia e inactividad para todas las cuentas; conserva bit obsoleto; sin migraciones, push ni despliegue |

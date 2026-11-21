@@ -36,7 +36,7 @@ module Enterprise::Message
 
   def cancel_captain_completion_signal
     return unless incoming? || (outgoing? && !private? && sender_type == 'User')
-    return unless conversation.additional_attributes.key?(::Captain::Conversation::CompletionSignal::KEY)
+    return unless conversation.additional_attributes.keys.intersect?(%w[captain_completion captain_loop_guard])
 
     conversation.with_lock do
       cause = COMPLETION_CANCEL_CAUSES.fetch(message_type)

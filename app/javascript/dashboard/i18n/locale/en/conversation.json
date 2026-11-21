@@ -588,6 +588,8 @@
       "SETTINGS": {
         "inactivityThresholdMinutes": "Inactivity threshold: {minutes} minutes",
         "completionGraceMinutes": "Closure review after {minutes} minutes",
+        "loopGuardReplies": "Reply threshold: {minutes}",
+        "loopGuardWindowSeconds": "Repetition window: {minutes} seconds",
         "inactivityAfterMinutes": "Reminder interval: {minutes} minutes",
         "maxNudges": "Maximum reminders: {minutes}",
         "maxRepliesPerConversation": "Maximum replies per conversation: {minutes}"
