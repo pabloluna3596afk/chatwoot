@@ -151,6 +151,93 @@ describe('attachments across seed channels', () => {
 });
 
 describe('attachment composition', () => {
+  it.each([
+    ['text', { content: 'Hello' }, 'text', ['px-3', 'pt-2']],
+    ['image', { attachments: [image] }, 'image', ['p-1']],
+    [
+      'mosaic',
+      { attachments: [image, { ...image, id: 3 }] },
+      'text',
+      ['px-3', 'pt-2'],
+    ],
+    ['file', { attachments: [pdf] }, 'file', ['p-2']],
+    [
+      'video',
+      { attachments: [{ ...image, fileType: 'video', dataUrl: '/clip.mp4' }] },
+      'video',
+      ['p-1'],
+    ],
+    [
+      'audio',
+      {
+        attachments: [
+          {
+            ...pdf,
+            fileType: 'audio',
+            dataUrl: 'https://example.test/voice.mp3',
+            contentType: 'audio/mpeg',
+          },
+        ],
+      },
+      'audio',
+      ['p-2'],
+    ],
+  ])(
+    'uses shared meta spacing for %s bubbles',
+    (_name, messageProps, bubbleName, contentClasses) => {
+      const wrapper = mount(Message, {
+        props: {
+          id: 20,
+          messageType: 0,
+          status: 'read',
+          conversationId: 1,
+          createdAt: 1732195656,
+          currentUserId: 1,
+          inboxId: 1,
+          ...messageProps,
+        },
+        global: globalOptions(),
+      });
+      const meta = wrapper.getComponent({ name: 'MessageMeta' });
+      expect(meta.classes()).toEqual(
+        expect.arrayContaining(['mt-1', 'px-3', 'pb-2', 'justify-end'])
+      );
+      expect(wrapper.get(`[data-bubble-name="${bubbleName}"]`).exists()).toBe(
+        true
+      );
+      expect(wrapper.get('[data-bubble-content]').classes()).toEqual(
+        expect.arrayContaining(contentClasses)
+      );
+      wrapper.unmount();
+    }
+  );
+
+  it('keeps shared meta spacing on an unavailable image placeholder', async () => {
+    const wrapper = mount(Message, {
+      props: {
+        id: 20,
+        messageType: 0,
+        status: 'read',
+        conversationId: 1,
+        createdAt: 1732195656,
+        currentUserId: 1,
+        inboxId: 1,
+        attachments: [image],
+      },
+      global: globalOptions(),
+    });
+    const figure = wrapper.get('figure');
+    expect(figure.classes()).toContain('rounded-[0.625rem]');
+    expect(figure.classes()).not.toContain('bg-n-alpha-1');
+    await wrapper.get('img').trigger('error');
+    expect(wrapper.get('[role="status"]').exists()).toBe(true);
+    expect(figure.classes()).toContain('bg-n-alpha-1');
+    expect(wrapper.getComponent({ name: 'MessageMeta' }).classes()).toEqual(
+      expect.arrayContaining(['mt-1', 'px-3', 'pb-2', 'justify-end'])
+    );
+    wrapper.unmount();
+  });
+
   it.each([0, 1])(
     'places photo, mosaic and video metadata below media for message type %s',
     messageType => {

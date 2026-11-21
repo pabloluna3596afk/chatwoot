@@ -15,6 +15,7 @@ import { CHAT_SKIN } from 'dashboard/helper/chatSkin';
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
   captainDetailsAtStart: { type: Boolean, default: false },
+  contentClass: { type: [String, Array, Object], default: '' },
 });
 
 const {
@@ -77,9 +78,10 @@ const shouldShowMeta = computed(
     (!shouldGroupWithNext.value || sourceIcon.value || showCaptain.value) &&
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
+const MESSAGE_META_SPACING = 'mt-1 px-3 pb-2';
 const metaClass = computed(() => [
-  'mt-1 justify-end text-n-slate-11',
-  variant.value === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
+  MESSAGE_META_SPACING,
+  'justify-end text-n-slate-11',
 ]);
 </script>
 
@@ -95,8 +97,10 @@ const metaClass = computed(() => [
       },
     ]"
   >
-    <ReplyPreview v-if="inReplyTo" />
-    <slot />
+    <div data-bubble-content class="min-w-0" :class="props.contentClass">
+      <ReplyPreview v-if="inReplyTo" />
+      <slot />
+    </div>
     <template v-if="shouldShowMeta">
       <CaptainGenerationDetails
         v-if="showCaptain && !props.captainDetailsAtStart"

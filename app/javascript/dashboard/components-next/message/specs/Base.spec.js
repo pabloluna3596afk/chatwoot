@@ -67,17 +67,17 @@ describe('bubble metadata composition', () => {
     expect(wrapper.find('[data-captain]').exists()).toBe(true);
   });
 
-  it('keeps the metadata row below media with email spacing', () => {
+  it('uses the shared metadata spacing for every message variant', () => {
     context.variant.value = 'email';
     const wrapper = render();
     const meta = wrapper.get('[data-meta]');
     expect(meta.classes()).toEqual(
       expect.arrayContaining([
         'mt-1',
+        'px-3',
+        'pb-2',
         'justify-end',
         'text-n-slate-11',
-        'px-3',
-        'pb-3',
       ])
     );
     expect(meta.classes()).not.toContain('absolute');

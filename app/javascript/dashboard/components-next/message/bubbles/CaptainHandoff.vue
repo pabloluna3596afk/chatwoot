@@ -24,7 +24,7 @@ const visibleSummaryLines = computed(() => props.summaryLines.slice(0, 3));
 
 <template>
   <BaseBubble
-    class="px-3 py-2"
+    content-class="px-3 py-2"
     data-bubble-name="captain-handoff"
     captain-details-at-start
   >

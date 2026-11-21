@@ -26,7 +26,11 @@ const unsupportedMessageKey = computed(() => {
 </script>
 
 <template>
-  <BaseBubble class="px-4 py-3 text-sm" data-bubble-name="unsupported">
+  <BaseBubble
+    class="text-sm"
+    content-class="px-3 py-3"
+    data-bubble-name="unsupported"
+  >
     {{ $t(unsupportedMessageKey) }}
   </BaseBubble>
 </template>
