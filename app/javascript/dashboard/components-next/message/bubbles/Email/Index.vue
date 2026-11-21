@@ -6,6 +6,7 @@ import { sanitizeTextForRender } from '@chatwoot/utils';
 import { allowedCssProperties } from 'lettersanitizer';
 
 import Icon from 'next/icon/Icon.vue';
+import Button from 'next/button/Button.vue';
 import { EmailQuoteExtractor } from 'dashboard/helper/emailQuoteExtractor.js';
 import FormattedContent from 'next/message/bubbles/Text/FormattedContent.vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
@@ -183,16 +184,18 @@ const handleSeeOriginal = () => {
           </button>
         </div>
       </div>
-      <button
-        v-if="isExpandable && !isExpanded"
+      <Button
+        v-if="isExpandable"
         type="button"
-        class="text-n-slate-12 py-2 px-8 mx-auto text-center flex items-center gap-2"
+        intent="secondary"
+        class="w-full min-h-10 mt-3 border border-solid border-n-strong focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-2"
+        :icon="isExpanded ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
+        :label="
+          isExpanded ? $t('EMAIL_HEADER.COLLAPSE') : $t('EMAIL_HEADER.EXPAND')
+        "
         :aria-expanded="isExpanded"
-        @click="isExpanded = true"
-      >
-        <Icon icon="i-lucide-maximize-2" />
-        {{ $t('EMAIL_HEADER.EXPAND') }}
-      </button>
+        @click="isExpanded = !isExpanded"
+      />
     </section>
     <TranslationToggle
       v-if="hasTranslations"

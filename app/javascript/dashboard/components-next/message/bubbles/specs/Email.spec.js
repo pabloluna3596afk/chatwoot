@@ -78,7 +78,18 @@ describe('email expansion', () => {
       expect(content.element.parentElement.classList).toContain(
         'overflow-x-auto'
       );
-      expect(wrapper.find('button[aria-expanded]').exists()).toBe(false);
+      const collapse = wrapper.get('button[aria-expanded="true"]');
+      expect(collapse.text()).toContain('EMAIL_HEADER.COLLAPSE');
+      expect(collapse.classes()).toContain('min-h-10');
+      expect(collapse.classes()).toContain('border-solid');
+      expect(collapse.classes()).toContain('focus-visible:ring-2');
+      await collapse.trigger('click');
+      expect(content.element.parentElement.classList).toContain(
+        'max-h-[25rem]'
+      );
+      expect(wrapper.get('button[aria-expanded="false"]').text()).toContain(
+        'EMAIL_HEADER.EXPAND'
+      );
       wrapper.unmount();
     }
   );

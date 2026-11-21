@@ -811,7 +811,8 @@
     "BCC": "Bcc",
     "CC": "Cc",
     "SUBJECT": "Asunto",
-    "EXPAND": "Expandir email"
+    "EXPAND": "Expandir email",
+    "COLLAPSE": "Contraer email"
   },
   "CONVERSATION_PARTICIPANTS": {
     "SIDEBAR_MENU_TITLE": "Participar",
