@@ -34,7 +34,8 @@ describe('composer reply quote', () => {
     ).toEqual(expect.arrayContaining(['absolute', 'top-2', 'end-2']));
     const quote = wrapper.getComponent({ name: 'ReplyPreview' });
     expect(quote.props('composer')).toBe(true);
-    expect(quote.classes()).toContain('border-n-brand');
+    expect(quote.classes()).toContain('before:bg-n-brand');
+    expect(quote.classes()).toContain('before:w-[3px]');
     expect(quote.get('[class*="sm:line-clamp-2"]').text()).toBe('Thank you');
     expect(quote.text()).toContain('Ana');
   });

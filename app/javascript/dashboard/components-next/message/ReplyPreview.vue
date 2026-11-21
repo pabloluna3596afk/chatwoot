@@ -76,10 +76,10 @@ const scrollToMessage = () =>
 <template>
   <button
     type="button"
-    class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-solid border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
+    class="relative flex items-center gap-2 p-1.5 ps-3 -mx-1 mb-2 rounded-lg rounded-s-none bg-n-alpha-black1 before:absolute before:inset-y-0 before:start-0 before:w-[3px] before:bg-n-brand before:content-[''] cursor-pointer text-start w-full min-w-0"
     :class="
       composer
-        ? '!mx-0 !mb-0 !p-2 !bg-transparent'
+        ? '!mx-0 !mb-0 !p-2 !ps-3 !bg-transparent before:!inset-y-2'
         : attachment.fileType
           ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
           : ''
