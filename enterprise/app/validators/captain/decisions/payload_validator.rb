@@ -10,7 +10,10 @@ class Captain::Decisions::PayloadValidator < ActiveModel::Validator
     'error' => %w[evaluation_failed evaluation_interrupted],
     'reason_category' => %w[customer_request missing_knowledge unsupported_request policy_restriction tool_failure pending_clarification unknown]
   }.freeze
-  SETTINGS = %w[loop_guard_replies loop_guard_window_seconds inactivity_threshold_minutes completion_grace_minutes inactivity_after_minutes max_nudges max_replies_per_conversation].freeze
+  SETTINGS = %w[
+    loop_guard_replies loop_guard_window_seconds inactivity_threshold_minutes completion_grace_minutes
+    inactivity_after_minutes max_nudges max_replies_per_conversation
+  ].freeze
 
   def validate(record)
     validate_evidence(record)
