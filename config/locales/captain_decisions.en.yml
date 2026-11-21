@@ -1,6 +1,7 @@
 en:
   captain:
     decisions:
+      loop_guard: "Captain detected a repetitive exchange and stopped replying."
       reopen: "A new customer message reopened the conversation."
       human_control: "A person took control of the conversation; Captain stopped handling it."
       disengage: "Captain stopped handling the conversation under the current ownership or eligibility rules."

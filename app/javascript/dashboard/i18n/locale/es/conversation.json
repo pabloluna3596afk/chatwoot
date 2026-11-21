@@ -588,6 +588,8 @@
       "SETTINGS": {
         "inactivityThresholdMinutes": "Umbral de inactividad: {minutes} minutos",
         "completionGraceMinutes": "Revisar el cierre después de {minutes} minutos",
+        "loopGuardReplies": "Umbral de respuestas: {minutes}",
+        "loopGuardWindowSeconds": "Ventana de repetición: {minutes} segundos",
         "inactivityAfterMinutes": "Intervalo de recordatorios: {minutes} minutos",
         "maxNudges": "Máximo de recordatorios: {minutes}",
         "maxRepliesPerConversation": "Máximo de respuestas por conversación: {minutes}"

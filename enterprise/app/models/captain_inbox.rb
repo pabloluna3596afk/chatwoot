@@ -38,7 +38,8 @@ class CaptainInbox < ApplicationRecord
   private
 
   def cancel_completion_signals
-    inbox.conversations.where("additional_attributes -> 'captain_completion' ->> 'status' IN (?)",
+    inbox.conversations.where("additional_attributes -> 'captain_completion' ->> 'status' IN (?) " \
+                              "OR additional_attributes -> 'captain_loop_guard' IS NOT NULL",
                               Captain::Conversation::CompletionSignal::ACTIVE_STATUSES).find_each do |conversation|
       conversation.with_lock do
         Captain::Conversation::CompletionSignal.cancel(conversation)

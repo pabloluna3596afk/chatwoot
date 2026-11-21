@@ -192,7 +192,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def assistant_params
     assistant_config_attributes = [
-      :product_name, :feature_faq, :feature_memory, :feature_citation,
+      :product_name, :feature_faq, :feature_memory, :feature_citation, :loop_guard_replies, :loop_guard_window_seconds,
       :feature_contact_attributes, :welcome_message, :handoff_message,
       :resolution_message, :instructions, :temperature, :auto_resolve_mode,
       :response_window, :allow_paid_templates, :max_replies_per_conversation, :reply_delay_seconds,
@@ -231,9 +231,9 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def preserve_typed_config_params(permitted)
     # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
-    %i[reply_delay_seconds completion_signal_enabled completion_grace_minutes].each do |key|
+    %i[reply_delay_seconds loop_guard_replies loop_guard_window_seconds completion_signal_enabled completion_grace_minutes].each do |key|
       next unless params[:assistant][:config].try(:key?, key)
-      next if key != :reply_delay_seconds && !Current.account.feature_enabled?('captain_integration_v2')
+      next if %i[completion_signal_enabled completion_grace_minutes].include?(key) && !Current.account.feature_enabled?('captain_integration_v2')
 
       permitted[:config][key] = params[:assistant][:config].slice(key).permit!.to_h[key.to_s]
     end

@@ -89,6 +89,7 @@ class Captain::Assistant < ApplicationRecord
   validate :validate_max_replies_per_conversation
   validate :validate_reply_delay_seconds
   validate :validate_completion_settings
+  validate :validate_loop_guard_settings
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
   validates :auto_resolve_after,
@@ -361,6 +362,15 @@ class Captain::Assistant < ApplicationRecord
     return if response_window.blank?
 
     errors.add(:config, 'invalid response_window') unless RESPONSE_WINDOWS.include?(response_window)
+  end
+
+  def validate_loop_guard_settings
+    { 'loop_guard_replies' => 4..20, 'loop_guard_window_seconds' => 30..300 }.each do |key, range|
+      next unless config.key?(key)
+      next if config[key].is_a?(Integer) && range.cover?(config[key])
+
+      errors.add(:config, "#{key} must be an integer in #{range}")
+    end
   end
 
   def validate_completion_settings

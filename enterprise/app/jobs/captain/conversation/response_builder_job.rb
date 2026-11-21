@@ -96,6 +96,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     trigger_typing_event(:on)
     Current.executed_by = @assistant
     return process_reply_limit if @assistant.reply_limit_reached?(@conversation)
+    return if Captain::Conversation::LoopGuard.new(@conversation, @assistant).perform(@responding_to_message_id)
     return process_usage_exhausted unless reserve_reply_usage!
     return generate_and_process_response unless captain_v2_enabled?
 
@@ -188,10 +189,12 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   def process_standard_response
     message = nil
     ActiveRecord::Base.transaction do
-      next if captain_v2_enabled? && newer_customer_message_arrived?
+      delivery_conversation = Conversation.lock.find(@conversation.id)
+      next unless deliverable_turn?(delivery_conversation)
 
       message = create_messages
       record_reply_decision(message)
+      Captain::Conversation::LoopGuard.new(@conversation, @assistant).record(message, @response)
       record_completion_signal(message)
       Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
       finish_reply_usage!
@@ -205,6 +208,12 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     session = capture_assistant_session(result_message: message, credits_consumed: 1.0)
     attach_decision_session(session)
     record_v2_response_completed(message) if captain_v2_enabled?
+  end
+
+  # A generation that was already running must not deliver over a loop review or a human takeover.
+  def deliverable_turn?(delivery_conversation)
+    conversation_pending? && !(captain_v2_enabled? && newer_customer_message_arrived?) &&
+      !Captain::Conversation::LoopGuard.new(delivery_conversation, @assistant).detected?
   end
 
   def record_completion_signal(message)
