@@ -48,6 +48,30 @@ describe('shared templates table', () => {
     expect(footer.props('perPageOptions')).toEqual([10, 25, 50]);
   });
 
+  it('uses a fixed layout and keeps the actions column visible at medium widths', async () => {
+    const wrapper = mount(TemplatesTable, {
+      props: {
+        columns: [
+          { key: 'NAME', label: 'Name' },
+          { key: 'INBOX', label: 'Inbox' },
+          { key: 'UPDATED', label: 'Updated' },
+          { key: 'ACTIONS', label: 'Actions' },
+        ],
+        items: [{ id: 1, name: 'customer_welcome' }],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      },
+    });
+    const table = wrapper.get('table');
+    expect(table.classes()).toContain('table-fixed');
+    expect(wrapper.get('th:nth-child(3)').classes()).toContain('hidden');
+    expect(wrapper.get('td:nth-child(3)').classes()).toContain('lg:table-cell');
+    expect(wrapper.get('th:last-child').classes()).toContain('sticky');
+    expect(wrapper.get('td:last-child').classes()).toContain('sticky');
+    wrapper.unmount();
+  });
+
   it('gives all three actions exactly the same Button props and emits distinct actions', async () => {
     const wrapper = mount(TemplateRowActions, {
       props: {
@@ -111,6 +135,9 @@ describe('shared templates table', () => {
     expect(Object.keys(spanish.FILTERS)).toEqual(Object.keys(english.FILTERS));
     expect(spanish.TABLE.INBOX).toBe('Bandeja');
     expect(spanish.FILTERS.ALL_INBOXES).toBe('Todas las bandejas');
+    expect(spanish.DRAFTS.EDIT_TITLE).toBe('Editar borrador');
+    expect(spanish.DRAFTS.NEW_VERSION_TITLE).toBe('Nueva versión');
+    expect(Object.keys(spanish.DRAFTS)).toEqual(Object.keys(english.DRAFTS));
   });
 
   it('renders template cards for mobile without changing the shared default for Flows', async () => {

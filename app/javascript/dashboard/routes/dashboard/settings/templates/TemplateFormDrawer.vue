@@ -125,6 +125,14 @@ const savedSnapshot = ref('');
 const duplicateDialog = ref(null);
 const duplicateInboxId = ref(null);
 const isRemote = computed(() => Boolean(editing.value));
+const drawerTitle = computed(() => {
+  if (isRemote.value)
+    return editing.value?.name || t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.DETAILS');
+  if (draft.value?.source_remote_id)
+    return t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NEW_VERSION_TITLE');
+  if (draft.value) return t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.EDIT_TITLE');
+  return t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE');
+});
 // Keep the existing form's identity/structure locks for installed templates only.
 const isEdit = isRemote;
 const localReadOnly = computed(() =>
@@ -811,21 +819,13 @@ const buttonChoices = computed(() =>
   <SidePanel
     ref="panelRef"
     width="2xl"
-    :title="
-      isEdit
-        ? $t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.DETAILS')
-        : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
-    "
+    :title="drawerTitle"
     @close="onPanelClosed"
   >
     <template #header>
       <div class="flex items-center min-w-0 gap-2">
         <h3 class="text-base font-medium truncate text-n-slate-12">
-          {{
-            isEdit
-              ? $t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.DETAILS')
-              : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
-          }}
+          {{ drawerTitle }}
         </h3>
         <span
           v-if="!isEdit"
@@ -1089,7 +1089,7 @@ const buttonChoices = computed(() =>
             :disabled="isEdit"
             :message="
               fieldError('name') ||
-              (!isEdit && generatedName
+              (!isEdit && generatedName && generatedName !== form.name
                 ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME_SAVED_AS', {
                     name: generatedName,
                   })
@@ -1684,42 +1684,21 @@ const buttonChoices = computed(() =>
       @confirm="discard"
     />
     <template #footer>
-      <div class="flex flex-wrap gap-2">
+      <div class="grid grid-cols-3 gap-2 sm:flex sm:justify-end">
         <Button
-          type="button"
-          intent="tertiary"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL')"
-          @click="close"
+          v-if="!isRemote && draft && !localReadOnly"
+          intent="primary"
+          class="col-span-3 w-full sm:order-last sm:w-auto"
+          :disabled="!canSubmit || isSaving || isUploading || isLoading"
+          :is-loading="isSaving"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT')"
+          data-testid="submit-draft"
+          @click="submitForReview"
         />
-        <Button
-          type="button"
-          intent="secondary"
-          icon="i-lucide-eye"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')"
-          data-testid="template-preview-open"
-          @click="openPreview"
-        />
-        <template v-if="isRemote || localReadOnly">
-          <Button
-            v-if="(isRemote && canCopyRemote) || currentAttempt?.remote_id"
-            intent="primary"
-            :disabled="isSaving || isLoading"
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NEW_VERSION')"
-            data-testid="new-version"
-            @click="newVersion"
-          />
-          <Button
-            v-if="(isRemote && canCopyRemote) || draft"
-            intent="secondary"
-            :disabled="isSaving || isLoading"
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE')"
-            data-testid="duplicate-draft"
-            @click="duplicateDialog?.open()"
-          />
-        </template>
         <Button
           v-if="canEditContent || canEditBindings"
           type="button"
+          class="w-full sm:order-3 sm:w-auto"
           :intent="canSubmit ? 'secondary' : 'primary'"
           :is-loading="isSaving"
           :disabled="isSaving || isUploading || isLoading || conflict"
@@ -1732,14 +1711,41 @@ const buttonChoices = computed(() =>
           @click="save"
         />
         <Button
-          v-if="!isRemote && draft && !localReadOnly"
-          intent="primary"
-          :disabled="!canSubmit || isSaving || isUploading || isLoading"
-          :is-loading="isSaving"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT')"
-          data-testid="submit-draft"
-          @click="submitForReview"
+          type="button"
+          intent="secondary"
+          icon="i-lucide-eye"
+          class="w-full sm:order-2 sm:w-auto"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')"
+          data-testid="template-preview-open"
+          @click="openPreview"
         />
+        <Button
+          type="button"
+          intent="tertiary"
+          class="w-full sm:order-1 sm:w-auto"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL')"
+          @click="close"
+        />
+        <template v-if="isRemote || localReadOnly">
+          <Button
+            v-if="(isRemote && canCopyRemote) || currentAttempt?.remote_id"
+            intent="primary"
+            class="w-full sm:order-4 sm:w-auto"
+            :disabled="isSaving || isLoading"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NEW_VERSION')"
+            data-testid="new-version"
+            @click="newVersion"
+          />
+          <Button
+            v-if="(isRemote && canCopyRemote) || draft"
+            intent="secondary"
+            class="w-full sm:order-5 sm:w-auto"
+            :disabled="isSaving || isLoading"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE')"
+            data-testid="duplicate-draft"
+            @click="duplicateDialog?.open()"
+          />
+        </template>
       </div>
     </template>
   </SidePanel>

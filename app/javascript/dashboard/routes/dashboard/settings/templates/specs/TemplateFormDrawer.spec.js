@@ -190,6 +190,74 @@ describe('TemplateFormDrawer drafts', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });
+  it('shows the correct title for a new template, an edited draft and a new version', async () => {
+    const wrapper = await mountDrawer();
+    expect(wrapper.get('h3').text()).toBe(
+      'WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE'
+    );
+
+    await wrapper.vm.open(positional);
+    expect(wrapper.get('h3').text()).toBe(positional.name);
+
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.get('h3').text()).toBe(
+      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.EDIT_TITLE'
+    );
+
+    DraftsAPI.show.mockResolvedValueOnce({
+      data: { ...record, source_remote_id: 'meta-template-1' },
+    });
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.get('h3').text()).toBe(
+      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.NEW_VERSION_TITLE'
+    );
+    wrapper.unmount();
+  });
+
+  it('puts submit first on mobile and last on desktop with equal-width secondary actions', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(record);
+    const footer = wrapper
+      .findAll('div')
+      .find(element => element.classes().includes('grid-cols-3'));
+    expect(footer.get('[data-testid="submit-draft"]').classes()).toContain(
+      'col-span-3'
+    );
+    expect(footer.get('[data-testid="submit-draft"]').classes()).toContain(
+      'sm:order-last'
+    );
+    ['save-draft', 'template-preview-open'].forEach(testId => {
+      expect(footer.get(`[data-testid="${testId}"]`).classes()).toContain(
+        'w-full'
+      );
+    });
+    expect(
+      footer
+        .findAll('button')
+        .map(button => button.attributes('data-testid') || button.text())
+    ).toEqual([
+      'submit-draft',
+      'save-draft',
+      'template-preview-open',
+      'WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL',
+    ]);
+    wrapper.unmount();
+  });
+  it('hides the generated-name hint when it matches the entered name', async () => {
+    const wrapper = await mountDrawer();
+    const name = wrapper.get(
+      'input[placeholder="WHATSAPP_TEMPLATE_MGMT.FORM.NAME_PLACEHOLDER"]'
+    );
+    await name.setValue('welcome_message');
+    expect(wrapper.text()).not.toContain(
+      'WHATSAPP_TEMPLATE_MGMT.FORM.NAME_SAVED_AS'
+    );
+    await name.setValue('Welcome Message');
+    expect(wrapper.text()).toContain(
+      'WHATSAPP_TEMPLATE_MGMT.FORM.NAME_SAVED_AS'
+    );
+    wrapper.unmount();
+  });
   it('keeps explanations in tooltips, lets the body grow and puts Agregar variable by the counter', async () => {
     const wrapper = await mountDrawer();
 

@@ -327,6 +327,8 @@
     "MISSING_VARIABLES": "Falta el dato de {variables}",
     "DRAFTS": {
       "SAVE": "Guardar borrador",
+      "EDIT_TITLE": "Editar borrador",
+      "NEW_VERSION_TITLE": "Nueva versión",
       "SUBMIT": "Enviar a revisión",
       "NEW_VERSION": "Crear nueva versión",
       "DUPLICATE": "Duplicar en otro canal",

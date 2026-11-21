@@ -727,36 +727,52 @@ onDeactivated(abortTemplateRequest);
         @open="openPreview"
       >
         <template #NAME="{ item }">
-          <span class="inline-flex items-center gap-2">
-            <span class="min-w-0 break-all text-heading-3 text-n-slate-12">{{
-              item.name ||
-              item.title ||
-              $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNTITLED')
-            }}</span>
+          <span class="flex w-full min-w-0 items-center gap-2">
+            <span
+              class="block min-w-0 flex-1 truncate text-heading-3 text-n-slate-12"
+              :title="
+                item.name ||
+                item.title ||
+                $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNTITLED')
+              "
+            >
+              {{
+                item.name ||
+                item.title ||
+                $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNTITLED')
+              }}
+            </span>
             <TemplatePendingIndicator :template="item" />
           </span>
         </template>
         <template #CATEGORY="{ item }">
           <span
+            v-if="item.category"
             class="px-2 py-1 text-xs rounded-md"
             :class="
               item.category?.toUpperCase() === 'MARKETING'
                 ? 'bg-n-amber-3 text-n-amber-11'
                 : 'bg-n-teal-3 text-n-teal-11'
             "
-            >{{
+          >
+            {{
               $t(
                 'WHATSAPP_TEMPLATE_MGMT.FILTERS.CATEGORIES.' +
                   item.category?.toUpperCase()
               )
-            }}</span
-          >
+            }}
+          </span>
+          <span v-else>{{ formatTemplateLabel(null) }}</span>
         </template>
         <template #LANGUAGE="{ item }">
-          {{ formatTemplateLanguage(item.language) }}
+          {{
+            item.language
+              ? formatTemplateLanguage(item.language)
+              : formatTemplateLabel(null)
+          }}
         </template>
         <template #TYPE="{ item }">
-          {{ typeLabels[templateTypeKey(item)] }}
+          {{ typeLabels[templateTypeKey(item)] || formatTemplateLabel(null) }}
         </template>
         <template #INBOX="{ item }">
           {{
@@ -774,7 +790,7 @@ onDeactivated(abortTemplateRequest);
         </template>
         <template #STATUS="{ item }">
           <span
-            v-if="item.isLocalDraft"
+            v-if="item.isLocalDraft && item.status"
             class="px-2 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11"
           >
             {{

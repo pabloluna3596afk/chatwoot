@@ -327,6 +327,8 @@
     "MISSING_VARIABLES": "Missing value for {variables}",
     "DRAFTS": {
       "SAVE": "Save draft",
+      "EDIT_TITLE": "Edit draft",
+      "NEW_VERSION_TITLE": "New version",
       "SUBMIT": "Submit for review",
       "NEW_VERSION": "Create new version",
       "DUPLICATE": "Duplicate to another channel",

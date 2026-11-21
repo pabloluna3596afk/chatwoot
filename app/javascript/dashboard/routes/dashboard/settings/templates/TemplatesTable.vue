@@ -15,6 +15,21 @@ defineProps({
   perPageOptions: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
+const columnClasses = key => {
+  const widths = {
+    NAME: 'w-[13rem] min-w-[13rem] max-w-[13rem] lg:w-[15rem] lg:min-w-[15rem] lg:max-w-[15rem]',
+    CATEGORY: 'hidden lg:table-cell w-[8rem] min-w-[8rem] max-w-[8rem]',
+    INBOX: 'hidden lg:table-cell w-[10rem] min-w-[10rem] max-w-[10rem]',
+    LANGUAGE: 'w-[5.5rem] min-w-[5.5rem] max-w-[5.5rem]',
+    TYPE: 'w-[5rem] min-w-[5rem] max-w-[5rem]',
+    STATUS: 'w-[7rem] min-w-[7rem] max-w-[7rem]',
+    META_STATUS: 'w-[7rem] min-w-[7rem] max-w-[7rem]',
+    UPDATED: 'hidden lg:table-cell w-[9rem] min-w-[9rem] max-w-[9rem]',
+    ACTIONS:
+      'sticky right-0 z-10 w-[8rem] min-w-[8rem] max-w-[8rem] bg-n-solid-1 shadow-[-0.5rem_0_0.5rem_-0.5rem_rgba(0,0,0,0.2)]',
+  };
+  return widths[key] || '';
+};
 </script>
 
 <template>
@@ -23,6 +38,11 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
       :class="{ 'hidden md:block': cardsOnMobile }"
       :headers="['', ...columns.map(column => column.label)]"
       :items="items"
+      fixed
+      :header-classes="[
+        'w-12 min-w-12',
+        ...columns.map(column => columnClasses(column.key)),
+      ]"
     >
       <template #row>
         <BaseTableRow
@@ -34,7 +54,7 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
           @click="emit('open', item)"
           @keydown.enter.self="emit('open', item)"
         >
-          <BaseTableCell>
+          <BaseTableCell class="w-12 min-w-12">
             <span
               class="grid size-8 place-items-center rounded-lg border border-n-strong bg-n-alpha-2"
             >
@@ -44,7 +64,11 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
               />
             </span>
           </BaseTableCell>
-          <BaseTableCell v-for="column in columns" :key="column.key">
+          <BaseTableCell
+            v-for="column in columns"
+            :key="column.key"
+            :class="columnClasses(column.key)"
+          >
             <slot :name="column.key" :item="item">
               {{ item[column.key] }}
             </slot>

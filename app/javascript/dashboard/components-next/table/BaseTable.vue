@@ -18,6 +18,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  fixed: {
+    type: Boolean,
+    default: false,
+  },
+  headerClasses: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const hasHeaderSlot = computed(() => !!props.headers.length);
@@ -28,13 +36,17 @@ const showHeaders = computed(
 
 <template>
   <div class="w-full min-w-0 max-w-full overflow-x-auto" data-table-scroll>
-    <table class="min-w-full table-auto divide-y divide-n-weak">
+    <table
+      class="min-w-full divide-y divide-n-weak"
+      :class="fixed ? 'w-full table-fixed' : 'table-auto'"
+    >
       <thead v-if="showHeaders" class="border-t border-n-weak">
         <tr>
           <th
             v-for="(header, index) in headers"
             :key="index"
             class="py-4 ltr:pr-4 rtl:pl-4 text-start text-heading-3 text-n-slate-12 capitalize"
+            :class="headerClasses[index]"
           >
             <slot :name="`header-${index}`" :header="header">
               {{ header }}
