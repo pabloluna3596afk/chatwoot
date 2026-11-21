@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_19_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_20_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -2237,6 +2237,63 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_120000) do
     t.index ["created_by_id"], name: "index_whatsapp_flows_on_created_by_id"
   end
 
+  create_table "whatsapp_template_drafts", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "preferred_channel_id"
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.bigint "source_draft_id"
+    t.string "source_remote_id"
+    t.string "title", default: "", null: false
+    t.string "waba_id"
+    t.string "name"
+    t.string "language"
+    t.string "category"
+    t.string "parameter_format"
+    t.jsonb "definition", default: {}, null: false
+    t.jsonb "variable_bindings", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "archived_at", "updated_at"], name: "index_wa_drafts_on_catalog"
+    t.index ["account_id", "waba_id", "name", "language"], name: "index_wa_drafts_on_identity", unique: true, where: "((archived_at IS NULL) AND (waba_id IS NOT NULL) AND (name IS NOT NULL) AND (language IS NOT NULL))"
+    t.index ["account_id"], name: "index_whatsapp_template_drafts_on_account_id"
+    t.index ["created_by_id"], name: "index_whatsapp_template_drafts_on_created_by_id"
+    t.index ["preferred_channel_id"], name: "index_whatsapp_template_drafts_on_preferred_channel_id"
+    t.index ["source_draft_id"], name: "index_whatsapp_template_drafts_on_source_draft_id"
+    t.index ["updated_by_id"], name: "index_whatsapp_template_drafts_on_updated_by_id"
+  end
+
+  create_table "whatsapp_template_submissions", force: :cascade do |t|
+    t.bigint "whatsapp_template_draft_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "actor_id"
+    t.integer "revision", null: false
+    t.string "waba_id", null: false
+    t.string "name", null: false
+    t.string "language", null: false
+    t.jsonb "snapshot", null: false
+    t.string "payload_digest", null: false
+    t.string "status", default: "submitting", null: false
+    t.string "remote_id"
+    t.string "remote_status"
+    t.string "remote_category"
+    t.text "remote_reason"
+    t.jsonb "error_details", default: {}, null: false
+    t.jsonb "request_payload"
+    t.boolean "retry_permitted", default: false, null: false
+    t.integer "request_count", default: 0, null: false
+    t.datetime "next_retry_at"
+    t.datetime "submitted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "waba_id", "name", "language"], name: "index_wa_submissions_on_identity", unique: true, where: "((status)::text = ANY ((ARRAY['submitting'::character varying, 'reconciling'::character varying, 'submitted'::character varying])::text[]))"
+    t.index ["account_id"], name: "index_whatsapp_template_submissions_on_account_id"
+    t.index ["actor_id"], name: "index_whatsapp_template_submissions_on_actor_id"
+    t.index ["whatsapp_template_draft_id", "revision"], name: "index_wa_submissions_on_revision", unique: true
+  end
+
   create_table "working_hours", force: :cascade do |t|
     t.bigint "inbox_id"
     t.bigint "account_id"
@@ -2331,6 +2388,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_120000) do
   add_foreign_key "whatsapp_flow_publications", "whatsapp_flows"
   add_foreign_key "whatsapp_flows", "accounts", on_delete: :cascade
   add_foreign_key "whatsapp_flows", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "whatsapp_template_drafts", "accounts", on_delete: :cascade
+  add_foreign_key "whatsapp_template_drafts", "channel_whatsapp", column: "preferred_channel_id", on_delete: :nullify
+  add_foreign_key "whatsapp_template_drafts", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "whatsapp_template_drafts", "users", column: "updated_by_id", on_delete: :nullify
+  add_foreign_key "whatsapp_template_drafts", "whatsapp_template_drafts", column: "source_draft_id"
+  add_foreign_key "whatsapp_template_submissions", "accounts", on_delete: :cascade
+  add_foreign_key "whatsapp_template_submissions", "users", column: "actor_id", on_delete: :nullify
+  add_foreign_key "whatsapp_template_submissions", "whatsapp_template_drafts"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).
