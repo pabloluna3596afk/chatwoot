@@ -61,9 +61,24 @@ const heading = computed(() =>
     ? t('CONVERSATION.REPLY_PREVIEW.UNAVAILABLE', { type: type.value })
     : type.value
 );
+const MAX_EXCERPT_LENGTH = 240;
+// The quote is a short plain-text excerpt: paragraphs, lists and line breaks
+// are flattened to spaces so a long message can never grow the quote.
+const toExcerpt = html => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('br, p, li, div, pre').forEach(node => {
+    node.append(' ');
+  });
+  return (doc.body.textContent || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_EXCERPT_LENGTH);
+};
 const text = computed(() => {
   if (message.value?.content)
-    return new MessageFormatter(message.value.content).formattedMessage;
+    return toExcerpt(
+      new MessageFormatter(message.value.content).formattedMessage
+    );
   return (
     middleEllipsis(attachmentName(attachment.value)) ||
     t('CONVERSATION.REPLY_MESSAGE_NOT_FOUND')
@@ -124,13 +139,14 @@ const scrollToMessage = () =>
         >{{ heading }}</span
       >
       <span
-        v-dompurify-html="text"
+        class="min-w-0 text-xs leading-4 line-clamp-1 sm:line-clamp-2 break-all"
         :class="
           composer || attachment.fileType
-            ? 'text-xs leading-4 text-n-slate-12 line-clamp-1 sm:line-clamp-2 break-all'
-            : 'text-xs text-n-slate-11 truncate'
+            ? 'text-n-slate-12'
+            : 'text-n-slate-11'
         "
-      />
+        >{{ text }}</span
+      >
     </span>
   </button>
 </template>

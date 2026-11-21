@@ -69,7 +69,7 @@ describe('reply attachment preview', () => {
     expect(wrapper.find('img').exists()).toBe(false);
   });
 
-  it('formats text and uses the sender name', () => {
+  it('shows the sender name and a plain-text excerpt without markup', () => {
     inReplyTo.value = {
       id: 1,
       content: '**Confirmed**',
@@ -77,7 +77,34 @@ describe('reply attachment preview', () => {
     };
     const wrapper = mount(ReplyPreview, options());
     expect(wrapper.text()).toContain('Ana');
-    expect(wrapper.get('strong').text()).toBe('Confirmed');
+    expect(wrapper.text()).toContain('Confirmed');
+    expect(wrapper.find('strong').exists()).toBe(false);
+  });
+
+  it('flattens paragraphs and lists into one clamped excerpt', () => {
+    inReplyTo.value = {
+      id: 1,
+      content: 'First paragraph\n\nSecond paragraph\n\n- one\n- two',
+      sender: { name: 'Ana' },
+    };
+    const wrapper = mount(ReplyPreview, options());
+    const excerpt = wrapper.get('[class*="line-clamp-1"][class*="leading-4"]');
+    expect(excerpt.text()).toBe('First paragraph Second paragraph one two');
+    expect(excerpt.classes()).toContain('sm:line-clamp-2');
+    expect(wrapper.findAll('p, ul, li, br')).toHaveLength(0);
+  });
+
+  it('caps the excerpt length for a very long message', () => {
+    const paragraph = 'Hello, I need to check my order number 24. ';
+    inReplyTo.value = {
+      id: 1,
+      content: Array.from({ length: 40 }, () => paragraph).join('\n\n'),
+      sender: { name: 'Ana' },
+    };
+    const wrapper = mount(ReplyPreview, options());
+    const excerpt = wrapper.get('[class*="line-clamp-1"][class*="leading-4"]');
+    expect(excerpt.text().length).toBeLessThanOrEqual(240);
+    expect(excerpt.text()).not.toContain('\n');
   });
 
   it('keeps the missing-message text', () => {
