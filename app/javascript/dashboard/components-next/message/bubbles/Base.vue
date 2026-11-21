@@ -14,8 +14,8 @@ import { CHAT_SKIN } from 'dashboard/helper/chatSkin';
 
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
-  overlayMeta: { type: Boolean, default: false },
   captainDetailsAtStart: { type: Boolean, default: false },
+  contentClass: { type: [String, Array, Object], default: '' },
 });
 
 const {
@@ -78,12 +78,10 @@ const shouldShowMeta = computed(
     (!shouldGroupWithNext.value || sourceIcon.value || showCaptain.value) &&
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
+const MESSAGE_META_SPACING = 'mt-1 px-3 pb-2';
 const metaClass = computed(() => [
-  'mt-1 justify-end',
-  variant.value === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
-  props.overlayMeta
-    ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/60 px-2 py-0.5 text-white backdrop-blur-sm'
-    : 'text-n-slate-11',
+  MESSAGE_META_SPACING,
+  'justify-end text-n-slate-11',
 ]);
 </script>
 
@@ -93,16 +91,16 @@ const metaClass = computed(() => [
     :class="[
       messageClass,
       {
-        'relative [&:has([role=status])_.media-meta]:static [&:has([role=status])_.media-meta]:w-fit [&:has([role=status])_.media-meta]:ms-auto':
-          overlayMeta,
         'max-w-lg':
           variant !== MESSAGE_VARIANTS.EMAIL &&
           variant !== MESSAGE_VARIANTS.ACTIVITY,
       },
     ]"
   >
-    <ReplyPreview v-if="inReplyTo" />
-    <slot />
+    <div data-bubble-content class="min-w-0" :class="props.contentClass">
+      <ReplyPreview v-if="inReplyTo" />
+      <slot />
+    </div>
     <template v-if="shouldShowMeta">
       <CaptainGenerationDetails
         v-if="showCaptain && !props.captainDetailsAtStart"

@@ -67,19 +67,20 @@ describe('bubble metadata composition', () => {
     expect(wrapper.find('[data-captain]').exists()).toBe(true);
   });
 
-  it('keeps the email spacing and the media overlay', () => {
+  it('uses the shared metadata spacing for every message variant', () => {
     context.variant.value = 'email';
-    const wrapper = render({ overlayMeta: true });
+    const wrapper = render();
     const meta = wrapper.get('[data-meta]');
     expect(meta.classes()).toEqual(
       expect.arrayContaining([
+        'mt-1',
         'px-3',
-        'pb-3',
-        'media-meta',
-        'end-2',
-        'text-white',
+        'pb-2',
+        'justify-end',
+        'text-n-slate-11',
       ])
     );
+    expect(meta.classes()).not.toContain('absolute');
   });
 
   it('does not create a meta row for activities or an explicit hideMeta', async () => {

@@ -347,6 +347,9 @@ export default {
       }
       return '';
     },
+    latestMessageBadge() {
+      return this.unreadMessageCount > 99 ? '99+' : this.unreadMessageCount;
+    },
     unreadMessageCount() {
       return this.currentChat.unread_count || 0;
     },
@@ -695,13 +698,12 @@ export default {
       >
         <div
           v-if="showScrollToLatest"
-          class="absolute -top-14 end-4 z-10 max-md:-top-12"
+          class="absolute -top-14 inset-x-0 mx-auto w-fit z-10 max-md:-top-12"
         >
           <NextButton
-            slate
-            sm
-            icon="i-lucide-chevron-down"
-            class="!rounded-full !size-9 shadow-md ring-1 ring-n-weak"
+            intent="secondary"
+            icon="i-lucide-arrow-down"
+            class="!rounded-full !size-10 !bg-n-solid-1 hover:enabled:!bg-n-solid-1 text-n-slate-12 shadow-md hover:shadow-lg ring-1 ring-n-weak focus-visible:ring-2 focus-visible:ring-n-brand"
             :aria-label="$t('CONVERSATION.SCROLL_TO_LATEST')"
             @click="scrollToLatest"
           />
@@ -709,7 +711,7 @@ export default {
             v-if="unreadMessageCount > 0"
             class="absolute -top-1.5 -end-1.5 grid min-w-5 h-5 place-items-center rounded-full bg-n-brand px-1 text-xs font-medium text-white pointer-events-none"
             aria-hidden="true"
-            >{{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}</span
+            >{{ latestMessageBadge }}</span
           >
         </div>
       </Transition>

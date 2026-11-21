@@ -14,7 +14,6 @@ const props = defineProps({
   total: { type: Number, required: true },
   more: { type: Number, default: 0 },
   channelType: { type: String, default: '' },
-  transparent: { type: Boolean, default: false },
 });
 const emit = defineEmits(['open', 'error']);
 const { t } = useI18n();
@@ -85,15 +84,15 @@ const download = async () => {
   <figure
     class="relative group overflow-hidden m-0 min-w-0"
     :class="[
-      transparent ? 'bg-transparent' : 'bg-n-alpha-1',
       single
         ? tall
-          ? 'rounded-lg w-[20rem] max-w-full h-[22rem]'
+          ? 'rounded-[0.625rem] w-[20rem] max-w-full h-[22rem]'
           : dimensions.width
-            ? 'rounded-lg w-fit max-w-[20rem] max-h-[22rem]'
-            : 'rounded-lg w-[20rem] max-w-full'
+            ? 'rounded-[0.625rem] w-fit max-w-[20rem] max-h-[22rem]'
+            : 'rounded-[0.625rem] w-[20rem] max-w-full'
         : 'h-full',
       {
+        'bg-n-alpha-1': hasError,
         'row-span-2': total === 3 && index === 0,
         'p-3 grid place-items-center': tiny,
       },

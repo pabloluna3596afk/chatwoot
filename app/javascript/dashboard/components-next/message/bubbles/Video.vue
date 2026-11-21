@@ -28,11 +28,12 @@ const isReel = computed(() => {
 
 <template>
   <BaseBubble
-    class="overflow-hidden p-3"
+    class="overflow-hidden"
+    content-class="p-1"
     data-bubble-name="video"
     @click="showGallery = true"
   >
-    <div class="relative group rounded-lg overflow-hidden">
+    <div class="relative group rounded-[0.625rem] overflow-hidden">
       <div
         v-if="isReel"
         class="absolute p-2 flex items-start justify-end right-0 pointer-events-none"
@@ -41,7 +42,7 @@ const isReel = computed(() => {
       </div>
       <video
         controls
-        class="rounded-lg skip-context-menu"
+        class="rounded-[0.625rem] skip-context-menu"
         :src="attachment.dataUrl"
         :class="{
           'max-w-48': isReel,

@@ -217,7 +217,7 @@ export default {
     },
     shouldShowReplyToMessage() {
       if (!this.inReplyTo?.id || this.copilot.isActive.value) return false;
-      // Private notes are internal — show reply preview without channel REPLY_TO.
+      // Private notes are internal â€” show reply preview without channel REPLY_TO.
       if (this.isOnPrivateNote) return true;
       return (
         this.inboxHasFeature(INBOX_FEATURES.REPLY_TO) &&
@@ -417,7 +417,7 @@ export default {
       }
       const keyLabel = this.isEditorHotKeyEnabled('cmd_enter')
         ? `(${this.shortcutKey})`
-        : '(↵)';
+        : '(â†µ)';
       return `${sendMessageText} ${keyLabel}`;
     },
     replyBoxClass() {
@@ -1485,11 +1485,6 @@ export default {
       leave-to-class="opacity-0 translate-y-2 scale-[0.98]"
     >
       <div :key="copilot.editorTransitionKey.value" class="reply-box__top">
-        <ReplyToMessage
-          v-if="shouldShowReplyToMessage"
-          :message="inReplyTo"
-          @dismiss="resetReplyToMessage"
-        />
         <EmojiIconPicker
           v-if="showEmojiPicker"
           v-on-clickaway="hideEmojiPicker"
@@ -1527,6 +1522,12 @@ export default {
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
         />
+        <ReplyToMessage
+          v-if="shouldShowReplyToMessage"
+          :message="inReplyTo"
+          :class="{ '!bg-n-amber-12/5': isPrivate }"
+          @dismiss="resetReplyToMessage"
+        />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
           :show-copilot-editor="copilot.showEditor.value"
@@ -1546,10 +1547,11 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="reply-box__editor input popover-prosemirror-menu rounded-2xl bg-n-alpha-1 px-3 py-2 max-md:[&_.resizable-editor-body]:!h-auto max-md:[&_.resizable-editor-body]:!min-h-[max(1.5rem,calc(var(--editor-height)-4rem))] max-md:[&_.resizable-editor-body]:!max-h-[max(7.5rem,var(--editor-height))] max-md:[&_.resizable-editor-body]:overflow-y-auto"
+          class="reply-box__editor input popover-prosemirror-menu rounded-2xl bg-n-alpha-1 px-3 py-2 max-sm:[&_.empty-node::before]:max-w-full max-sm:[&_.empty-node::before]:overflow-hidden max-sm:[&_.empty-node::before]:text-ellipsis max-sm:[&_.empty-node::before]:whitespace-nowrap max-md:[&_.resizable-editor-body]:!h-auto max-md:[&_.resizable-editor-body]:!min-h-[max(1.5rem,calc(var(--editor-height)-4rem))] max-md:[&_.resizable-editor-body]:!max-h-[max(7.5rem,var(--editor-height))] max-md:[&_.resizable-editor-body]:overflow-y-auto"
           :class="{
             '!bg-n-amber-12/5': isPrivate,
             'text-n-slate-11': isEditorDisabled,
+            '!rounded-t-none': shouldShowReplyToMessage,
           }"
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"

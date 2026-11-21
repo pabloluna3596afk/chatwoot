@@ -49,7 +49,8 @@ const buttonIcon = type => {
 
 <template>
   <BaseBubble
-    class="px-4 py-3 w-[29rem] max-w-full"
+    class="w-[29rem] max-w-full"
+    content-class="px-3 pt-3"
     data-bubble-name="whatsapp-template"
   >
     <div class="flex items-center gap-2.5 pb-3 border-b border-n-weak">

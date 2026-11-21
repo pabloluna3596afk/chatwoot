@@ -13,7 +13,11 @@ const attachment = computed(() => {
 </script>
 
 <template>
-  <BaseBubble class="overflow-hidden p-3" data-bubble-name="embed">
+  <BaseBubble
+    class="overflow-hidden"
+    content-class="p-3"
+    data-bubble-name="embed"
+  >
     <div
       class="w-full max-w-[360px] sm:max-w-[420px] min-h-[520px] h-[70vh] max-h-[680px]"
     >

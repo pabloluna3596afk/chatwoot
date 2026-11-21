@@ -102,7 +102,7 @@ const handleSeeOriginal = () => {
 </script>
 
 <template>
-  <BaseBubble class="px-3 pt-2 pb-1.5" data-bubble-name="text">
+  <BaseBubble content-class="px-3 pt-2" data-bubble-name="text">
     <div class="gap-3 flex flex-col">
       <span v-if="isEmpty" class="text-n-slate-11">
         {{ $t('CONVERSATION.NO_CONTENT') }}

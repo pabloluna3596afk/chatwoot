@@ -1,186 +1,215 @@
 import { ref, computed } from 'vue';
-import {
-  debounce,
-  calculateCenterOffset,
-  applyRotationTransform,
-  normalizeToPercentage,
-} from '@chatwoot/utils';
 
-// Composable for images in gallery view
-export const useImageZoom = imageRef => {
-  const MAX_ZOOM_LEVEL = 3;
-  const MIN_ZOOM_LEVEL = 1;
-  const ZOOM_INCREMENT = 0.2;
-  const MOUSE_MOVE_DEBOUNCE_MS = 100;
-  const MOUSE_LEAVE_DEBOUNCE_MS = 110;
-  const DEFAULT_IMG_TRANSFORM_ORIGIN = 'center center';
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const WHEEL_STEP = 0.2;
+const CLICK_ZOOM = 2;
+const DRAG_THRESHOLD = 5;
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-  const zoomScale = ref(1);
-  const imgTransformOriginPoint = ref(DEFAULT_IMG_TRANSFORM_ORIGIN);
+// Translations use viewport coordinates; rotation never rotates the drag axes.
+export const useImageZoom = (imageRef, viewportRef = null) => {
+  const zoomScale = ref(MIN_ZOOM);
   const activeImageRotation = ref(0);
+  const position = ref({ x: 0, y: 0 });
+  const dimensions = ref(null);
+  const pointers = new Map();
+  const isDragging = ref(false);
+  let pointerStart = null;
+  let suppressClick = false;
 
-  const imageWrapperStyle = computed(() => ({
-    transform: `rotate(${activeImageRotation.value}deg)`,
-  }));
-
+  const bounds = () => {
+    const viewport = viewportRef?.value;
+    const image = imageRef.value;
+    return {
+      width: viewport?.clientWidth || image?.offsetWidth || 0,
+      height: viewport?.clientHeight || image?.offsetHeight || 0,
+      imageWidth: dimensions.value?.width || image?.offsetWidth || 0,
+      imageHeight: dimensions.value?.height || image?.offsetHeight || 0,
+    };
+  };
+  const constrainPosition = () => {
+    const { width, height, imageWidth, imageHeight } = bounds();
+    const rotated = activeImageRotation.value % 180 !== 0;
+    const limitX = Math.max(
+      0,
+      ((rotated ? imageHeight : imageWidth) * zoomScale.value - width) / 2
+    );
+    const limitY = Math.max(
+      0,
+      ((rotated ? imageWidth : imageHeight) * zoomScale.value - height) / 2
+    );
+    position.value = {
+      x: clamp(position.value.x, -limitX, limitX),
+      y: clamp(position.value.y, -limitY, limitY),
+    };
+  };
+  const updateImageBounds = () => {
+    const image = imageRef.value;
+    const viewport = viewportRef?.value;
+    if (
+      image?.naturalWidth &&
+      viewport?.clientWidth &&
+      viewport?.clientHeight
+    ) {
+      const rotated = activeImageRotation.value % 180 !== 0;
+      const fit = Math.min(
+        1,
+        (rotated ? viewport.clientHeight : viewport.clientWidth) /
+          image.naturalWidth,
+        (rotated ? viewport.clientWidth : viewport.clientHeight) /
+          image.naturalHeight
+      );
+      dimensions.value = {
+        width: image.naturalWidth * fit,
+        height: image.naturalHeight * fit,
+      };
+    }
+    constrainPosition();
+  };
+  const cursor = computed(() => {
+    if (isDragging.value) return 'grabbing';
+    return zoomScale.value > MIN_ZOOM ? 'zoom-out' : 'zoom-in';
+  });
   const imageStyle = computed(() => ({
-    transform: `scale(${zoomScale.value})`,
-    cursor: zoomScale.value < MAX_ZOOM_LEVEL ? 'zoom-in' : 'zoom-out',
-    transformOrigin: `${imgTransformOriginPoint.value}`,
+    ...(dimensions.value
+      ? {
+          width: `${dimensions.value.width}px`,
+          height: `${dimensions.value.height}px`,
+        }
+      : {}),
+    transform: `translate(${position.value.x}px, ${position.value.y}px) rotate(${activeImageRotation.value}deg) scale(${zoomScale.value})`,
+    cursor: cursor.value,
+    transformOrigin: 'center center',
   }));
-
-  // Resets the transform origin to center
-  const resetTransformOrigin = () => {
-    if (imageRef.value) {
-      imgTransformOriginPoint.value = DEFAULT_IMG_TRANSFORM_ORIGIN;
-    }
+  const centerOffset = (x, y) => {
+    const rect = (viewportRef?.value || imageRef.value).getBoundingClientRect();
+    return {
+      x: x - rect.left - rect.width / 2,
+      y: y - rect.top - rect.height / 2,
+    };
   };
-
-  // Rotates the current image
-  const onRotate = type => {
+  const onZoom = (delta, x, y) => {
     if (!imageRef.value) return;
-    resetTransformOrigin();
-
-    const rotation = type === 'clockwise' ? 90 : -90;
-
-    // ensure that the value of the rotation is within the range of -360 to 360 degrees
-    activeImageRotation.value = (activeImageRotation.value + rotation) % 360;
-
-    // Reset zoom when rotating
-    zoomScale.value = 1;
-    resetTransformOrigin();
+    const next = clamp(zoomScale.value + delta, MIN_ZOOM, MAX_ZOOM);
+    if (next === zoomScale.value) return;
+    const ratio = next / zoomScale.value;
+    const point = x != null && y != null ? centerOffset(x, y) : { x: 0, y: 0 };
+    position.value = {
+      x: point.x - (point.x - position.value.x) * ratio,
+      y: point.y - (point.y - position.value.y) * ratio,
+    };
+    zoomScale.value = next;
+    constrainPosition();
   };
-
-  /**
-   * Calculates the appropriate transform origin point based on mouse position and image rotation
-   * Used to create a natural zoom behavior where the image zooms toward/from the cursor position
-   *
-   * @param {number} x - The client X coordinate of the mouse pointer
-   * @param {number} y - The client Y coordinate of the mouse pointer
-   * @returns {{x: number, y: number}} Object containing the transform origin coordinates as percentages
-   */
-  const getZoomOrigin = (x, y) => {
-    // Default to center
-    if (!imageRef.value) return { x: 50, y: 50 };
-
-    const rect = imageRef.value.getBoundingClientRect();
-
-    // Step 1: Calculate offset from center
-    const { relativeX, relativeY } = calculateCenterOffset(x, y, rect);
-
-    // Step 2: Apply rotation transformation
-    const { rotatedX, rotatedY } = applyRotationTransform(
-      relativeX,
-      relativeY,
-      activeImageRotation.value
-    );
-
-    // Step 3: Convert to percentage coordinates
-    return normalizeToPercentage(rotatedX, rotatedY, rect.width, rect.height);
-  };
-
-  // Handles zooming the image
-  const onZoom = (scale, x, y) => {
-    if (!imageRef.value) return;
-
-    // Calculate new scale within bounds
-    const newScale = Math.max(
-      MIN_ZOOM_LEVEL,
-      Math.min(MAX_ZOOM_LEVEL, zoomScale.value + scale)
-    );
-
-    // Skip if no change
-    if (newScale === zoomScale.value) return;
-
-    // Update transform origin based on mouse position and zoom scale is minimum
-    if (x != null && y != null && zoomScale.value === MIN_ZOOM_LEVEL) {
-      const { x: originX, y: originY } = getZoomOrigin(x, y);
-      imgTransformOriginPoint.value = `${originX}% ${originY}%`;
-    }
-
-    // Apply the new scale
-    zoomScale.value = newScale;
-  };
-
-  // Handles double-click zoom toggling
-  const onDoubleClickZoomImage = e => {
-    if (!imageRef.value) return;
-    e.preventDefault();
-
-    // Toggle between max zoom and min zoom
-    const newScale =
-      zoomScale.value >= MAX_ZOOM_LEVEL ? MIN_ZOOM_LEVEL : MAX_ZOOM_LEVEL;
-
-    // Update transform origin based on mouse position
-    const { x: originX, y: originY } = getZoomOrigin(e.clientX, e.clientY);
-    imgTransformOriginPoint.value = `${originX}% ${originY}%`;
-
-    // Apply the new scale
-    zoomScale.value = newScale;
-  };
-
-  // Handles mouse wheel zooming for images
-  const onWheelImageZoom = e => {
-    if (!imageRef.value) return;
-    e.preventDefault();
-
-    const scale = e.deltaY > 0 ? -ZOOM_INCREMENT : ZOOM_INCREMENT;
-    onZoom(scale, e.clientX, e.clientY);
-  };
-
-  /**
-   * Sets transform origin to mouse position during hover.
-   * Enables precise scroll/double-click zoom targeting by updating the
-   * transform origin to cursor position. Only active at minimum zoom level.
-   * Debounced (100ms) to improve performance during rapid mouse movement.
-   */
-  const onMouseMove = debounce(
-    e => {
-      if (!imageRef.value) return;
-      if (zoomScale.value !== MIN_ZOOM_LEVEL) return;
-
-      const { x: originX, y: originY } = getZoomOrigin(e.clientX, e.clientY);
-      imgTransformOriginPoint.value = `${originX}% ${originY}%`;
-    },
-    MOUSE_MOVE_DEBOUNCE_MS,
-    false
-  );
-
-  /**
-   * Resets transform origin to center when mouse leaves image.
-   * Ensures button-based zooming works predictably after hover ends.
-   * Uses slightly longer debounce (110ms) to avoid conflicts with onMouseMove.
-   */
-  const onMouseLeave = debounce(
-    () => {
-      if (!imageRef.value) return;
-      if (zoomScale.value !== MIN_ZOOM_LEVEL) return;
-      imgTransformOriginPoint.value = DEFAULT_IMG_TRANSFORM_ORIGIN;
-    },
-    MOUSE_LEAVE_DEBOUNCE_MS,
-    false
-  );
-
   const resetZoomAndRotation = () => {
+    pointers.clear();
+    isDragging.value = false;
     activeImageRotation.value = 0;
-    zoomScale.value = 1;
-    resetTransformOrigin();
+    zoomScale.value = MIN_ZOOM;
+    position.value = { x: 0, y: 0 };
+    dimensions.value = null;
+    updateImageBounds();
   };
-
+  const onRotate = direction => {
+    if (!imageRef.value) return;
+    activeImageRotation.value =
+      (activeImageRotation.value + (direction === 'clockwise' ? 90 : -90)) %
+      360;
+    zoomScale.value = MIN_ZOOM;
+    position.value = { x: 0, y: 0 };
+    pointers.clear();
+    isDragging.value = false;
+    updateImageBounds();
+  };
+  const onClickZoomImage = event => {
+    event.preventDefault();
+    // The second click of a double click must not undo the first one.
+    if (suppressClick || event.detail > 1) return;
+    onZoom(
+      (zoomScale.value > MIN_ZOOM ? MIN_ZOOM : CLICK_ZOOM) - zoomScale.value,
+      event.clientX,
+      event.clientY
+    );
+  };
+  const onWheelImageZoom = event => {
+    event.preventDefault();
+    if (!event.deltaY) return;
+    onZoom(
+      event.deltaY > 0 ? -WHEEL_STEP : WHEEL_STEP,
+      event.clientX,
+      event.clientY
+    );
+  };
+  const onPointerDown = event => {
+    if (event.button !== 0) return;
+    if (!pointers.size) {
+      pointerStart = { x: event.clientX, y: event.clientY };
+      suppressClick = false;
+    } else {
+      suppressClick = true;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    isDragging.value = true;
+  };
+  const onPointerMove = event => {
+    if (!pointers.has(event.pointerId)) return;
+    if (
+      pointerStart &&
+      Math.hypot(
+        event.clientX - pointerStart.x,
+        event.clientY - pointerStart.y
+      ) > DRAG_THRESHOLD
+    )
+      suppressClick = true;
+    const before = [...pointers.values()];
+    const previous = pointers.get(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const after = [...pointers.values()];
+    if (before.length === 2) {
+      const distance = points =>
+        Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      const midpoint = points => ({
+        x: (points[0].x + points[1].x) / 2,
+        y: (points[0].y + points[1].y) / 2,
+      });
+      const start = midpoint(before);
+      const end = midpoint(after);
+      if (distance(before))
+        onZoom(
+          zoomScale.value * (distance(after) / distance(before) - 1),
+          start.x,
+          start.y
+        );
+      position.value = {
+        x: position.value.x + end.x - start.x,
+        y: position.value.y + end.y - start.y,
+      };
+    } else if (before.length === 1 && zoomScale.value > MIN_ZOOM) {
+      position.value = {
+        x: position.value.x + event.clientX - previous.x,
+        y: position.value.y + event.clientY - previous.y,
+      };
+    }
+    constrainPosition();
+  };
+  const onPointerUp = event => {
+    pointers.delete(event.pointerId);
+    isDragging.value = pointers.size > 0;
+  };
   return {
     zoomScale,
-    imgTransformOriginPoint,
     activeImageRotation,
-    imageWrapperStyle,
     imageStyle,
-    getZoomOrigin,
-    resetTransformOrigin,
     onRotate,
     onZoom,
-    onDoubleClickZoomImage,
+    onClickZoomImage,
     onWheelImageZoom,
-    onMouseMove,
-    onMouseLeave,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    updateImageBounds,
     resetZoomAndRotation,
   };
 };

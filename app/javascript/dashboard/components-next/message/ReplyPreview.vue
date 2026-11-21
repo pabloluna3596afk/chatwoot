@@ -15,9 +15,16 @@ import {
 } from './media/attachment';
 import { useMediaState } from './media/useMediaState';
 
-const { inReplyTo, channelType } = useMessageContext();
+const props = defineProps({
+  message: { type: Object, default: null },
+  composer: { type: Boolean, default: false },
+});
+const context = props.composer ? null : useMessageContext();
+const channelType = computed(() => context?.channelType.value || '');
 const { t } = useI18n();
-const message = computed(() => useCamelCase(inReplyTo.value, { deep: true }));
+const message = computed(() =>
+  useCamelCase(props.message || context?.inReplyTo.value, { deep: true })
+);
 const attachment = computed(() => message.value?.attachments?.[0] || {});
 const hasThumbnail = computed(() =>
   ['image', 'video', 'ig_reel'].includes(attachment.value.fileType)
@@ -54,9 +61,24 @@ const heading = computed(() =>
     ? t('CONVERSATION.REPLY_PREVIEW.UNAVAILABLE', { type: type.value })
     : type.value
 );
+const MAX_EXCERPT_LENGTH = 240;
+// The quote is a short plain-text excerpt: paragraphs, lists and line breaks
+// are flattened to spaces so a long message can never grow the quote.
+const toExcerpt = html => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('br, p, li, div, pre').forEach(node => {
+    node.append(' ');
+  });
+  return (doc.body.textContent || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_EXCERPT_LENGTH);
+};
 const text = computed(() => {
   if (message.value?.content)
-    return new MessageFormatter(message.value.content).formattedMessage;
+    return toExcerpt(
+      new MessageFormatter(message.value.content).formattedMessage
+    );
   return (
     middleEllipsis(attachmentName(attachment.value)) ||
     t('CONVERSATION.REPLY_MESSAGE_NOT_FOUND')
@@ -69,11 +91,13 @@ const scrollToMessage = () =>
 <template>
   <button
     type="button"
-    class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
+    class="relative flex items-center gap-2 p-1.5 ps-3 -mx-1 mb-2 rounded-lg rounded-s-none bg-n-alpha-black1 before:absolute before:inset-y-0 before:start-0 before:w-[3px] before:bg-n-brand before:content-[''] cursor-pointer text-start w-full min-w-0"
     :class="
-      attachment.fileType
-        ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
-        : ''
+      composer
+        ? '!mx-0 !mb-0 !p-2 !ps-3 !bg-transparent before:!inset-y-2'
+        : attachment.fileType
+          ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
+          : ''
     "
     @click="scrollToMessage"
   >
@@ -109,17 +133,21 @@ const scrollToMessage = () =>
       class="min-w-0 flex flex-col"
       :class="attachment.fileType ? 'gap-0.5' : ''"
     >
-      <span v-if="heading" class="text-xs font-semibold text-n-brand">{{
-        heading
-      }}</span>
       <span
-        v-dompurify-html="text"
+        v-if="heading"
+        class="text-xs font-semibold text-n-brand line-clamp-1 break-all"
+        >{{ heading }}</span
+      >
+      <span
+        dir="auto"
+        class="min-w-0 text-xs leading-4 line-clamp-1 sm:line-clamp-2 break-all"
         :class="
-          attachment.fileType
-            ? 'text-xs leading-4 text-n-slate-12 line-clamp-2 break-all'
-            : 'text-xs text-n-slate-11 truncate'
+          composer || attachment.fileType
+            ? 'text-n-slate-12'
+            : 'text-n-slate-11'
         "
-      />
+        >{{ text }}</span
+      >
     </span>
   </button>
 </template>

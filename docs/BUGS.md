@@ -1,3 +1,4 @@
+
 ### B-NEW-293 - Borradores locales y revisión de plantillas WhatsApp (2026-11-20)
 
 - **Archivos:** modelos `WhatsappTemplateDraft`/`WhatsappTemplateSubmission`, migración `20261120120000`, API `whatsapp_template_drafts`, servicios de validación/copia/envío/reconciliación y sincronización por WABA.
@@ -7,6 +8,25 @@
 - **Cómo probar:** guardar/reabrir incompleto sin Meta, probar permisos administrador/agente/otra cuenta, archivo y copia a otro destino; enviar con WebMock, doble clic, dos números de una WABA, timeout y resultado ambiguo. Contrato en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`; evidencia y autoevaluación en `docs-crm/codex/plantillas-borradores-construccion.md` del directorio padre.
 - **Verificación:** cierre nuevo 58/58 y focal 15/15; ampliada de 433 con cinco fallos de preparación/recarga cerrados en esas repeticiones. Los tres casos antiguos también pasan en develop limpio; no se cambian sus expectativas. RuboCop CI: 29 archivos, 0 infracciones. Migración y roundtrip del schema verificados en bases Docker aisladas.
 - **Entrega:** aplicar migración aditiva antes de habilitar rutas; sin backfill, navegador, llamadas reales a Meta, push, PR ni despliegue.
+
+### B-NEW-297 - Contraste de metadatos sobre fotos (2026-11-20)
+
+- **Archivos:** `bubbles/Base.vue`, `MessageMeta.vue`, `MessageStatus.vue` y specs Base/MessageMeta/Attachments.
+- **Arreglo:** pildora black/80 con blur; hora, origen, candado y Captain blancos; leido azul con tokens blue-7 en claro y blue-11 en oscuro. Conserva orden y medidas del PR #384. Mosaicos y videos conservan metadatos debajo del contenido.
+- **Contraste:** sobre blanco puro: blanco 12.635:1, azul claro 6.982:1, azul oscuro 6.030:1; sobre negro: 21:1, 11.605:1, 10.022:1. Calculo sRGB WCAG probado en Base.spec.js, sin depender del blur.
+- **Prueba:** suites vecinas, entrantes/salientes, fuente/Captain, todos los estados y dos zonas horarias. Capturas y aprobacion visual pendientes del PM. Sin push ni PR.
+
+### B-NEW-296 - Clic para ampliar en el visor (2026-11-20)
+
+- **Archivos:** `useImageZoom.js`, `GalleryView.vue` y specs de componente/gestos.
+- **Arreglo:** clic alterna ajuste/2x anclado al punto, cursor zoom-out; movimiento superior a 5 px o pellizco suprime el clic posterior. Segundo clic de un doble clic no deshace el primero.
+- **Prueba:** clic, doble clic DOM, arrastre con retorno al origen, rueda, pellizco, limites, giro y teclado en ambas zonas. Interaccion real pendiente del PM; sin push ni PR.
+
+### B-NEW-295 - Cita integrada al editor (2026-11-20)
+
+- **Archivos:** `ReplyToMessage.vue`, `ReplyBox.vue`, `ReplyPreview.vue` y specs respectivos.
+- **Arreglo:** cita a ancho completo, X interior de 24 px, radio superior compartido con editor; fondo coherente en nota privada y textos largos limitados.
+- **Prueba:** specs con editor deshabilitado, nota y Copilot; suites vecinas en UTC/America/Guayaquil. Revision visual pendiente del PM en 3110; sin preview, Docker, push ni PR.
 
 ### B-NEW-294 - Freno de intercambios repetitivos de Captain (2026-11-20)
 
@@ -45,6 +65,27 @@
 
 - **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
 
+### B-NEW-292 - Zoom, movimiento y teclado del visor de im?genes (2026-11-20)
+
+- **Archivos:** `dashboard/composables/useImageZoom.js`, sus specs, `conversation/components/GalleryView.vue`, su spec y locales `en/es/conversation.json`.
+- **Problema:** el origen solo se calculaba al comenzar el zoom; no hab?a arrastre ni pellizco; la rotaci?n dimensionaba con la ventana en lugar del ?rea ?til; la transici?n de transform retrasaba los gestos; una rueda con delta cero ampliaba; faltaban zoom/restablecimiento por teclado y etiquetas de navegaci?n.
+- **Arreglo:** transforma desde el centro con traslaci?n en coordenadas del visor, conserva el punto bajo el cursor en cada paso y limita el pan al tama?o escalado/rotado. Pointer capture para mouse/t?ctil, pellizco y cancelaci?n; ajuste por tama?o natural/?rea disponible y ResizeObserver; sin transici?n durante gestos. Mantiene zoom 1?3 y reset al rotar/cambiar foto. Teclas +, =, -, 0, flechas y Escape; etiquetas anterior/siguiente en ingl?s/espa?ol. No agrega herramientas a la barra.
+- **C?mo probar:** pruebas de regresi?n rojas sobre HEAD original y verdes con el arreglo; panoramas, im?genes peque?as, giro, resize a 390 px, arrastre, pellizco y teclado. Suites vecinas en UTC/America/Guayaquil (557 aprobadas, una omitida preexistente) y galer?a final en ambas zonas (14 aprobadas, incluidas tres adicionales de distribuci?n de teclado). ESLint sin errores. Informe detallado en `docs-crm/codex/chat-lote-construccion.md` fuera del worktree; interacci?n real, capturas y aprobaci?n visual pendientes del PM. Sin Docker, preview, push, PR ni despliegue.
+
+### B-NEW-291 - Flecha al ?ltimo mensaje centrada y opaca (2026-11-20)
+
+- **Archivos:** `components/widgets/conversation/MessagesView.vue` y `specs/MessagesView.spec.js`.
+- **Problema:** el bot?n usaba chevron peque?o a la derecha y el hover de la variante s?lida reduc?a la opacidad del fondo.
+- **Arreglo:** bot?n de 40 px con `i-lucide-arrow-down`, centrado por encima del composer, fondo s?lido en reposo/hover y sombra creciente. Conserva contador, etiqueta accesible y foco visible.
+- **C?mo probar:** alejarse del final, recibir mensajes y pulsar la flecha; verificar ocultaci?n al llegar al final, contador y posici?n en escritorio/390 px. Specs de visibilidad, clases y acci?n en UTC/America/Guayaquil; revisi?n visual pendiente del PM. Sin push, PR ni despliegue.
+
+### B-NEW-290 - Cita de respuesta coherente en el composer (2026-11-20)
+
+- **Archivos:** `components/widgets/conversation/ReplyToMessage.vue`, `components-next/message/ReplyPreview.vue` y `specs/ReplyToMessage.spec.js`.
+- **Problema:** la barra de respuesta usaba un resumen diferente al de las burbujas, sin autor, tipo ni miniatura reconocible.
+- **Arreglo:** reutiliza `ReplyPreview` con variante de composer a ancho completo, acento y tokens existentes, extracto de dos l?neas y cancelaci?n accesible de 24 px. Conserva el contrato `dismiss`.
+- **C?mo probar:** responder a texto, foto, audio o archivo; cambiar el mensaje citado y cancelar. Specs en ingl?s/espa?ol y suites vecinas en UTC/America/Guayaquil. Verificaci?n visual clara/oscura y 390 px pendiente del PM; sin navegador, push, PR ni despliegue.
+
 ### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
@@ -53,16 +94,13 @@
 - **Cómo probar:** `dev:attachments_demo` en desarrollo; revisar los quince escenarios de la guía. Vitest cubre ocho canales por cinco contextos, correo inline con tres documentos, MIME/tamaño del PDF, selección, respuestas y fallos. El seed tiene RSpec aislado y RuboCop Docker. Evidencias y pendientes visuales en `tmp/PR-ADJUNTOS.md`; no se declara aprobación visual sin capturas del PM.
 - **Despliegue:** sin migraciones nuevas; sin push, PR ni despliegue en esta entrega.
 
-
 ## B-NEW-283 - Composer full-bleed chrome (PR 2)
 
 ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.
 
-
 ## B-NEW-284 - Composer toolbar overflow and recording (PR 3)
 
 ReplyBottomPanel now measures eligible buttons with useToolbarOverflow, hides by rank and reuses mounted controls through an accessible popover / phone bottom sheet. FileUpload stays mounted, including drag-and-drop. RecordingBar isolates cancel/time/play/send; phone swaps empty-field Send for mic; closed WhatsApp windows offer Send template. es/en copy added. Verify overflow, signature and quoted state, file input persistence, recording cancellation and template handlers. Automated: toolbar/composable/menu specs pass UTC and America/Guayaquil. Guide width examples conflict with its ten-button arithmetic; exact measured results documented in the PM report. Visual review pending PM.
-
 
 ## B-NEW-285 - Composer history folding and explicit Hide (PR 4)
 
@@ -132,6 +170,7 @@ MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversat
 - **Arreglo:** todos los caminos dejan una nota con texto y `captain_handoff` (categoría/origen); la sesión de la herramienta se adjunta también a la nota mínima. La tarjeta reutiliza la nota privada ámbar y conserva las notas antiguas. El prompt pide el motivo en el idioma de la cuenta. Un único coordinador intenta el OOO cuando corresponde y comprueba el registro guardado con el contenido resuelto; si no existe, envía el traspaso configurado o su defecto actual. La herramienta delega el envío al job. Una tarea horaria alerta al alcanzar el umbral de fallos técnicos (10 por defecto, 1..1000), con exclusión Redis por hora.
 - **Cómo probar:** specs del coordinador (horario, campaña, variables Liquid y fallo al guardar), traspaso real herramienta → job → sesión, notas por origen, inactividad y alerta con Redis; Vitest de tarjeta en/es, selección de burbuja y ajustes en UTC/America/Guayaquil. Informe local y totales: `tmp/PR-CAPTAIN-6.md`.
 - **Alcance:** todas las cuentas, sin bandera nueva, migraciones, resumen IA, indicador de fuentes ni cambios de cupos. Sin push, PR ni despliegue. Revisión visual pendiente en el entorno del PM; no se publican puertos ni previews en esta sesión.
+
 ### B-NEW-268 - Captain: idioma predeterminado y textos del prompt (2026-11-14)
 
 - **Archivos:** `Captain::Assistant`, `Captain::Scenario`, prompts Liquid, `assistant_prompt_language_spec.rb` y `appointment_tools_spec.rb`.
@@ -264,6 +303,7 @@ MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversat
 - **Arreglo:** los ejemplos ahora usan claves compartidas de `CAPTAIN.ASSISTANTS` y se traducen según el idioma activo; la selección sigue preparando el mismo borrador editable.
 - **Verificación:** `suggestedRules.spec.js` pasa en UTC y America/Guayaquil; ESLint focalizado limpio. Las suites Captain aprobaron 298 pruebas, pero 7 suites no cargaron porque falta `@amplitude/plugin-page-view-tracking-browser` en el entorno.
 - **Archivos:** Guidelines, Guardrails, helper compartido y catálogos `en/es`. Sin cambios de backend ni migraciones.
+
 ### B-NEW-244 — Base móvil de pestañas y cabecera Captain (UI-CAPTAIN-1)
 
 - **Problema:** las pestañas de ajustes tenían un objetivo táctil de 36 px y las búsquedas FAQ conservaban 256 px en móvil; la cabecera compartida no podía envolver sus controles estrechos.
@@ -278,11 +318,13 @@ MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversat
 - **Escritorio:** las tablas actuales se mantienen desde `md`; el orden, las columnas y la presentación existente permanecen.
 - **Verificación:** specs de las seis tablas, `ListCard` y reportes en UTC y America/Guayaquil; ESLint sin errores. No se capturó imagen porque no hay navegador disponible en esta sesión; detalle en `tmp/PR-UI-T4.md`.
 - **Archivos:** `reports/components/{CsatTable,SummaryReports,overview/AgentTable,overview/TeamTable,SLA/SLATable}.vue`, `reports/panels/Index.vue`, `components-next/ListCard/ListCard.vue`. Sin cambios de servidor ni migraciones.
+
 ### B-NEW-242 — Specs de reportes y recordatorios aislados de la zona horaria
 
 - **Causa:** `spec/models/working_hour_spec.rb` cambiaba `Time.zone` a `Australia/Sydney` sin restaurarla. Si el runner reutilizaba el proceso, el offset alteraba el rango esperado por el spec de reportes y el día del `cap_date` comparado por el spec de recordatorios.
 - **Arreglo:** cada spec afectado fija `Time.use_zone('UTC')`; reportes además congela el reloj a una fecha/hora fija. El spec de WorkingHour restaura la zona al terminar cada ejemplo.
 - **Verificación:** revisión estática; RSpec no se ejecutó en este entorno. No se modificó código de producción.
+
 ### B-NEW-241 — Buscadores con estructura distinta entre módulos (UI-S2)
 
 - **Problema:** los campos de búsqueda independientes tenían lupa, relleno y control de limpieza implementados de forma distinta.
@@ -679,7 +721,6 @@ demostrado en tres casos del formulario; el backend reutilizado ya pasaba en la
 base, por lo que no se reclama rojo/verde backend. Sin migraciones. Pendientes CI
 remoto y smoke con Google real. Detalle: `tmp/PR-CITAS-8.md` (ignorado).
 
-
 ### B-NEW-184 — Fixtures de cuenta en specs de tarjetas de citas
 
 **Archivos:** `CalendarEventsList.spec.js`, `NextAppointmentCard.spec.js`.
@@ -1024,7 +1065,6 @@ Specs Ruby por superficie preparados para CI; frontend verificado en UTC y
 America/Guayaquil. Capturas pendientes por navegador de herramientas no disponible.
 Alcance restante MV-12/13/16 documentado en `docs/VARIABLES_ENGINE.md`.
 
-
 ### B-NEW-76 — Selectores de variables divergentes y claves especiales ocultas (MV-06/07/08/09)
 
 **Archivos:** `useVariableCatalog.js`, `templateVariableBindings.js`, `VariablePicker.vue`,
@@ -1106,7 +1146,6 @@ additional_attributes. Editar un campo fija el texto. Probar contacto sin dato,
 fallo de preview y cuenta ajena. Contrato y comandos en `docs/VARIABLES_ENGINE.md`.
 Specs Ruby preparados para CI; regresión frontend comprobada contra el parser
 anterior y corregido. Sin migraciones ni cambios de transporte.
-
 
 ### B-NEW-74 — Registro y onboarding: contraseña, progreso y contraste
 
@@ -1896,6 +1935,7 @@ Specs: `spec/services/internal_tasks/automated_create_service_spec.rb`,
 `spec/services/automation_rules/action_validation_service_spec.rb`,
 `spec/services/automation_rules/action_service_spec.rb`, `spec/services/macros/execution_service_spec.rb`
 y `spec/models/internal_task_spec.rb`. RSpec/RuboCop pendientes de ejecución Docker por el PM.
+
 ### B-NEW-199 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
 
 **Problema:** el servicio de acciones ya omitía el texto libre fuera de ventana,
@@ -2023,7 +2063,6 @@ is local-only).
 - Verificación: specs del recorder, ActionService, listener, runners temporal/contacto, esperas, purga, modelo y API.
   RSpec/RuboCop pendientes del PM en Docker, según el brief; revisión estática y `git diff --check` realizadas.
 - Deploy: requiere migración `20261023120000_create_automation_rule_runs.rb` y reiniciar Rails/Sidekiq.
-
 
 ### B-NEW-15 — Flows menu no visible (local / prod) — secundario
 
@@ -3570,8 +3609,6 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
 
-
-
 ### B-NEW-233 — Restaurar el orden original de Enviar por WhatsApp (2026-10-24)
 
 - Archivos: `components-next/whatsapp/send-center/SendCenter.vue`, `WhatsAppTemplateParser.vue` y sus specs.
@@ -3641,6 +3678,7 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Arreglo:** valores reales con azul tenue y borde discreto; vacíos con «Escribe el dato» en rojo suave y borde reforzado tras intentar enviar. Menú con valores completos, búsqueda o texto propio, filas sin dato deshabilitadas y opción «Quitar». Burbuja anclada arriba y ayuda humana de alto fijo. Se conserva la validación y el payload; el aviso del parser clásico permanece.
 - **Verificación:** 145/145 Vitest en UTC y America/Guayaquil; ESLint 0 errores, 39 avisos preexistentes (53 en la base). Playwright con SendCenter real y datos ficticios: 0 px de desplazamiento en nueve acciones para 1440×900 y 768×1024; doce capturas claras/oscuras, menú y vacíos antes/después. 
 - **Entrega:** sin migraciones ni cambios de backend. Aprobado visualmente por el dueño (2026-11-11); se desactiva el corrector ortográfico del navegador en el campo.
+
 ### B-NEW-265 - Captain: contexto acotado, adjuntos y hora del negocio (2026-11-14)
 
 - **Hallazgos:** CAP-003, CAP-032, CAP-019, CAP-008 y CAP-035.
@@ -3666,7 +3704,6 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Verificación:** 1.215 ejemplos RSpec, 0 fallos, en base aislada; todos los consumidores exigidos por la ficha PR 1 incluidos. RuboCop con `chathub-rubocop-ci`: 16 archivos, 0 infracciones. ESLint y Prettier limpios; Vitest: 13 pruebas en UTC y 13 en America/Guayaquil. Paridad CAPTAIN es/en: 1.043 claves por idioma, sin faltantes ni diferencias de interpolación.
 - **Cómo probar:** simular un fallo transitorio y luego éxito: solo llega la respuesta normal. Tres fallos: un traspaso, sin nota privada; si está fuera de horario, también el aviso habitual. Un fallo de más de 45 segundos o tras herramienta con efectos no programa otro intento. Reabrir una conversación con 20 respuestas anteriores permite atender al contacto de nuevo. Traspaso de herramienta sin motivo no deja nota vacía. Sin migraciones ni bandera piloto.
 
-
 ### B-NEW-266 - Captain: política configurable para clientes que no responden (2026-11-14)
 
 - Archivos: enterprise/app/services/captain/conversation/turn.rb, enterprise/app/services/captain/followup/{closer,nudger,dispatcher}.rb, enterprise/app/jobs/captain/inbox_pending_conversations_resolution_job.rb, enterprise/app/models/captain/assistant.rb, lib/tasks/captain_followup.rake y formularios de Ajustes.
@@ -3679,6 +3716,7 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Riesgo preexistente: selección y bloqueo comprueban estado pending e inactividad, pero no la propiedad Captain. Asignar una persona limpia ai_assignee sin forzar un cambio de estado; una pendiente asignada a una persona sigue cumpliendo esos criterios.
 - Decisión del PM para PR4: conservar sin cambios los caminos viejos (temporal, evaluación y handoff). Pendiente de decisión del dueño; no se declara corregido por este PR.
 - Cómo comprobarlo: seleccionar una pendiente inactiva, asignar una persona manteniendo pending antes de entrar al bloqueo y ejecutar el camino viejo. Contrastar con inbox_pending_conversations_resolution_job_unanswered_spec.rb, que exige sin acción ni nota para el camino nuevo.
+
 ### B-NEW-266 — Captain: reservar respuestas antes de generar (2026-11-14)
 
 - **Archivos:** `ResponseBuilderJob`, `ReplyUsage`, `UsageLimitHandoff`, hook de plantillas y `FaqLookupTool`; specs de entrega, concurrencia, traspaso y FAQ.
@@ -3706,7 +3744,6 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Problema:** los permisos por recurso no parecían interruptores, el formulario repetía Citas/Seguimiento y las listas crecían verticalmente. Los catálogos no mostraban encabezado, pie, variables ni textos iniciales del Flow; limitaban las plantillas a veinte. La conversión conservaba marketing encendido contra la decisión del dueño.
 - **Arreglo:** pestañas Flows/Plantillas con conteos, grupos estables al alternar, filas compactas con Switch real y vista previa, sin edición de notas. Plantillas deshabilitadas conservan elecciones al apagar pagos. Permisos de agenda y recordatorios pasan a Citas; etiquetas indican usos por Citas/Seguimiento. Catálogos incluyen contenido limitado con indicador de truncado y variables, tanto en lista como en automático; conservan notas antiguas y les dan prioridad. Conversión deja marketing apagado y el informe lo identifica como pérdida; conserva notas, datos y restauración exacta.
 - **Cómo probar:** Vitest de Captain en UTC y America/Guayaquil; RSpec de herramientas, conversión e informe con PostgreSQL/Redis aislados; ESLint y RuboCop Docker. Detalle y límites en `tmp/PR-REDISENO.md`. Revisión visual real pendiente del PM, sin herramientas de navegador, push ni PR. No hay migraciones. El respeto del interruptor individual por recordatorios/reenganche queda fuera de alcance.
-
 
 ### B-NEW-274 — Captain: catálogos y guardado de Envíos, ronda 2 (2026-11-18)
 
@@ -3744,7 +3781,6 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** `Followup::Reengager` y spec de concurrencia.
 - **Arreglo:** bloqueo asesor transaccional PostgreSQL por contacto, dentro del lock existente de conversacion, antes de leer elegibilidad/cooldown. Cubre conversaciones distintas y libera al confirmar o revertir la transaccion.
 - **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.
-
 
 ### B-NEW-280 - Envios: revision antigua pese a cargar el detalle (2026-11-19)
 
@@ -3788,7 +3824,6 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Cómo probar:** configurar cierre de 10 y recordatorio de 5 juntos; o cierre de 10 sin recordatorios. Con cierre de 5, comprobar el error y usar «Desactivar recordatorios». Revisar el resumen con un aviso a los 10 y cierre 30 después; alternar modos, máximo 0 y V2; abrir un asistente con 120 y guardarlo sin normalización.
 - **Verificación:** Vitest, 269 pruebas en UTC y 269 en America/Guayaquil; ESLint sin errores; RuboCop Docker, 2 archivos inspeccionados sin infracciones. Detalle y resultados Rails en el informe externo `docs-crm/codex/pestanas-c-construccion.md`.
 - **Alcance:** sin migraciones, navegador, push, PR ni despliegue. Revisión visual pendiente del dueño.
-
 
 ### B-NEW-289 — Detalles de las decisiones de Captain y lectura segura por rol (2026-11-19)
 
