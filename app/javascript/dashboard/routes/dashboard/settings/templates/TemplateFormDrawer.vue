@@ -18,6 +18,16 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import InboxesAPI from 'dashboard/api/inboxes';
 import { templateDataEligible, templateVariables } from './templateData';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
+import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
+import { useTemplateDraft } from './useTemplateDraft';
+import {
+  currentSubmission,
+  draftDestination,
+  draftFromForm,
+  formFromDraft,
+  hasOpaqueComponents,
+  draftVariableNamesValid,
+} from './templateDrafts';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TemplateComboBox from './TemplateComboBox.vue';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
@@ -34,13 +44,6 @@ import {
   LIMITS,
   MEDIA_ACCEPT,
   MEDIA_FORMATS,
-  buildPayload,
-  copyVariableTokens,
-  copyWithSystemVariables,
-  suggestSystemMapping,
-  systemMappingValid,
-  editRules,
-  isEditable,
   emptyForm,
   formFromTemplate,
   hasNamedVariables,
@@ -85,11 +88,10 @@ const panelRef = ref(null);
 const previewDialogRef = ref(null);
 const form = reactive(emptyForm());
 const editing = ref(null);
-const copySource = ref(null);
-const systemMapping = reactive({});
 const saveError = ref('');
 const isLoading = ref(false);
-const liveLoaded = ref(false);
+const loadFailed = ref(false);
+const isApplyingDraft = ref(false);
 const liveState = ref(null);
 const lastUpdatedTime = computed(() => {
   const timestamp = liveState.value?.last_updated_time;
@@ -107,8 +109,6 @@ const lastUpdatedTime = computed(() => {
 const showErrors = ref(false);
 const isSaving = ref(false);
 const isUploading = ref(false);
-const mediaHeaderAvailable = ref(false);
-const mediaHeaderReason = ref('');
 const headerPreviewUrl = ref('');
 const headerFileSize = ref(0);
 const fileInput = ref(null);
@@ -118,11 +118,32 @@ const languageTouched = ref(false);
 const variableMode = ref('NAMED');
 const customVariable = ref('');
 
-const isEdit = computed(() => Boolean(editing.value));
-
-const rules = computed(() =>
-  editRules(liveState.value?.status || editing.value?.status)
+const draftSession = useTemplateDraft();
+const { draft, conflict, conflictLoaded } = draftSession;
+const editingBindings = ref(false);
+const savedSnapshot = ref('');
+const duplicateDialog = ref(null);
+const duplicateInboxId = ref(null);
+const isRemote = computed(() => Boolean(editing.value));
+// Keep the existing form's identity/structure locks for installed templates only.
+const isEdit = isRemote;
+const localReadOnly = computed(() =>
+  Boolean(
+    draft.value &&
+      ['submitting', 'submitted', 'reconciling'].includes(draft.value.status)
+  )
 );
+const currentAttempt = computed(() => currentSubmission(draft.value));
+const sharedChannels = computed(() => {
+  const waba =
+    draftDestination(form.inboxId, props.inboxes).waba_id || form.wabaId;
+  return props.inboxes
+    .filter(
+      inbox => waba && inbox.provider_config?.business_account_id === waba
+    )
+    .map(inbox => inbox.name);
+});
+const localSnapshot = () => JSON.stringify(draftFromForm(form, props.inboxes));
 
 const inboxOptions = computed(() =>
   props.inboxes
@@ -130,6 +151,16 @@ const inboxOptions = computed(() =>
     .map(inbox => ({ value: inbox.id, label: inbox.name }))
 );
 
+const cloudInboxOptions = computed(() =>
+  props.inboxes
+    .filter(inbox => inbox.provider === 'whatsapp_cloud')
+    .map(inbox => ({ value: inbox.id, label: inbox.name }))
+);
+const canCopyRemote = computed(() =>
+  props.inboxes.some(
+    inbox => inbox.id === form.inboxId && inbox.provider === 'whatsapp_cloud'
+  )
+);
 // The names a variable can have: the same catalog the VariablePicker offers (CRM, attributes and appointments).
 const knownVariableNames = computed(() =>
   bindings.value.map(binding => binding.name)
@@ -172,75 +203,48 @@ const setVariableBinding = (token, id) => {
   if (binding) form.variableBindings[token] = binding.key;
 };
 
-const originalContent = ref('');
-const originalBindings = ref('');
-const contentSnapshot = () => {
-  const { variable_bindings, ...content } = buildPayload(form);
-  return JSON.stringify(content);
-};
-const contentChanged = computed(
-  () => contentSnapshot() !== originalContent.value
-);
 const canEditContent = computed(
-  () =>
-    !isEdit.value ||
-    (liveLoaded.value && rules.value.canEdit && isEditable(editing.value))
+  () => !isRemote.value && !localReadOnly.value && !loadFailed.value
 );
 const canEditBindings = computed(
-  () => isEdit.value && templateDataEligible(editing.value)
+  () => editingBindings.value && templateDataEligible(editing.value)
 );
 const automaticVariable = token =>
   templateVariables(editing.value).some(
     item => item.token === token && item.source === 'alias'
   ) && !form.variableBindings[token];
-const mappedForm = computed(() =>
-  copySource.value
-    ? {
-        ...copyWithSystemVariables(form, systemMapping),
-        variableBindings: {
-          ...form.variableBindings,
-          ...Object.fromEntries(
-            Object.values(systemMapping).flatMap(name => {
-              const binding = bindings.value.find(item => item.name === name);
-              return binding ? [[name, binding.key]] : [];
-            })
-          ),
-        },
-      }
-    : form
-);
 const errors = computed(() => {
-  const mappingReady =
-    !copySource.value ||
-    systemMappingValid(form, systemMapping, knownVariableNames.value);
-  const result = validateForm(mappingReady ? mappedForm.value : form, {
+  const result = validateForm(form, {
     isEdit: isEdit.value,
     original: editing.value,
   });
-  if (!mappingReady) result.mapping = 'SYSTEM_MAPPING_REQUIRED';
-  if (copySource.value && form.name === copySource.value.name)
-    result.name = 'COPY_NAME_REQUIRED';
+  if (!isRemote.value && !draftVariableNamesValid(form))
+    result['body.text'] = 'VARIABLE_NAME_INVALID';
   return result;
 });
-const variableLabel = token => `{{${token}}}`;
-const mappingTokens = computed(() =>
-  copySource.value ? copyVariableTokens(form) : []
+const canSubmit = computed(
+  () =>
+    draft.value &&
+    !isRemote.value &&
+    !localReadOnly.value &&
+    !conflict.value &&
+    !loadFailed.value &&
+    !hasOpaqueComponents(form) &&
+    draftVariableNamesValid(form) &&
+    !Object.keys(errors.value).length
 );
+const variableLabel = token => `{{${token}}}`;
 const hasOriginalComponent = type =>
   editing.value?.components?.some(component => component.type === type);
 const visibleErrors = computed(() => (showErrors.value ? errors.value : {}));
-const categoryLocked = computed(
-  () => isEdit.value && rules.value.categoryLocked
-);
+const categoryLocked = isRemote;
 const isMediaHeader = computed(() =>
   MEDIA_FORMATS.includes(form.header.format)
 );
 const bodyVariables = computed(() => variableTokens(form.body.text));
 const generatedName = computed(() => toSnakeCase(form.name));
-const preview = computed(() =>
-  previewTemplate(mappedForm.value, headerPreviewUrl.value)
-);
-const variables = computed(() => previewVariables(mappedForm.value));
+const preview = computed(() => previewTemplate(form, headerPreviewUrl.value));
+const variables = computed(() => previewVariables(form));
 const promoWords = computed(() => promoWarnings(form));
 const statusKey = computed(() =>
   String(liveState.value?.status || editing.value?.status || '').toUpperCase()
@@ -277,32 +281,43 @@ const statusLabel = computed(() => {
     : formatTemplateLabel(key);
 });
 
-const mediaUnavailableText = computed(() => {
-  const key = `WHATSAPP_TEMPLATE_MGMT.FORM.MEDIA_HEADER_REASONS.${mediaHeaderReason.value}`;
-  return mediaHeaderReason.value && te(key)
-    ? t(key)
-    : t('WHATSAPP_TEMPLATE_MGMT.FORM.MEDIA_HEADER_UNAVAILABLE');
-});
-
 const apiError = error => {
   const data = error?.response?.data;
-  if (data?.error === 'edit_status_locked_by_meta') return data.message;
+  const validationKey = data?.error?.toUpperCase();
+  if (
+    validationKey &&
+    te(`WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.${validationKey}`)
+  )
+    return errorText(validationKey);
   const texts = [
-    ...new Set([data?.error_user_msg, data?.message].filter(Boolean)),
+    ...new Set(
+      [
+        data?.error_user_msg,
+        data?.message,
+        data?.details &&
+          Object.entries(data.details)
+            .map(
+              ([field, messages]) =>
+                `${field}: ${[].concat(messages).join(', ')}`
+            )
+            .join('; '),
+      ].filter(Boolean)
+    ),
   ].join(' \u2014 ');
   return texts
-    ? t('WHATSAPP_TEMPLATE_MGMT.FORM.META_ERROR', { message: texts })
+    ? t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.REQUEST_ERROR', { message: texts })
     : t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_ERROR');
 };
 
 const resetForm = () => {
+  draftSession.reset();
+  editingBindings.value = false;
+  savedSnapshot.value = '';
+  if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
   delete form.parameterFormat;
   Object.assign(form, emptyForm());
-  copySource.value = null;
-  Object.keys(systemMapping).forEach(key => delete systemMapping[key]);
   saveError.value = '';
-  originalContent.value = '';
-  liveLoaded.value = false;
+  loadFailed.value = false;
   headerPreviewUrl.value = '';
   headerFileSize.value = 0;
   liveState.value = null;
@@ -310,19 +325,6 @@ const resetForm = () => {
   languageTouched.value = false;
   variableMode.value = 'NAMED';
   customVariable.value = '';
-};
-
-const loadCapabilities = async () => {
-  mediaHeaderAvailable.value = false;
-  mediaHeaderReason.value = '';
-  if (!form.inboxId) return;
-  try {
-    const { data } = await WhatsappTemplatesAPI.capabilities(form.inboxId);
-    mediaHeaderAvailable.value = Boolean(data.media_header);
-    mediaHeaderReason.value = data.reason || '';
-  } catch {
-    mediaHeaderAvailable.value = false;
-  }
 };
 
 const loadLiveState = async template => {
@@ -334,7 +336,6 @@ const loadLiveState = async template => {
     liveState.value = data;
     editing.value = { ...template, ...data };
     Object.assign(form, formFromTemplate(editing.value, form.inboxId));
-    liveLoaded.value = true;
   } catch (error) {
     saveError.value = apiError(error);
   }
@@ -373,8 +374,6 @@ const open = async (template = null, prefill = null) => {
         form.variableBindings[item.token] = item.path;
       else delete form.variableBindings[item.token];
     });
-    originalContent.value = contentSnapshot();
-    originalBindings.value = JSON.stringify(form.variableBindings);
   } else {
     form.inboxId =
       inboxOptions.value.length === 1 ? inboxOptions.value[0].value : null;
@@ -385,26 +384,103 @@ const open = async (template = null, prefill = null) => {
     (hasNamedVariables(form.header.text, form.body.text)
       ? 'NAMED'
       : (bodyVariables.value.length && 'POSITIONAL') || 'NAMED');
+  form.parameterFormat = variableMode.value;
+  savedSnapshot.value = localSnapshot();
   panelRef.value?.open();
   await nextTick();
   isLoading.value = false;
-  await loadCapabilities();
 };
 
-const close = () => panelRef.value?.close();
+const discardDialog = ref(null);
+const close = () => {
+  if (
+    !isRemote.value &&
+    !localReadOnly.value &&
+    localSnapshot() !== savedSnapshot.value
+  ) {
+    discardDialog.value?.open();
+    return;
+  }
+  panelRef.value?.close();
+};
+const reportError = async error => {
+  try {
+    if (await draftSession.handleConflict(error)) {
+      saveError.value = '';
+      return;
+    }
+    saveError.value = apiError(error);
+  } catch {
+    saveError.value = t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.RELOAD_ERROR');
+  }
+};
+const applyMedia = async record => {
+  form.header.handle = record.media ? 'local_attachment' : '';
+  form.header.fileName = record.media?.filename || '';
+  headerFileSize.value = record.media?.byte_size || 0;
+  if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
+  headerPreviewUrl.value = '';
+  if (record.media) {
+    const { data } = await DraftsAPI.downloadMedia(record.id);
+    headerPreviewUrl.value = URL.createObjectURL(data);
+  }
+};
+const applyDraft = async record => {
+  isApplyingDraft.value = true;
+  Object.assign(form, formFromDraft(record, props.inboxes));
+  languageTouched.value = true;
+  variableMode.value = form.parameterFormat;
+  showErrors.value = true;
+  await nextTick();
+  isApplyingDraft.value = false;
+  savedSnapshot.value = localSnapshot();
+  await applyMedia(record);
+};
+const keepChanges = async () => {
+  try {
+    await applyMedia(draft.value);
+    draftSession.acceptRevision();
+  } catch (error) {
+    saveError.value = apiError(error);
+  }
+};
+const openDraft = async record => {
+  resetForm();
+  editing.value = null;
+  isLoading.value = true;
+  panelRef.value?.open();
+  store.dispatch('attributes/get');
+  try {
+    const latest = await draftSession.load(record.id);
+    await applyDraft(latest);
+  } catch (error) {
+    loadFailed.value = true;
+    saveError.value = apiError(error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+const reloadConflict = async () => {
+  try {
+    await applyDraft(await draftSession.load(draft.value.id));
+    draftSession.acceptRevision();
+    saveError.value = '';
+  } catch (error) {
+    saveError.value = apiError(error);
+  }
+};
 
 watch(
   () => form.inboxId,
   (value, previous) => {
     if (value === previous) return;
-    loadCapabilities();
     if (!isEdit.value && !languageTouched.value) setDefaultLanguage();
   }
 );
 
 // The body variables need one example each: keep the list the same length as the variables.
 watch(bodyVariables, numbers => {
-  if (isEdit.value) return;
+  if (isEdit.value || isLoading.value || isApplyingDraft.value) return;
   const examples = [...form.body.examples];
   while (examples.length < numbers.length) examples.push('');
   form.body.examples = examples.slice(0, Math.max(numbers.length, 0));
@@ -454,36 +530,63 @@ const removeButton = index => {
 
 const chooseFile = () => fileInput.value?.click();
 
+const persistDraft = async () => {
+  const record = await draftSession.save(draftFromForm(form, props.inboxes));
+  savedSnapshot.value = localSnapshot();
+  emit('saved');
+  return record;
+};
 const onFileChosen = async event => {
   const [file] = event.target.files || [];
   event.target.value = '';
-  if (!file) return;
-
+  if (
+    !file ||
+    isSaving.value ||
+    isUploading.value ||
+    conflict.value ||
+    !canEditContent.value
+  )
+    return;
   isUploading.value = true;
+  saveError.value = '';
   try {
-    const { data } = await WhatsappTemplatesAPI.uploadHeaderExample(
-      form.inboxId,
-      form.header.format,
-      file
-    );
-    form.header.handle = data.handle;
-    form.header.fileName = data.name;
-    headerFileSize.value = file.size;
+    // Ensure an owner exists before attaching; neither call contacts Meta.
+    await persistDraft();
+    await draftSession.upload(file);
+    form.header.handle = 'local_attachment';
+    form.header.fileName = draft.value.media.filename;
+    headerFileSize.value = draft.value.media.byte_size;
     if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
     headerPreviewUrl.value = URL.createObjectURL(file);
+    emit('saved');
   } catch (error) {
-    useAlert(apiError(error));
+    await reportError(error);
   } finally {
     isUploading.value = false;
   }
 };
-
-const removeFile = () => {
-  form.header.handle = '';
-  form.header.fileName = '';
-  headerFileSize.value = 0;
-  if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
-  headerPreviewUrl.value = '';
+const removeFile = async () => {
+  if (
+    isUploading.value ||
+    isSaving.value ||
+    conflict.value ||
+    !canEditContent.value
+  )
+    return;
+  isUploading.value = true;
+  try {
+    if (draft.value?.media) await draftSession.removeMedia();
+    form.header.handle = '';
+    form.header.fileName = '';
+    headerFileSize.value = 0;
+    if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
+    headerPreviewUrl.value = '';
+    emit('saved');
+  } catch (error) {
+    await reportError(error);
+  } finally {
+    isUploading.value = false;
+  }
 };
 
 const fileSizeLabel = computed(() => {
@@ -504,7 +607,8 @@ const fileIcon = computed(
 );
 
 const chooseInbox = value => {
-  if (value) form.inboxId = value;
+  form.inboxId = value || null;
+  form.wabaId = null;
 };
 const chooseLanguage = value => {
   if (!value) return;
@@ -514,36 +618,24 @@ const chooseLanguage = value => {
 const chooseHeaderFormat = value => {
   if (!value || isEdit.value) return;
   form.header.format = value;
-  removeFile();
 };
 
 const openPreview = () => previewDialogRef.value?.open();
 
 const save = async () => {
   if (
+    isSaving.value ||
+    isUploading.value ||
     isLoading.value ||
-    (isEdit.value && !canEditContent.value && !canEditBindings.value)
+    loadFailed.value ||
+    conflict.value
   )
     return;
-  saveError.value = '';
-  if (!isEdit.value) form.name = generatedName.value;
-  showErrors.value = true;
-  if (
-    (!isEdit.value || contentChanged.value) &&
-    Object.keys(errors.value).length
-  )
-    return;
-
   isSaving.value = true;
+  saveError.value = '';
   try {
-    const payload = buildPayload(mappedForm.value);
-    let created = null;
-    let updated = null;
-    // Persist local choices while the synced template is still approved.
-    if (
-      canEditBindings.value &&
-      JSON.stringify(form.variableBindings) !== originalBindings.value
-    ) {
+    if (isRemote.value) {
+      if (!canEditBindings.value) return;
       await editing.value.inboxes.reduce(async (previous, inbox) => {
         await previous;
         await InboxesAPI.updateWhatsappTemplateVariableBindings(inbox.id, {
@@ -552,78 +644,156 @@ const save = async () => {
         });
       }, Promise.resolve());
       await store.dispatch('inboxes/get', { force: true });
+      useAlert(t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVED_LOCALLY'));
+      emit('saved');
+      panelRef.value?.close();
+    } else if (!localReadOnly.value) {
+      await persistDraft();
+      showErrors.value = true;
+      useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED'));
     }
-    if (isEdit.value && contentChanged.value) {
-      if (!canEditContent.value) return;
-      ({ data: updated } = await WhatsappTemplatesAPI.updateTemplate(
-        form.inboxId,
-        editing.value.id,
-        categoryLocked.value ? { ...payload, category: undefined } : payload
-      ));
-    } else if (!isEdit.value) {
-      ({ data: created } = await WhatsappTemplatesAPI.createTemplate(
-        form.inboxId,
-        payload
-      ));
-    }
-    const editMessage =
-      !contentChanged.value || updated?.meta_skipped
-        ? 'WHATSAPP_TEMPLATE_MGMT.FORM.SAVED_LOCALLY'
-        : 'WHATSAPP_TEMPLATE_MGMT.FORM.UPDATED';
-    useAlert(
-      t(isEdit.value ? editMessage : 'WHATSAPP_TEMPLATE_MGMT.FORM.CREATED')
-    );
-    // Meta decides the final category from the wording: say so when it is not the one that was asked for.
-    const assigned = String(created?.category || '').toUpperCase();
-    if (assigned && assigned !== form.category) {
-      useAlert(
-        t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY_CHANGED', {
-          requested: t(
-            `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${form.category}.LABEL`
-          ),
-          assigned: te(
-            `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${assigned}.LABEL`
-          )
-            ? t(`WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${assigned}.LABEL`)
-            : formatTemplateLabel(assigned),
-        })
-      );
-    }
-    emit('saved');
-    close();
   } catch (error) {
-    saveError.value = apiError(error);
+    await reportError(error);
   } finally {
     isSaving.value = false;
   }
+};
+const submitForReview = async () => {
+  if (
+    !canSubmit.value ||
+    isSaving.value ||
+    isUploading.value ||
+    isLoading.value
+  )
+    return;
+  showErrors.value = true;
+  isSaving.value = true;
+  saveError.value = '';
+  try {
+    if (localSnapshot() !== savedSnapshot.value) await persistDraft();
+    await draftSession.submit();
+    emit('saved');
+  } catch (error) {
+    await reportError(error);
+  } finally {
+    isSaving.value = false;
+  }
+};
+const verifySubmission = async () => {
+  if (isSaving.value || !currentAttempt.value) return;
+  isSaving.value = true;
+  try {
+    await DraftsAPI.reconcile(draft.value.id, currentAttempt.value.id);
+    await applyDraft(await draftSession.load(draft.value.id));
+    useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.VERIFY_QUEUED'));
+    emit('saved');
+  } catch (error) {
+    await reportError(error);
+  } finally {
+    isSaving.value = false;
+  }
+};
+const refreshDraft = async () => {
+  if (isSaving.value) return;
+  isSaving.value = true;
+  try {
+    await applyDraft(await draftSession.load(draft.value.id));
+    emit('saved');
+  } catch (error) {
+    await reportError(error);
+  } finally {
+    isSaving.value = false;
+  }
+};
+const newVersion = async () => {
+  if (isSaving.value) return;
+  isSaving.value = true;
+  try {
+    const { data } = isRemote.value
+      ? await DraftsAPI.newVersion(
+          props.inboxes.find(item => item.id === form.inboxId).channel_id,
+          String(editing.value.id)
+        )
+      : await DraftsAPI.newVersion(
+          draft.value.preferred_channel_id ||
+            props.inboxes.find(
+              inbox =>
+                inbox.provider === 'whatsapp_cloud' &&
+                inbox.provider_config?.business_account_id ===
+                  draft.value.waba_id
+            )?.channel_id,
+          currentAttempt.value.remote_id
+        );
+    await openDraft(data);
+    emit('saved');
+  } catch (error) {
+    await reportError(error);
+  } finally {
+    isSaving.value = false;
+  }
+};
+const duplicate = async () => {
+  if (isSaving.value || !duplicateInboxId.value) return;
+  isSaving.value = true;
+  try {
+    // Installed templates first acquire a local copy; duplication always uses the
+    // server copy endpoint so media and opaque components are preserved there.
+    let source = draft.value;
+    if (isRemote.value) {
+      const { data } = await DraftsAPI.newVersion(
+        props.inboxes.find(item => item.id === form.inboxId).channel_id,
+        String(editing.value.id)
+      );
+      source = data;
+    }
+    const { data } = await DraftsAPI.duplicate(
+      source.id,
+      draftDestination(duplicateInboxId.value, props.inboxes)
+    );
+    duplicateDialog.value?.close();
+    await openDraft(data);
+    emit('saved');
+  } catch (error) {
+    await reportError(error);
+  } finally {
+    isSaving.value = false;
+  }
+};
+const openBindings = async template => {
+  await open(template);
+  editingBindings.value = true;
+};
+const onPanelClosed = () => {
+  if (
+    !isRemote.value &&
+    !localReadOnly.value &&
+    localSnapshot() !== savedSnapshot.value
+  ) {
+    panelRef.value?.open();
+    discardDialog.value?.open();
+  }
+};
+const discard = () => {
+  savedSnapshot.value = localSnapshot();
+  discardDialog.value?.close();
+  panelRef.value?.close();
 };
 
 onBeforeUnmount(() => {
   if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
 });
 
-const openSystemCopy = async template => {
-  const inbox = props.inboxes.find(item =>
-    template.inboxes?.some(owner => owner.id === item.id)
-  );
-  const prefill = formFromTemplate(template, inbox?.id || form.inboxId);
-  prefill.name = `${template.name.slice(0, 509)}_v2`;
-  await open(null, prefill);
-  copySource.value = template;
-  Object.assign(systemMapping, suggestSystemMapping(form));
-  variableMode.value = 'NAMED';
+const openDuplicate = async record => {
+  duplicateInboxId.value = null;
+  if (record.isLocalDraft) await openDraft(record);
+  else await open(record);
+  duplicateDialog.value?.open();
 };
-
-defineExpose({ open, close, openSystemCopy });
+defineExpose({ open, close, openDraft, openBindings, openDuplicate });
 
 // The combobox clears its value when the chosen option is clicked again: these fields always keep one.
 const headerOptions = computed(() =>
-  HEADER_FORMATS.filter(
-    format =>
-      format === form.header.format ||
-      !MEDIA_FORMATS.includes(format) ||
-      mediaHeaderAvailable.value
-  ).map(format => ({
+  HEADER_FORMATS.map(format => ({
     value: format,
     label: t(`WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.${format}`),
   }))
@@ -643,16 +813,17 @@ const buttonChoices = computed(() =>
     width="2xl"
     :title="
       isEdit
-        ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_TITLE')
+        ? $t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.DETAILS')
         : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
     "
+    @close="onPanelClosed"
   >
     <template #header>
       <div class="flex items-center min-w-0 gap-2">
         <h3 class="text-base font-medium truncate text-n-slate-12">
           {{
             isEdit
-              ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_TITLE')
+              ? $t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.DETAILS')
               : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
           }}
         </h3>
@@ -691,40 +862,119 @@ const buttonChoices = computed(() =>
         {{ fieldError('structure') }}
       </p>
       <div
-        v-if="copySource"
-        class="grid gap-3 p-3 rounded-lg border border-n-weak"
-        data-testid="system-copy"
+        v-if="conflict"
+        role="alert"
+        class="grid gap-2 p-3 rounded-lg bg-n-amber-3 text-sm text-n-amber-11"
+        data-testid="revision-conflict"
       >
-        <h3 class="text-sm font-medium text-n-slate-12">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.SYSTEM_COPY') }}
-        </h3>
-        <p class="text-xs text-n-slate-11">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.SYSTEM_COPY_HELP') }}
-        </p>
-        <div v-for="token in mappingTokens" :key="token" class="grid gap-1">
-          <span class="text-sm text-n-slate-12">{{
-            variableLabel(token)
-          }}</span>
-          <VariablePicker
-            value-format="alias"
-            mode="read"
-            :aria-label="
-              $t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE') +
-              ' ' +
-              variableLabel(token)
-            "
-            :model-value="systemMapping[token] || ''"
-            :data-testid="`map-variable-${token}`"
-            @update:model-value="value => (systemMapping[token] = value)"
-          />
-        </div>
+        <p>{{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.CONFLICT') }}</p>
+        <Button
+          intent="secondary"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.RELOAD')"
+          data-testid="reload-revision"
+          @click="reloadConflict"
+        />
+        <Button
+          v-if="conflictLoaded"
+          intent="secondary"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.KEEP_CHANGES')"
+          data-testid="keep-changes"
+          @click="keepChanges"
+        />
+      </div>
+      <div v-if="!isRemote" class="grid gap-2 text-sm text-n-slate-11">
         <p
-          v-if="fieldError('mapping')"
-          role="alert"
-          class="text-xs text-n-ruby-11"
+          v-if="
+            draft && !localReadOnly && !canSubmit && !hasOpaqueComponents(form)
+          "
         >
-          {{ fieldError('mapping') }}
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT_REQUIREMENTS') }}
         </p>
+        <p v-if="!form.inboxId">
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NO_DESTINATION_HELP') }}
+        </p>
+        <p v-if="sharedChannels.length > 1">
+          {{
+            $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SHARED', {
+              channels: sharedChannels.join(', '),
+            })
+          }}
+        </p>
+        <p
+          v-if="hasOpaqueComponents(form)"
+          class="text-n-amber-11"
+          data-testid="opaque-warning"
+        >
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.OPAQUE') }}
+        </p>
+        <template v-if="draft">
+          <p data-testid="draft-state">
+            {{
+              $t(
+                'WHATSAPP_TEMPLATE_MGMT.DRAFTS.STATUS.' +
+                  draft.status.toUpperCase()
+              )
+            }}
+          </p>
+          <p v-if="currentAttempt?.remote_status">
+            {{
+              $te(
+                'WHATSAPP_TEMPLATE_MGMT.STATUS.' + currentAttempt.remote_status
+              )
+                ? $t(
+                    'WHATSAPP_TEMPLATE_MGMT.STATUS.' +
+                      currentAttempt.remote_status
+                  )
+                : currentAttempt.remote_status
+            }}
+          </p>
+          <p v-if="draft.status === 'reconciling'">
+            {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNCERTAIN') }}
+          </p>
+          <p
+            v-if="currentAttempt?.remote_status === 'REJECTED'"
+            class="text-n-ruby-11"
+          >
+            {{
+              $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.REJECTED', {
+                reason: currentAttempt.remote_reason || '—',
+              })
+            }}
+          </p>
+          <p
+            v-if="currentAttempt?.remote_status === 'PAUSED'"
+            class="text-n-amber-11"
+          >
+            {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.PAUSED') }}
+          </p>
+          <p
+            v-if="
+              currentAttempt?.error_details &&
+              Object.keys(currentAttempt.error_details).length
+            "
+            role="alert"
+            class="break-words text-n-ruby-11"
+          >
+            {{ JSON.stringify(currentAttempt.error_details) }}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              v-if="localReadOnly"
+              intent="secondary"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.REFRESH')"
+              :disabled="isSaving"
+              @click="refreshDraft"
+            />
+            <Button
+              v-if="['reconciling', 'submitted'].includes(draft.status)"
+              intent="secondary"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.VERIFY')"
+              :disabled="isSaving"
+              data-testid="verify-submission"
+              @click="verifySubmission"
+            />
+          </div>
+        </template>
       </div>
       <div
         v-if="isEdit"
@@ -761,7 +1011,7 @@ const buttonChoices = computed(() =>
           class="text-sm text-n-ruby-11"
         >
           {{
-            $t('WHATSAPP_TEMPLATE_MGMT.FORM.REJECTED_REASON', {
+            $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.REJECTED', {
               reason: liveState.rejected_reason,
             })
           }}
@@ -771,7 +1021,7 @@ const buttonChoices = computed(() =>
           class="text-xs text-n-amber-11"
           data-testid="approved-warning"
         >
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.APPROVED_WARNING') }}
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.READ_ONLY') }}
         </p>
         <p v-if="lastUpdatedTime" class="text-xs text-n-slate-11">
           {{
@@ -783,29 +1033,32 @@ const buttonChoices = computed(() =>
         <p class="text-xs text-n-slate-11">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_STRUCTURE_HELP') }}
         </p>
-        <Button
-          v-if="form.parameterFormat === 'POSITIONAL' && liveLoaded"
-          type="button"
-          slate
-          outline
-          sm
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.SYSTEM_COPY')"
-          data-testid="system-copy-open"
-          @click="openSystemCopy(editing)"
-        />
-        <p v-if="!canEditContent" class="text-sm text-n-amber-11">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CANNOT_EDIT_NOW') }}
+        <p v-if="statusKey === 'PAUSED'" class="text-n-amber-11">
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.PAUSED') }}
         </p>
+        <Button
+          v-if="templateDataEligible(editing) && !editingBindings"
+          intent="secondary"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.CONFIGURE_BINDINGS')"
+          @click="editingBindings = true"
+        />
       </div>
 
       <fieldset
-        :disabled="!canEditContent"
-        :inert="!canEditContent"
+        :disabled="!canEditContent || isSaving || isUploading"
+        :inert="!canEditContent || isSaving || isUploading"
         class="grid gap-4 min-w-0"
       >
+        <Input
+          v-if="!isRemote"
+          v-model="form.title"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.INTERNAL_TITLE')"
+          :max-length="100"
+          data-testid="draft-title"
+        />
         <div class="grid gap-4 sm:grid-cols-2">
           <div
-            v-if="inboxes.length > 1 || visibleErrors.inboxId"
+            v-if="!isRemote || inboxes.length > 1 || visibleErrors.inboxId"
             class="grid gap-1 content-start sm:col-span-2"
           >
             <span class="text-sm font-medium text-n-slate-12">
@@ -926,7 +1179,7 @@ const buttonChoices = computed(() =>
           </p>
         </fieldset>
 
-        <div v-if="!isEdit && !copySource" class="grid gap-1">
+        <div v-if="!isEdit" class="grid gap-1">
           <span
             class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
           >
@@ -946,7 +1199,10 @@ const buttonChoices = computed(() =>
               :slate="variableMode !== 'NAMED'"
               :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED')"
               data-testid="mode-named"
-              @click="variableMode = 'NAMED'"
+              @click="
+                variableMode = 'NAMED';
+                form.parameterFormat = 'NAMED';
+              "
             />
             <Button
               type="button"
@@ -954,7 +1210,10 @@ const buttonChoices = computed(() =>
               :slate="variableMode !== 'POSITIONAL'"
               :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL')"
               data-testid="mode-positional"
-              @click="variableMode = 'POSITIONAL'"
+              @click="
+                variableMode = 'POSITIONAL';
+                form.parameterFormat = 'POSITIONAL';
+              "
             />
           </div>
         </div>
@@ -986,19 +1245,10 @@ const buttonChoices = computed(() =>
                   data-testid="template-header-format"
                   @update:model-value="chooseHeaderFormat"
                 />
-                <span
-                  v-if="!isEdit && !mediaHeaderAvailable"
-                  v-tooltip.top="mediaUnavailableText"
-                  class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
-                  role="img"
-                  :aria-label="mediaUnavailableText"
-                  data-testid="media-header-unavailable"
-                />
               </div>
               <template v-if="form.header.format === 'TEXT'">
                 <Input
-                  :model-value="mappedForm.header.text"
-                  :disabled="Boolean(copySource)"
+                  :model-value="form.header.text"
                   :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_TEXT')"
                   :message="fieldError('header.text')"
                   :message-type="fieldError('header.text') ? 'error' : 'info'"
@@ -1089,8 +1339,7 @@ const buttonChoices = computed(() =>
             <div ref="bodyBox" class="grid gap-2">
               <div class="relative">
                 <TextArea
-                  :model-value="mappedForm.body.text"
-                  :disabled="Boolean(copySource)"
+                  :model-value="form.body.text"
                   resize
                   class="[&_textarea]:min-h-32"
                   :placeholder="
@@ -1104,7 +1353,7 @@ const buttonChoices = computed(() =>
                 />
                 <!-- Next to the character counter, inside the text box: a small button, not a full-width field. -->
                 <div
-                  v-if="!isEdit && !copySource"
+                  v-if="!isEdit"
                   class="absolute bottom-2.5 end-24 w-40"
                   data-testid="variable-picker"
                 >
@@ -1135,11 +1384,11 @@ const buttonChoices = computed(() =>
                 </div>
               </div>
               <div
-                v-if="!isEdit && !copySource && variableMode === 'NAMED'"
+                v-if="!isEdit && variableMode === 'NAMED'"
                 class="flex flex-wrap items-start gap-2"
               >
                 <div
-                  v-if="!isEdit && !copySource && variableMode === 'NAMED'"
+                  v-if="!isEdit && variableMode === 'NAMED'"
                   class="flex items-start gap-2"
                 >
                   <Input
@@ -1233,8 +1482,7 @@ const buttonChoices = computed(() =>
               />
               <template v-if="button.type === 'URL'">
                 <Input
-                  :model-value="mappedForm.buttons[index].url"
-                  :disabled="Boolean(copySource)"
+                  :model-value="form.buttons[index].url"
                   size="sm"
                   placeholder="https://ejemplo.com/pedido/{{1}}"
                   :message="fieldError(`buttons.${index}.url`)"
@@ -1295,11 +1543,14 @@ const buttonChoices = computed(() =>
           </div>
         </div>
       </fieldset>
-      <div
+      <fieldset
         v-if="
-          ownVariables.length && !copySource && (!isEdit || canEditBindings)
+          ownVariables.length &&
+          ((!isEdit && !localReadOnly) || canEditBindings)
         "
-        class="grid gap-2"
+        class="grid gap-2 min-w-0"
+        :disabled="isSaving || isUploading || loadFailed"
+        :inert="isSaving || isUploading || loadFailed"
         data-testid="variable-values"
       >
         <span
@@ -1349,7 +1600,7 @@ const buttonChoices = computed(() =>
             />
           </div>
         </div>
-      </div>
+      </fieldset>
 
       <div
         v-if="bodyVariables.length"
@@ -1364,8 +1615,8 @@ const buttonChoices = computed(() =>
             v-for="(number, index) in bodyVariables"
             :key="number"
             v-model="form.body.examples[index]"
-            :disabled="!canEditContent"
-            :label="`{{${copySource ? systemMapping[number] || number : number}}}`"
+            :disabled="!canEditContent || isSaving || isUploading"
+            :label="`{{${number}}}`"
             size="sm"
           />
         </div>
@@ -1375,7 +1626,7 @@ const buttonChoices = computed(() =>
       </div>
 
       <div
-        v-if="!isEdit && !copySource"
+        v-if="!isEdit"
         class="p-3 rounded-lg bg-n-alpha-2"
         data-testid="meta-rules"
       >
@@ -1410,42 +1661,84 @@ const buttonChoices = computed(() =>
       />
     </Dialog>
 
+    <Dialog
+      ref="duplicateDialog"
+      :title="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE')"
+      :confirm-button-label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE')"
+      :disable-confirm-button="!duplicateInboxId || isSaving"
+      :is-loading="isSaving"
+      @confirm="duplicate"
+    >
+      <TemplateComboBox
+        v-model="duplicateInboxId"
+        :options="cloudInboxOptions"
+        :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER')"
+        :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
+      />
+    </Dialog>
+    <Dialog
+      ref="discardDialog"
+      :title="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DISCARD_TITLE')"
+      :description="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DISCARD_HELP')"
+      :confirm-button-label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DISCARD')"
+      @confirm="discard"
+    />
     <template #footer>
       <div class="flex flex-wrap gap-2">
         <Button
           type="button"
-          slate
-          outline
-          class="flex-1"
+          intent="tertiary"
           :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL')"
           @click="close"
         />
         <Button
           type="button"
-          slate
-          outline
-          class="flex-1"
+          intent="secondary"
           icon="i-lucide-eye"
           :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')"
           data-testid="template-preview-open"
           @click="openPreview"
         />
+        <template v-if="isRemote || localReadOnly">
+          <Button
+            v-if="(isRemote && canCopyRemote) || currentAttempt?.remote_id"
+            intent="primary"
+            :disabled="isSaving || isLoading"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NEW_VERSION')"
+            data-testid="new-version"
+            @click="newVersion"
+          />
+          <Button
+            v-if="(isRemote && canCopyRemote) || draft"
+            intent="secondary"
+            :disabled="isSaving || isLoading"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE')"
+            data-testid="duplicate-draft"
+            @click="duplicateDialog?.open()"
+          />
+        </template>
         <Button
+          v-if="canEditContent || canEditBindings"
           type="button"
-          class="basis-full sm:basis-0 sm:flex-1"
-          intent="primary"
+          :intent="canSubmit ? 'secondary' : 'primary'"
           :is-loading="isSaving"
-          :disabled="
-            isSaving ||
-            isLoading ||
-            (isEdit && !canEditContent && !canEditBindings)
-          "
+          :disabled="isSaving || isUploading || isLoading || conflict"
           :label="
-            isEdit
+            canEditBindings
               ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_CHANGES')
-              : $t('WHATSAPP_TEMPLATE_MGMT.FORM.CREATE')
+              : $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVE')
           "
+          data-testid="save-draft"
           @click="save"
+        />
+        <Button
+          v-if="!isRemote && draft && !localReadOnly"
+          intent="primary"
+          :disabled="!canSubmit || isSaving || isUploading || isLoading"
+          :is-loading="isSaving"
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT')"
+          data-testid="submit-draft"
+          @click="submitForReview"
         />
       </div>
     </template>

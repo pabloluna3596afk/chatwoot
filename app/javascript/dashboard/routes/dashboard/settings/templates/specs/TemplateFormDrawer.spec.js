@@ -5,8 +5,11 @@ import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import { PRESETS, presetToForm } from '../presets';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
+import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import { draftFromForm } from '../templateDrafts';
+import { emptyForm } from '../templateForm';
 import { useAlert } from 'dashboard/composables';
-import { useMapGetter, useStore } from 'dashboard/composables/store';
 import InboxesAPI from 'dashboard/api/inboxes';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 vi.mock('dashboard/api/inboxes', () => ({
@@ -64,6 +67,22 @@ vi.mock(
     },
   })
 );
+vi.mock('dashboard/api/whatsappTemplateDrafts', () => ({
+  default: Object.fromEntries(
+    [
+      'create',
+      'update',
+      'show',
+      'submit',
+      'uploadMedia',
+      'removeMedia',
+      'downloadMedia',
+      'newVersion',
+      'duplicate',
+      'reconcile',
+    ].map(key => [key, vi.fn()])
+  ),
+}));
 vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: {
     capabilities: vi.fn(),
@@ -74,7 +93,15 @@ vi.mock('dashboard/api/whatsappTemplates', () => ({
   },
 }));
 
-const inboxes = [{ id: 7, name: 'Soporte', provider: 'whatsapp_cloud' }];
+const inboxes = [
+  {
+    id: 7,
+    channel_id: 70,
+    name: 'Soporte',
+    provider: 'whatsapp_cloud',
+    provider_config: { business_account_id: 'waba-a' },
+  },
+];
 
 const SidePanelStub = {
   template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
@@ -89,6 +116,7 @@ const mountDrawer = async (props = {}, realPanel = false) => {
     attachTo: realPanel ? document.body : undefined,
     global: {
       mocks: {
+        $te: () => true,
         $t: (key, values) => (values?.time ? `${key}: ${values.time}` : key),
       },
       stubs: {
@@ -107,61 +135,61 @@ const typeInto = async (wrapper, selector, value) => {
   await input.setValue(value);
 };
 
-describe('TemplateFormDrawer', () => {
+describe('TemplateFormDrawer drafts', () => {
+  const record = {
+    id: 31,
+    lock_version: 2,
+    status: 'draft',
+    submissions: [],
+    media: null,
+    ...draftFromForm(
+      {
+        ...emptyForm(),
+        inboxId: 7,
+        name: 'appointment',
+        body: { text: 'Your appointment is confirmed.', examples: [] },
+      },
+      inboxes
+    ),
+  };
+  const positional = {
+    id: '555',
+    name: 'test_utility_envio',
+    language: 'es_EC',
+    category: 'UTILITY',
+    status: 'APPROVED',
+    parameter_format: 'POSITIONAL',
+    last_updated_time: '2026-10-07T10:00:00Z',
+    inboxes,
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, tu pedido está confirmado.',
+        example: { body_text: [['Ana']] },
+      },
+    ],
+  };
   beforeEach(() => {
     VariablesAPI.catalog.mockResolvedValue({ data: structuredClone(catalog) });
     userLocale.value = 'es';
     currentRole.value = 'administrator';
-    useMapGetter('attributes/getAttributes').value = [
-      {
-        attribute_key: 'plan',
-        attribute_model: 'contact_attribute',
-        attribute_display_name: 'Plan',
-      },
-      {
-        attribute_key: 'estado',
-        attribute_model: 'conversation_attribute',
-        attribute_display_name: 'Estado',
-      },
-    ];
-    WhatsappTemplatesAPI.updateTemplate.mockReset();
-    WhatsappTemplatesAPI.getTemplate.mockReset();
-    WhatsappTemplatesAPI.capabilities.mockReset();
-    WhatsappTemplatesAPI.createTemplate.mockReset();
-    WhatsappTemplatesAPI.capabilities.mockResolvedValue({
-      data: { media_header: false },
+    DraftsAPI.create.mockImplementation(async attrs => ({
+      data: { ...record, ...attrs, lock_version: 0 },
+    }));
+    DraftsAPI.update.mockImplementation(async (id, attrs) => ({
+      data: { ...record, ...attrs, id, lock_version: attrs.lock_version + 1 },
+    }));
+    DraftsAPI.show.mockResolvedValue({ data: structuredClone(record) });
+    DraftsAPI.submit.mockResolvedValue({
+      data: { id: 99, revision: 2, status: 'submitting' },
     });
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+    URL.createObjectURL = vi.fn(() => 'blob:local-preview');
+    URL.revokeObjectURL = vi.fn();
   });
-
-  it('renders Guardar cambios as primary and Agregar variable as secondary', async () => {
-    const wrapper = await mountDrawer();
-    const save = wrapper
-      .findAll('button')
-      .find(button =>
-        button.text().includes('WHATSAPP_TEMPLATE_MGMT.FORM.CREATE')
-      );
-    expect(save.classes()).toContain('bg-n-brand');
-
-    await typeInto(
-      wrapper,
-      'input[placeholder="WHATSAPP_TEMPLATE_MGMT.FORM.CUSTOM_VARIABLE"]',
-      'nombre'
-    );
-    const add = wrapper
-      .findAll('button')
-      .find(button => button.text() === 'WHATSAPP_TEMPLATE_MGMT.FORM.ADD');
-    expect(add.classes()).toContain('bg-n-slate-9/10');
+  afterEach(() => {
+    document.body.innerHTML = '';
   });
-
-  it('shows the Meta rules and says why media headers are missing when the channel cannot upload examples', async () => {
-    const wrapper = await mountDrawer();
-
-    expect(wrapper.find('[data-testid="meta-rules"]').exists()).toBe(true);
-    expect(
-      wrapper.find('[data-testid="media-header-unavailable"]').exists()
-    ).toBe(true);
-  });
-
   it('keeps explanations in tooltips, lets the body grow and puts Agregar variable by the counter', async () => {
     const wrapper = await mountDrawer();
 
@@ -179,97 +207,6 @@ describe('TemplateFormDrawer', () => {
     const picker = wrapper.get('[data-testid="variable-picker"]');
     expect(picker.classes()).toContain('absolute');
     expect(picker.element.parentElement.contains(body.element)).toBe(true);
-  });
-
-  it('does not call Meta while the form has mistakes', async () => {
-    const wrapper = await mountDrawer();
-
-    await wrapper.get('form').trigger('submit');
-
-    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain(
-      'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.NAME_INVALID'
-    );
-    expect(wrapper.text()).toContain(
-      'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.BODY_REQUIRED'
-    );
-  });
-
-  it('creates the template with the snake_case name and the body typed', async () => {
-    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
-      data: { id: '9' },
-    });
-    const wrapper = await mountDrawer();
-
-    await typeInto(wrapper, 'input[type="text"]', 'Recordatorio de cita');
-    await typeInto(wrapper, 'textarea', 'Tu cita queda confirmada.');
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-
-    expect(WhatsappTemplatesAPI.createTemplate).toHaveBeenCalledTimes(1);
-    const [inboxId, payload] =
-      WhatsappTemplatesAPI.createTemplate.mock.calls[0];
-    expect(inboxId).toBe(7);
-    expect(payload).toMatchObject({
-      name: 'recordatorio_de_cita',
-      language: 'es',
-      category: 'UTILITY',
-      body: { text: 'Tu cita queda confirmada.' },
-    });
-    expect(wrapper.emitted('saved')).toHaveLength(1);
-  });
-
-  it('keeps the language of a duplicated template instead of the account default', async () => {
-    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
-      data: { id: 'copy' },
-    });
-    const wrapper = await mountDrawer();
-    const prefill = presetToForm(PRESETS[0]);
-    prefill.name = 'template_copia';
-    prefill.language = 'en';
-    await wrapper.vm.open(null, prefill);
-    await flushPromises();
-    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-    expect(WhatsappTemplatesAPI.createTemplate).toHaveBeenCalledWith(
-      7,
-      expect.objectContaining({ name: 'template_copia', language: 'en' })
-    );
-    wrapper.unmount();
-  });
-
-  it('opens filled in with a preset and creates it with named variables', async () => {
-    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
-      data: { id: '9' },
-    });
-    const wrapper = mount(TemplateFormDrawer, {
-      props: { inboxes },
-      global: {
-        mocks: { $t: key => key },
-        stubs: { SidePanel: SidePanelStub, TemplatePreview: true },
-      },
-    });
-    await wrapper.vm.open(null, presetToForm(PRESETS[0]));
-    await flushPromises();
-
-    expect(wrapper.get('input[type="text"]').element.value).toBe(
-      'recordatorio_cita'
-    );
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-
-    const [inboxId, payload] =
-      WhatsappTemplatesAPI.createTemplate.mock.calls[0];
-    expect(inboxId).toBe(7);
-    expect(payload.body.text).toContain('{{nombre}}');
-    expect(payload.body.examples).toEqual([
-      'Ana',
-      'Consulta',
-      'jueves 8 de octubre',
-      '10:30',
-    ]);
-    expect(payload.category).toBe('UTILITY');
   });
 
   it('adds a custom named variable to the body at the cursor and asks for its example', async () => {
@@ -343,63 +280,6 @@ describe('TemplateFormDrawer', () => {
     expect(wrapper.find('[data-testid="promo-warning"]').exists()).toBe(false);
   });
 
-  it('says when Meta classified the template in another category', async () => {
-    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
-      data: { id: '9', category: 'MARKETING' },
-    });
-    const wrapper = await mountDrawer();
-
-    await typeInto(wrapper, 'input[type="text"]', 'prueba');
-    await typeInto(wrapper, 'textarea', 'Tu cita queda confirmada.');
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-
-    expect(useAlert).toHaveBeenCalledWith(
-      'WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY_CHANGED'
-    );
-  });
-
-  it('says why media headers are missing when the channel gave a reason', async () => {
-    WhatsappTemplatesAPI.capabilities.mockResolvedValue({
-      data: { media_header: false, reason: 'upload_refused' },
-    });
-    const wrapper = await mountDrawer();
-
-    expect(
-      wrapper
-        .get('[data-testid="media-header-unavailable"]')
-        .attributes('aria-label')
-    ).toContain('WHATSAPP_TEMPLATE_MGMT.FORM');
-  });
-  const positional = {
-    id: '555',
-    name: 'test_utility_envio',
-    language: 'es_EC',
-    category: 'UTILITY',
-    status: 'APPROVED',
-    parameter_format: 'POSITIONAL',
-    last_updated_time: '2026-10-07T10:00:00Z',
-    inboxes,
-    components: [
-      {
-        type: 'BODY',
-        text: 'Hola {{1}}, tu pedido #{{2}} llega el {{3}} con el agente {{4}}.',
-        example: { body_text: [['Ana', '123', 'lunes', 'Luis']] },
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          {
-            type: 'URL',
-            text: 'Seguir',
-            url: 'https://paluhub.com/track/{{2}}',
-            example: ['https://paluhub.com/track/123'],
-          },
-        ],
-      },
-    ],
-  };
-
   it('edits synced positional bindings locally even without Meta examples', async () => {
     const template = {
       ...positional,
@@ -414,7 +294,7 @@ describe('TemplateFormDrawer', () => {
     };
     WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
     const wrapper = await mountDrawer();
-    await wrapper.vm.open(template);
+    await wrapper.vm.openBindings(template);
     const section = wrapper.get('[data-testid="variable-values"]');
     expect(section.text()).toContain('VARIABLE_AUTOMATIC');
     const pickers = section.findAllComponents(VariablePicker);
@@ -459,7 +339,7 @@ describe('TemplateFormDrawer', () => {
             ? [{ ...inboxes[0], provider: 'default' }]
             : inboxes,
       });
-      await wrapper.vm.open(template);
+      await wrapper.vm.openBindings(template);
       expect(wrapper.get('fieldset').attributes('disabled')).toBeDefined();
       const picker = wrapper
         .get('[data-testid="variable-values"]')
@@ -480,38 +360,6 @@ describe('TemplateFormDrawer', () => {
     }
   );
 
-  it('saves bindings before a content edit can make the template pending at Meta', async () => {
-    const template = {
-      ...positional,
-      variable_sources: { body: { 1: { source: 'missing' } } },
-    };
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
-    WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({
-      data: { status: 'PENDING' },
-    });
-    InboxesAPI.updateWhatsappTemplateVariableBindings.mockImplementationOnce(
-      async () => {
-        if (WhatsappTemplatesAPI.updateTemplate.mock.calls.length)
-          throw new Error('template_not_approved');
-        return {};
-      }
-    );
-    const wrapper = await mountDrawer();
-    await wrapper.vm.open(template);
-    wrapper
-      .get('[data-testid="variable-values"]')
-      .findComponent(VariablePicker)
-      .vm.$emit('update:modelValue', 'contact.name');
-    await wrapper
-      .get('textarea')
-      .setValue(`${positional.components[0].text} Gracias.`);
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-    expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledTimes(1);
-    expect(wrapper.emitted('saved')).toHaveLength(1);
-    wrapper.unmount();
-  });
-
   it('keeps the editor open when saving local variables fails', async () => {
     const template = {
       ...positional,
@@ -522,7 +370,7 @@ describe('TemplateFormDrawer', () => {
       new Error('offline')
     );
     const wrapper = await mountDrawer();
-    await wrapper.vm.open(template);
+    await wrapper.vm.openBindings(template);
     wrapper
       .get('[data-testid="variable-values"]')
       .findComponent(VariablePicker)
@@ -538,7 +386,7 @@ describe('TemplateFormDrawer', () => {
     wrapper.unmount();
   });
 
-  it.each(['new', 'edit', 'copy'])(
+  it.each(['new', 'edit'])(
     'keeps every %s picker fixed outside the drawer scroll container',
     async mode => {
       WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
@@ -552,15 +400,10 @@ describe('TemplateFormDrawer', () => {
         true
       );
       if (mode !== 'new') await wrapper.vm.open(positional);
-      if (mode === 'copy') await wrapper.vm.openSystemCopy(positional);
       await flushPromises();
       const selectors = ['template-inbox', 'template-language'];
       if (mode !== 'edit') selectors.push('template-header-format');
       if (mode === 'new') selectors.push('variable-menu-toggle');
-      if (mode === 'copy')
-        selectors.push(
-          ...['1', '2', '3', '4'].map(token => `map-variable-${token}`)
-        );
       selectors.forEach(testId => {
         const selector = wrapper.findComponent(`[data-testid="${testId}"]`);
         expect(selector.props('teleport')).toBe(true);
@@ -642,399 +485,471 @@ describe('TemplateFormDrawer', () => {
     }
   );
 
-  it.each([true, false])(
-    'reports the correct success message when meta_skipped is %s',
-    async metaSkipped => {
-      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-      WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({
-        data: { meta_skipped: metaSkipped },
-      });
-      const wrapper = await mountDrawer();
-      await wrapper.vm.open(positional);
-      await wrapper
-        .get('textarea')
-        .setValue(`${positional.components[0].text} Gracias.`);
-      await wrapper.get('form').trigger('submit');
-      await flushPromises();
+  it('saves an incomplete draft without a channel and never contacts Meta', async () => {
+    const wrapper = await mountDrawer({ inboxes: [] });
+    expect(wrapper.get('[data-testid="save-draft"]').classes()).toContain(
+      'bg-n-brand'
+    );
+    expect(wrapper.find('[data-testid="submit-draft"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('DRAFTS.NO_DESTINATION_HELP');
+    await wrapper
+      .get('[data-testid="draft-title"] input')
+      .setValue('Work in progress');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Work in progress',
+        name: null,
+        preferred_channel_id: null,
+        waba_id: null,
+        definition: expect.objectContaining({
+          body: { text: '', examples: [] },
+        }),
+      })
+    );
+    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    expect(useAlert).toHaveBeenCalledWith(
+      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED'
+    );
+    expect(
+      wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
+    ).toBeDefined();
+    wrapper.unmount();
+  });
 
-      expect(useAlert).toHaveBeenCalledWith(
-        `WHATSAPP_TEMPLATE_MGMT.FORM.${metaSkipped ? 'SAVED_LOCALLY' : 'UPDATED'}`
+  it('shows submit as primary only after saving a valid draft; save stays local', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.get('[data-testid="submit-draft"]').classes()).toContain(
+      'bg-n-brand'
+    );
+    expect(wrapper.get('[data-testid="save-draft"]').classes()).toContain(
+      'bg-n-slate-9/10'
+    );
+    await wrapper.get('textarea').setValue('Changed content.');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.update).toHaveBeenCalledWith(
+      31,
+      expect.objectContaining({
+        lock_version: 2,
+        preferred_channel_id: 70,
+        waba_id: 'waba-a',
+        definition: expect.objectContaining({
+          body: { text: 'Changed content.', examples: [] },
+        }),
+      })
+    );
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    DraftsAPI.show.mockResolvedValue({
+      data: {
+        ...record,
+        lock_version: 3,
+        status: 'submitting',
+        submissions: [{ id: 99, revision: 3, status: 'submitting' }],
+      },
+    });
+    await wrapper.get('[data-testid="submit-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.submit).toHaveBeenCalledWith(31, 3);
+    expect(wrapper.find('[data-testid="save-draft"]').exists()).toBe(false);
+    expect(wrapper.get('fieldset').attributes('disabled')).toBeDefined();
+    wrapper.unmount();
+  });
+
+  it.each(['update', 'submit'])(
+    'retains typed content after a 409 from %s and requires a conflict choice',
+    async operation => {
+      const wrapper = await mountDrawer();
+      await wrapper.vm.openDraft(record);
+      await wrapper.get('textarea').setValue('My unsaved words.');
+      if (operation === 'submit') {
+        await wrapper.get('[data-testid="save-draft"]').trigger('click');
+        await flushPromises();
+      }
+      DraftsAPI[operation].mockRejectedValueOnce({
+        response: { status: 409, data: { error: 'stale_revision' } },
+      });
+      DraftsAPI.show.mockResolvedValue({
+        data: {
+          ...record,
+          lock_version: 8,
+          definition: {
+            ...record.definition,
+            body: { text: 'Other administrator.', examples: [] },
+          },
+        },
+      });
+      await wrapper
+        .get(
+          `[data-testid="${operation === 'update' ? 'save' : 'submit'}-draft"]`
+        )
+        .trigger('click');
+      await flushPromises();
+      expect(wrapper.get('[data-testid="revision-conflict"]').text()).toContain(
+        'DRAFTS.CONFLICT'
       );
-      expect(wrapper.emitted('saved')).toHaveLength(1);
+      expect(wrapper.get('textarea').element.value).toBe('My unsaved words.');
+      expect(
+        wrapper.get('[data-testid="save-draft"]').attributes('disabled')
+      ).toBeDefined();
+      await wrapper.get('[data-testid="keep-changes"]').trigger('click');
+      await wrapper.get('[data-testid="save-draft"]').trigger('click');
+      await flushPromises();
+      expect(DraftsAPI.update).toHaveBeenLastCalledWith(
+        31,
+        expect.objectContaining({
+          lock_version: 8,
+          definition: expect.objectContaining({
+            body: { text: 'My unsaved words.', examples: [] },
+          }),
+        })
+      );
       wrapper.unmount();
     }
   );
 
-  it('shows the translated status rejection without raw Meta detail', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-    WhatsappTemplatesAPI.updateTemplate.mockRejectedValue({
-      response: {
-        data: {
-          error: 'edit_status_locked_by_meta',
-          message: 'Meta no permite editar esta plantilla ahora.',
-          error_user_msg: 'Raw Meta detail',
-        },
+  it('lets the user load the conflicting saved content explicitly', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(record);
+    DraftsAPI.update.mockRejectedValueOnce({
+      response: { status: 409, data: { error: 'stale_revision' } },
+    });
+    DraftsAPI.show.mockResolvedValue({
+      data: {
+        ...record,
+        lock_version: 7,
+        definition: { body: { text: 'Saved by someone else.' } },
       },
     });
-    const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    await wrapper
-      .get('textarea')
-      .setValue(`${positional.components[0].text} Gracias.`);
-    await wrapper.get('form').trigger('submit');
+    await wrapper.get('textarea').setValue('Mine');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
     await flushPromises();
-
-    expect(wrapper.text()).toContain(
-      'Meta no permite editar esta plantilla ahora.'
+    await wrapper.get('[data-testid="reload-revision"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('textarea').element.value).toBe(
+      'Saved by someone else.'
     );
-    expect(wrapper.text()).not.toContain('Raw Meta detail');
-    expect(wrapper.emitted('saved')).toBeUndefined();
+    expect(wrapper.find('[data-testid="revision-conflict"]').exists()).toBe(
+      false
+    );
     wrapper.unmount();
   });
 
-  it('loads live positional structure, keeps all examples and locks absent components and format', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-    WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({ data: {} });
+  it('keeps a server error visible and preserves unsaved content', async () => {
     const wrapper = await mountDrawer();
-    await wrapper.vm.open({
-      ...positional,
-      components: [{ type: 'BODY', text: 'Stale cache' }],
+    DraftsAPI.create.mockRejectedValueOnce({
+      response: { status: 500, data: { message: 'Unavailable' } },
     });
-    expect(wrapper.get('textarea').element.value).toBe(
-      positional.components[0].text
+    await wrapper.get('textarea').setValue('Keep this text.');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="meta-error"]').text()).toContain(
+      'Unavailable'
     );
-    expect(wrapper.find('[data-testid="mode-named"]').exists()).toBe(false);
-    expect(
-      wrapper.find('[data-testid="template-header-format"]').exists()
-    ).toBe(false);
+    expect(wrapper.get('textarea').element.value).toBe('Keep this text.');
+    wrapper.unmount();
+  });
+
+  it('creates a local preset with its exact examples and named variables', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(null, presetToForm(PRESETS[0]));
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'recordatorio_cita',
+        parameter_format: 'NAMED',
+        definition: expect.objectContaining({
+          body: { text: PRESETS[0].body, examples: PRESETS[0].examples },
+        }),
+      })
+    );
+    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('uploads to the local owner with its latest revision and removes local media', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(record);
+    wrapper
+      .findComponent('[data-testid="template-header-format"]')
+      .vm.$emit('update:modelValue', 'IMAGE');
+    await flushPromises();
+    DraftsAPI.uploadMedia.mockResolvedValue({
+      data: {
+        ...record,
+        lock_version: 4,
+        media: {
+          filename: 'photo.png',
+          byte_size: 12,
+          content_type: 'image/png',
+        },
+      },
+    });
+    DraftsAPI.removeMedia.mockResolvedValue({
+      data: { ...record, lock_version: 5, media: null },
+    });
+    const file = new File(['image'], 'photo.png', { type: 'image/png' });
+    Object.defineProperty(wrapper.get('input[type="file"]').element, 'files', {
+      value: [file],
+    });
+    await wrapper.get('input[type="file"]').trigger('change');
+    await flushPromises();
+    expect(DraftsAPI.uploadMedia).toHaveBeenCalledWith(31, 3, file);
+    expect(WhatsappTemplatesAPI.uploadHeaderExample).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('photo.png');
+    const remove = wrapper
+      .findAll('button')
+      .find(
+        button =>
+          button.attributes('aria-label') ===
+          'WHATSAPP_TEMPLATE_MGMT.FORM.REMOVE_FILE'
+      );
+    await remove.trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.removeMedia).toHaveBeenCalledWith(31, 4);
+    expect(wrapper.text()).not.toContain('photo.png');
+    wrapper.unmount();
+  });
+
+  it.each(['PENDING', 'APPROVED', 'REJECTED', 'PAUSED'])(
+    'opens installed %s in read-only detail and creates a server version',
+    async status => {
+      const wrapper = await mountDrawer();
+      const template = { ...positional, status };
+      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
+      DraftsAPI.newVersion.mockResolvedValue({ data: record });
+      await wrapper.vm.open(template);
+      expect(wrapper.get('fieldset').attributes('disabled')).toBeDefined();
+      expect(wrapper.find('[data-testid="save-draft"]').exists()).toBe(false);
+      await wrapper.get('[data-testid="new-version"]').trigger('click');
+      await flushPromises();
+      expect(DraftsAPI.newVersion).toHaveBeenCalledWith(70, '555');
+      expect(wrapper.get('textarea').element.value).toBe(
+        record.definition.body.text
+      );
+      expect(WhatsappTemplatesAPI.updateTemplate).not.toHaveBeenCalled();
+      wrapper.unmount();
+    }
+  );
+
+  it('duplicates a saved draft into a different WABA with channel ids', async () => {
+    const otherInbox = {
+      id: 8,
+      channel_id: 80,
+      name: 'Sales',
+      provider: 'whatsapp_cloud',
+      provider_config: { business_account_id: 'waba-b' },
+    };
+    const wrapper = await mountDrawer({ inboxes: [...inboxes, otherInbox] });
+    DraftsAPI.duplicate.mockResolvedValue({
+      data: { ...record, id: 32, name: 'appointment_v2' },
+    });
+    DraftsAPI.show.mockImplementation(async id => ({
+      data: { ...record, id, name: id === 32 ? 'appointment_v2' : record.name },
+    }));
+    await wrapper.vm.openDuplicate({ ...record, isLocalDraft: true });
+    const dialog = wrapper
+      .findAllComponents(Dialog)
+      .find(
+        item =>
+          item.props('title') === 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE'
+      );
+    dialog.findComponent(ComboBox).vm.$emit('update:modelValue', 8);
+    await flushPromises();
+    dialog.vm.$emit('confirm');
+    await flushPromises();
+    expect(DraftsAPI.duplicate).toHaveBeenCalledWith(31, {
+      preferred_channel_id: 80,
+      waba_id: 'waba-b',
+    });
     expect(
       wrapper
-        .find(
-          'input[placeholder="WHATSAPP_TEMPLATE_MGMT.FORM.FOOTER_PLACEHOLDER"]'
-        )
-        .exists()
-    ).toBe(false);
-    expect(wrapper.find('[data-testid="approved-warning"]').exists()).toBe(
-      true
-    );
-    expect(wrapper.find('[data-testid="meta-rules"]').exists()).toBe(false);
-    await wrapper
-      .get('textarea')
-      .setValue(`${positional.components[0].text} Gracias.`);
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-    expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledWith(
-      7,
-      '555',
-      expect.objectContaining({
-        parameter_format: 'POSITIONAL',
-        header: expect.objectContaining({ format: 'NONE' }),
-        body: {
-          text: `${positional.components[0].text} Gracias.`,
-          examples: ['Ana', '123', 'lunes', 'Luis'],
+        .findAll('input')
+        .some(input => input.element.value === 'appointment_v2')
+    ).toBe(true);
+    wrapper.unmount();
+  });
+
+  it.each(['reconciling', 'submitted'])(
+    'verifies %s without a second creation or submission',
+    async status => {
+      const wrapper = await mountDrawer();
+      DraftsAPI.show.mockResolvedValue({
+        data: {
+          ...record,
+          status,
+          submissions: [
+            {
+              id: 99,
+              revision: 2,
+              remote_id: 'meta-1',
+              remote_status: 'PAUSED',
+            },
+          ],
         },
-        buttons: [
-          expect.objectContaining({ url: 'https://paluhub.com/track/{{2}}' }),
-        ],
+      });
+      await wrapper.vm.openDraft(record);
+      expect(wrapper.get('[data-testid="draft-state"]').text()).toContain(
+        status.toUpperCase()
+      );
+      if (status === 'reconciling')
+        expect(wrapper.text()).toContain('DRAFTS.UNCERTAIN');
+      expect(wrapper.text()).toContain('DRAFTS.PAUSED');
+      await wrapper.get('[data-testid="verify-submission"]').trigger('click');
+      await flushPromises();
+      expect(DraftsAPI.reconcile).toHaveBeenCalledWith(31, 99);
+      expect(DraftsAPI.submit).not.toHaveBeenCalled();
+      expect(DraftsAPI.create).not.toHaveBeenCalled();
+      wrapper.unmount();
+    }
+  );
+
+  it('keeps opaque components unchanged and blocks submission', async () => {
+    const opaque = {
+      components: [
+        {
+          position: 1,
+          component: { type: 'CAROUSEL', cards: [{ text: 'opaque' }] },
+        },
+      ],
+      buttons: [],
+    };
+    DraftsAPI.show.mockResolvedValue({
+      data: {
+        ...record,
+        definition: { ...record.definition, preserved: opaque },
+      },
+    });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.get('[data-testid="opaque-warning"]').exists()).toBe(true);
+    expect(
+      wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
+    ).toBeDefined();
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.update).toHaveBeenCalledWith(
+      31,
+      expect.objectContaining({
+        definition: expect.objectContaining({ preserved: opaque }),
       })
     );
     wrapper.unmount();
   });
 
-  it('uses neutral borders for valid fields and error borders only after failed validation', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+  it('keeps an accepted submission read-only even if the follow-up read fails', async () => {
     const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    expect(
-      wrapper.get('textarea').element.parentElement.className
-    ).not.toContain('border-n-ruby');
-    expect(
-      wrapper
-        .findAll('input')
-        .some(input => input.classes().includes('outline-n-ruby-8'))
-    ).toBe(false);
-    await wrapper.get('textarea').setValue('');
-    await wrapper.get('form').trigger('submit');
-    expect(wrapper.get('textarea').element.parentElement.className).toContain(
-      'border-n-ruby'
+    await wrapper.vm.openDraft(record);
+    DraftsAPI.show.mockRejectedValueOnce(new Error('offline'));
+    await wrapper.get('[data-testid="submit-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.submit).toHaveBeenCalledTimes(1);
+    expect(wrapper.get('[data-testid="draft-state"]').text()).toContain(
+      'SUBMITTING'
     );
+    expect(wrapper.find('[data-testid="save-draft"]').exists()).toBe(false);
+    expect(wrapper.get('fieldset').attributes('disabled')).toBeDefined();
     wrapper.unmount();
   });
 
-  it('keeps an existing media header visible and retains its example while its format is locked', async () => {
-    const source = {
-      ...positional,
-      components: [
-        {
-          type: 'HEADER',
-          format: 'IMAGE',
-          example: { header_handle: ['existing-media-handle'] },
-        },
-        ...positional.components,
-      ],
-    };
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: source });
-    WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({ data: {} });
+  it('does not allow saving a blank replacement after a failed draft load', async () => {
     const wrapper = await mountDrawer();
-    await wrapper.vm.open(source);
-    const header = wrapper
-      .findAllComponents(ComboBox)
-      .find(
-        combo => combo.attributes('data-testid') === 'template-header-format'
-      );
-    expect(header.props('modelValue')).toBe('IMAGE');
-    expect(header.props('options')).toContainEqual(
-      expect.objectContaining({ value: 'IMAGE' })
+    DraftsAPI.show.mockRejectedValueOnce(new Error('offline'));
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.get('[data-testid="meta-error"]').text()).toContain(
+      'SAVE_ERROR'
     );
-    expect(header.props('disabled')).toBe(true);
-    await wrapper
-      .get('textarea')
-      .setValue(`${positional.components[0].text} Gracias.`);
-    await wrapper.get('form').trigger('submit');
+    expect(wrapper.find('[data-testid="save-draft"]').exists()).toBe(false);
+    expect(DraftsAPI.create).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('reopens an incomplete saved draft without truncating its examples', async () => {
+    const wrapper = await mountDrawer();
+    DraftsAPI.show.mockResolvedValue({
+      data: {
+        ...record,
+        definition: {
+          body: { text: 'Unfinished', examples: ['kept', 'also kept'] },
+        },
+      },
+    });
+    await wrapper.vm.openDraft(record);
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
     await flushPromises();
-    expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledWith(
-      7,
-      '555',
+    expect(DraftsAPI.update).toHaveBeenCalledWith(
+      31,
       expect.objectContaining({
-        header: expect.objectContaining({
-          format: 'IMAGE',
-          handle: 'existing-media-handle',
+        definition: expect.objectContaining({
+          body: { text: 'Unfinished', examples: ['kept', 'also kept'] },
         }),
       })
     );
     wrapper.unmount();
   });
 
-  it.each([
-    'Hola {{1}}, pedido {{2}} con el agente {{4}}.',
-    'Hola {{1}}, pedido {{2}}, fecha {{3}}, agente {{4}}, dato {{5}}.',
-    'Hola {{1}}, pedido {{3}}, fecha {{2}}, agente {{4}}.',
-    'Hola {{nombre}}, pedido {{2}}, fecha {{3}}, agente {{4}}.',
-  ])(
-    'blocks a changed parameter sequence with a clear message: %s',
-    async text => {
-      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-      const wrapper = await mountDrawer();
-      await wrapper.vm.open(positional);
-      await wrapper.get('textarea').setValue(text);
-      await wrapper.get('form').trigger('submit');
-      expect(WhatsappTemplatesAPI.updateTemplate).not.toHaveBeenCalled();
-      expect(wrapper.text()).toContain(
-        'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.EDIT_STRUCTURE_LOCKED'
-      );
-      wrapper.unmount();
-    }
-  );
-
-  it('offers the same grouped variables as the editor, including attributes and excluding unavailable Captain contexts', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-    const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
-    await flushPromises();
-    const select = wrapper.findComponent('[data-testid="map-variable-1"]');
-    expect(select.props('groups')).toEqual(
-      ['system', 'contact', 'conversation'].map(key => ({
-        key,
-        label: `VARIABLE_PICKER.GROUPS.${key.toUpperCase()}`,
-        emptyState: 'VARIABLE_PICKER.NO_COMPATIBLE',
-      }))
-    );
-    expect(select.props('options')).toEqual(
-      expect.arrayContaining([
-        { value: 'plan', label: 'Plan (plan)', group: 'contact' },
-        {
-          value: 'conversacion_estado',
-          label: 'Estado (conversacion_estado)',
-          group: 'conversation',
-        },
-      ])
-    );
-    await select.get('button').trigger('click');
-    expect(select.get('input[type="search"]').attributes('placeholder')).toBe(
-      'VARIABLE_PICKER.SEARCH'
-    );
-    await select.get('input[type="search"]').setValue('Plan');
-    expect(
-      select.findAll('[role="option"]').map(option => option.text())
-    ).toEqual(['Plan (plan)']);
-    await select.get('[role="option"]').trigger('click');
-    // Chosen variables remain available for the other tokens (duplicates are validated on save).
-    expect(select.props('options')).toContainEqual({
-      value: 'plan',
-      label: 'Plan (plan)',
-      group: 'contact',
+  it('shows the shared WABA destination and clears it when the channel is removed', async () => {
+    const wrapper = await mountDrawer({
+      inboxes: [
+        ...inboxes,
+        { ...inboxes[0], id: 8, channel_id: 80, name: 'Sales' },
+      ],
     });
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.text()).toContain('DRAFTS.SHARED');
+    wrapper
+      .findComponent('[data-testid="template-inbox"]')
+      .vm.$emit('update:modelValue', '');
+    await flushPromises();
+    expect(wrapper.text()).toContain('DRAFTS.NO_DESTINATION_HELP');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.update).toHaveBeenCalledWith(
+      31,
+      expect.objectContaining({ preferred_channel_id: null, waba_id: null })
+    );
     wrapper.unmount();
   });
 
-  it('reuses the attribute modal and refreshes options when it closes', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+  it('asks before discarding unsaved content', async () => {
     const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
+    await wrapper.get('textarea').setValue('Unsaved');
+    await wrapper.vm.close();
+    const dialog = wrapper
+      .findAllComponents(Dialog)
+      .find(
+        item =>
+          item.props('title') === 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.DISCARD_TITLE'
+      );
     await flushPromises();
-    const select = wrapper.findComponent('[data-testid="map-variable-1"]');
-    await select.get('button').trigger('click');
-    await select
-      .get('[data-testid="variable-create-attribute"]')
-      .trigger('click');
-    await flushPromises();
-    const modal = wrapper.findComponent({ name: 'AddAttribute' });
-    expect(modal.props('selectedAttributeModelTab')).toBe(1);
-    expect(select.get('button').attributes('aria-expanded')).toBe('false');
-    VariablesAPI.catalog.mockResolvedValueOnce({
+    expect(dialog.props('description')).toContain('DRAFTS.DISCARD_HELP');
+    expect(DraftsAPI.create).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('prevents submission if its authenticated media could not be loaded', async () => {
+    const wrapper = await mountDrawer();
+    DraftsAPI.show.mockResolvedValueOnce({
       data: {
-        variables: [
-          ...catalog.variables,
-          {
-            ...catalog.variables.find(item => item.key === 'estado'),
-            id: 'conversation.custom_attribute:18',
-            aliases: ['conversacion_nuevo'],
-            label: 'Nuevo',
-          },
-        ],
+        ...record,
+        media: {
+          filename: 'file.png',
+          content_type: 'image/png',
+          byte_size: 10,
+        },
       },
     });
-    useStore().dispatch.mockImplementationOnce(async () => {
-      useMapGetter('attributes/getAttributes').value.push({
-        attribute_key: 'nuevo',
-        attribute_model: 'conversation_attribute',
-        attribute_display_name: 'Nuevo',
-      });
-    });
-    await modal.props('onClose')();
-    await flushPromises();
-    expect(wrapper.findComponent({ name: 'AddAttribute' }).exists()).toBe(
-      false
-    );
-    expect(useStore().dispatch).toHaveBeenLastCalledWith('attributes/get');
-    expect(select.props('options')).toContainEqual({
-      value: 'conversacion_nuevo',
-      label: 'Nuevo (conversacion_nuevo)',
-      group: 'conversation',
-    });
-    wrapper.unmount();
-  });
-
-  it('hides the create-attribute CTA for agents', async () => {
-    currentRole.value = 'agent';
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-    const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
-    await flushPromises();
+    DraftsAPI.downloadMedia.mockRejectedValueOnce(new Error('offline'));
+    await wrapper.vm.openDraft(record);
     expect(
-      wrapper.find('[data-testid="variable-create-attribute"]').exists()
-    ).toBe(false);
-    wrapper.unmount();
-  });
-
-  it('creates a named copy only after each mapping is chosen and the user submits', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
-      data: { id: 'copy' },
-    });
-    const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
-    await flushPromises();
-    expect(wrapper.get('input[type="text"]').element.value).toBe(
-      'test_utility_envio_v2'
-    );
-    await wrapper.get('form').trigger('submit');
-    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain(
-      'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.SYSTEM_MAPPING_REQUIRED'
-    );
-    const choices = {
-      1: 'nombre',
-      2: 'plan',
-      3: 'conversacion_estado',
-      4: 'agente',
-    };
-    Object.entries(choices).forEach(([token, name]) => {
-      wrapper
-        .findAllComponents(ComboBox)
-        .find(
-          combo => combo.attributes('data-testid') === `map-variable-${token}`
-        )
-        .vm.$emit('update:modelValue', name);
-    });
-    await flushPromises();
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-    expect(WhatsappTemplatesAPI.createTemplate).toHaveBeenCalledWith(
-      7,
-      expect.objectContaining({
-        name: 'test_utility_envio_v2',
-        parameter_format: 'NAMED',
-        body: {
-          text: 'Hola {{nombre}}, tu pedido #{{plan}} llega el {{conversacion_estado}} con el agente {{agente}}.',
-          examples: ['Ana', '123', 'lunes', 'Luis'],
-        },
-        buttons: [
-          expect.objectContaining({
-            url: 'https://paluhub.com/track/{{plan}}',
-          }),
-        ],
-      })
-    );
-    expect(WhatsappTemplatesAPI.updateTemplate).not.toHaveBeenCalled();
-    wrapper.unmount();
-  });
-
-  it.each(['nombre', 'not_an_available_variable'])(
-    'blocks duplicate or unavailable copy mappings: %s',
-    async second => {
-      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-      const wrapper = await mountDrawer();
-      await wrapper.vm.open(positional);
-      await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
-      await flushPromises();
-      Object.entries({
-        1: 'nombre',
-        2: second,
-        3: 'plan',
-        4: 'agente',
-      }).forEach(([token, name]) => {
-        wrapper
-          .findComponent(`[data-testid="map-variable-${token}"]`)
-          .vm.$emit('update:modelValue', name);
-      });
-      await wrapper.get('form').trigger('submit');
-      expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
-      expect(wrapper.text()).toContain(
-        'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.SYSTEM_MAPPING_REQUIRED'
-      );
-      wrapper.unmount();
-    }
-  );
-
-  it('shows both Meta messages in the drawer after a rejected edit', async () => {
-    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-    WhatsappTemplatesAPI.updateTemplate.mockRejectedValue({
-      response: {
-        data: {
-          message: 'Invalid parameter',
-          error_user_msg: 'Solo una edición cada 24 horas',
-          code: 100,
-          error_subcode: 123,
-        },
-      },
-    });
-    const wrapper = await mountDrawer();
-    await wrapper.vm.open(positional);
-    await wrapper
-      .get('textarea')
-      .setValue(`${positional.components[0].text} Gracias.`);
-    await wrapper.get('form').trigger('submit');
-    await flushPromises();
-    // The translated framing receives the original text as interpolation.
-    expect(wrapper.get('[data-testid="meta-error"]').text()).toContain(
-      'Solo una edición cada 24 horas — Invalid parameter'
-    );
-    expect(wrapper.emitted('saved')).toBeUndefined();
+      wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
+    ).toBeDefined();
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 });

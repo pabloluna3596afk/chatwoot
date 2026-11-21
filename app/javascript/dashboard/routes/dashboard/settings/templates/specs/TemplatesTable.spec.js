@@ -112,4 +112,26 @@ describe('shared templates table', () => {
     expect(spanish.TABLE.INBOX).toBe('Bandeja');
     expect(spanish.FILTERS.ALL_INBOXES).toBe('Todas las bandejas');
   });
+
+  it('renders template cards for mobile without changing the shared default for Flows', async () => {
+    const wrapper = mount(TemplatesTable, {
+      props: {
+        columns: [{ key: 'name', label: 'Name' }],
+        items: [{ id: 1, name: 'Draft' }],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      },
+    });
+    expect(wrapper.find('[data-testid="template-cards"]').exists()).toBe(false);
+    await wrapper.setProps({ cardsOnMobile: true });
+    expect(wrapper.get('[data-table-scroll]').classes()).toContain('hidden');
+    expect(wrapper.get('[data-table-scroll]').classes()).toContain('md:block');
+    const cards = wrapper.get('[data-testid="template-cards"]');
+    expect(cards.classes()).toContain('md:hidden');
+    expect(cards.text()).toContain('Draft');
+    await cards.get('article').trigger('keydown.enter');
+    expect(wrapper.emitted('open')[0]).toEqual([{ id: 1, name: 'Draft' }]);
+    wrapper.unmount();
+  });
 });

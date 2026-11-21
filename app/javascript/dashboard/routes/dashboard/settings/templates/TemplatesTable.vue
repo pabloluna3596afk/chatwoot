@@ -6,6 +6,7 @@ import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 
 defineProps({
+  cardsOnMobile: { type: Boolean, default: false },
   columns: { type: Array, required: true },
   items: { type: Array, required: true },
   total: { type: Number, required: true },
@@ -19,6 +20,7 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
 <template>
   <div>
     <BaseTable
+      :class="{ 'hidden md:block': cardsOnMobile }"
       :headers="['', ...columns.map(column => column.label)]"
       :items="items"
     >
@@ -50,6 +52,35 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
         </BaseTableRow>
       </template>
     </BaseTable>
+    <div
+      v-if="cardsOnMobile"
+      class="grid gap-3 md:hidden"
+      data-testid="template-cards"
+    >
+      <article
+        v-for="item in items"
+        :key="item.key || item.id"
+        class="grid min-w-0 gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1"
+        tabindex="0"
+        @click="emit('open', item)"
+        @keydown.enter.self="emit('open', item)"
+      >
+        <dl class="grid min-w-0 gap-3">
+          <div
+            v-for="column in columns"
+            :key="column.key"
+            class="min-w-0 break-words"
+          >
+            <dt class="text-xs text-n-slate-11">{{ column.label }}</dt>
+            <dd class="mt-1 text-sm text-n-slate-12">
+              <slot :name="column.key" :item="item">
+                {{ item[column.key] }}
+              </slot>
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </div>
     <PaginationFooter
       v-if="total"
       :current-page="page"
