@@ -1,3 +1,12 @@
+### B-NEW-292 - Detalles de seguimiento y control de Captain (2026-11-20)
+
+- **Archivos:** servicios `captain/followup/`, escritores `captain/decisions/`, modelo/validación de decisiones, overlays Conversation/Message/ActivityMessageHandler, handlers de asignación, `UsageLimitHandoff` y traspaso legacy de `ResponseBuilderJob`.
+- **Problema:** cierres sin respuesta, recordatorios, reenganches, reaperturas/control humano y límites dejaban acciones sin un registro durable de sus detalles.
+- **Cambio:** registro en la transacción de la acción con claves por turno/intento/episodio; ancla al mensaje o actividad existente, motivos en el idioma de la cuenta y ajustes históricos. El reenganche local no acredita entrega. Las esperas de ventana/horario no generan decisiones por tick. `Afterwards` utiliza hechos exactos de reapertura y control humano cuando existen.
+- **Permisos:** endpoint, serializador y policies de PR 1 intactos; los nuevos registros mantienen el filtro por rol. No se añaden motivos ni detalles técnicos a payloads de mensajes. Solo se amplían textos en/es del panel y su spec de paridad.
+- **Cómo probar:** ejecutar los specs de followup, decisions, límites, resolución por inactividad, Conversation/Message y consumidores de actividades con `rspec-local.sh`. Probar intentos 1/2, reintento, fallo de registro, rollback exterior, omisiones de plantilla y lectura por los tres roles. Informe y evidencia final en `docs-crm/codex/detalles-pr3-construccion.md` del directorio padre.
+- **Entrega:** sin migraciones, backfill, IA nueva, navegador, push, PR ni despliegue. Los cambios compartidos con `wt-bucle` se limitan al traspaso legacy y a reapertura/control humano; no se toca la cancelación de señales ni el freno de cortesías.
+
 ### B-NEW-291 - Nombres estructurados en actividades (2026-11-20)
 
 - **Archivos:** concerns `activity_message_handler`, `assignee`, `team`, `label`, `priority`, `sla`; overlay Enterprise; `lib/activity_message_names.rb`; emisores de Linear, Calendar, permisos de llamadas WhatsApp y elegibilidad Captain.

@@ -50,14 +50,18 @@ module Enterprise::Message
 
     return super if assistant.blank? || conversation.inbox.external_bot_active?
 
+    conversation.captain_control_event = 'reopen'
     result = assistant.engagement_result(conversation.contact, conversation)
-    unless result[:engages]
+    if result[:engages]
+      super
+      own_reopened_conversation(assistant)
+    else
       conversation.record_captain_skip(assistant, result)
-      return conversation.open!
+      conversation.open!
     end
-
-    super
-    own_reopened_conversation(assistant)
+    ::Captain::Decisions::ControlRecording.new(conversation, assistant).record('reopen', id, trigger: 'customer_message', anchor: self)
+  ensure
+    conversation.captain_control_event = nil
   end
 
   # A resolved conversation that the customer reopens for Captain is handed to the assistant: any person who was
@@ -81,23 +85,15 @@ module Enterprise::Message
     return if template_bootstrap_message?
 
     author = sender
-    previous_user = Current.user
-    previous_executed_by = Current.executed_by
-    Current.user = nil
-    Current.executed_by = nil
-
-    begin
+    ::Captain::Decisions::ControlRecording.with_human_context(self) do
       # An agent's reply takes the conversation: Captain's ownership is cleared and the agent becomes the assignee,
       # which also clears the escalation mark.
       conversation.ai_assignee = nil if conversation.ai_assignee_type == 'Captain::Assistant'
       conversation.assignee = author if author.is_a?(User) && conversation.assignee_id.blank?
       conversation.open!
-      return unless conversation.saved_change_to_status?
+      return ::Captain::Decisions::ControlRecording.open_human_reply(self) unless conversation.saved_change_to_status?
 
       create_captain_auto_open_activity_message
-    ensure
-      Current.user = previous_user
-      Current.executed_by = previous_executed_by
     end
   end
 
@@ -117,12 +113,6 @@ module Enterprise::Message
   end
 
   def create_captain_auto_open_activity_message
-    ::Conversations::ActivityMessageJob.perform_later(
-      conversation,
-      account_id: conversation.account_id,
-      inbox_id: conversation.inbox_id,
-      message_type: :activity,
-      content: I18n.t('conversations.activity.captain.auto_opened_after_agent_reply', locale: conversation.account.locale)
-    )
+    ::Captain::Decisions::ControlRecording.human_activity(self)
   end
 end
