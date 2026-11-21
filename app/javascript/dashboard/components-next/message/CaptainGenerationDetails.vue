@@ -62,7 +62,7 @@ const Trigger = () =>
           {
             type: 'button',
             class:
-              'inline-flex size-6 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-n-blue-11 hover:bg-n-blue-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-blue-9',
+              'inline-flex size-6 shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 text-n-blue-11 hover:bg-n-blue-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-blue-9',
             'aria-label': t('CONVERSATION.CAPTAIN_DECISION.OPEN'),
             'aria-expanded': isOpen.value,
             'aria-controls': panelId,
