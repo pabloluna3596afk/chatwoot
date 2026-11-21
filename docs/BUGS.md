@@ -1,3 +1,13 @@
+### B-NEW-293 - Borradores locales y revisión de plantillas WhatsApp (2026-11-20)
+
+- **Archivos:** modelos `WhatsappTemplateDraft`/`WhatsappTemplateSubmission`, migración `20261120120000`, API `whatsapp_template_drafts`, servicios de validación/copia/envío/reconciliación y sincronización por WABA.
+- **Problema:** guardar una plantilla con el recorrido existente crea inmediatamente el recurso en Meta; no había preparación local durable ni intento inmutable para recuperar un timeout.
+- **Cambio:** CRUD local exclusivo de administradores, control de revisión, adjunto local, copias con nombre distinto, intentos previos al HTTP y snapshots inmutables. Doble clic devuelve el mismo intento; un timeout verifica identidad sin repetir el alta a ciegas. 429/5xx usan reintentos limitados. El éxito remoto se conserva aunque falle el sync posterior; la lectura nueva no aplica páginas parciales y admite un catálogo vacío.
+- **Compatibilidad:** no cambia el recorrido legado de plantillas, presets, blueprints ni Citas; no activa bindings locales ni incorpora borradores al caché de envío. Captain sigue excluyendo marketing. Sin cambios de frontend ni archivos de Captain.
+- **Cómo probar:** guardar/reabrir incompleto sin Meta, probar permisos administrador/agente/otra cuenta, archivo y copia a otro destino; enviar con WebMock, doble clic, dos números de una WABA, timeout y resultado ambiguo. Contrato en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`; evidencia y autoevaluación en `docs-crm/codex/plantillas-borradores-construccion.md` del directorio padre.
+- **Verificación:** cierre nuevo 58/58 y focal 15/15; ampliada de 433 con cinco fallos de preparación/recarga cerrados en esas repeticiones. Los tres casos antiguos también pasan en develop limpio; no se cambian sus expectativas. RuboCop CI: 29 archivos, 0 infracciones. Migración y roundtrip del schema verificados en bases Docker aisladas.
+- **Entrega:** aplicar migración aditiva antes de habilitar rutas; sin backfill, navegador, llamadas reales a Meta, push, PR ni despliegue.
+
 ### B-NEW-292 - Detalles de seguimiento y control de Captain (2026-11-20)
 
 - **Archivos:** servicios `captain/followup/`, escritores `captain/decisions/`, modelo/validación de decisiones, overlays Conversation/Message/ActivityMessageHandler, handlers de asignación, `UsageLimitHandoff` y traspaso legacy de `ResponseBuilderJob`.
