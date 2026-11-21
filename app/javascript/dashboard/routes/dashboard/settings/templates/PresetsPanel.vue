@@ -117,7 +117,7 @@ const presets = computed(() =>
     <LibraryPanel
       :inboxes="inboxes"
       :templates="templates"
-      @created="emit('created')"
+      @created="draft => emit('created', draft)"
     />
   </div>
 </template>

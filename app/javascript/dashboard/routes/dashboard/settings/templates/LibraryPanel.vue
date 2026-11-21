@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
@@ -8,7 +8,7 @@ import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
-import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { toSnakeCase } from './templateForm';
 import {
@@ -46,10 +46,7 @@ const languageUsed = computed(() => {
   const languages = [...new Set(Object.values(inboxLanguages.value))];
   return languages.length === 1 ? languages[0] : null;
 });
-const dialogRef = ref(null);
-const picked = ref(null);
 const isCreating = ref(false);
-const form = reactive({ name: '', buttonInputs: [] });
 
 const applyDefaultLanguage = () => {
   if (languageTouched.value) return;
@@ -154,67 +151,39 @@ const languageFilterOptions = computed(() => [
   })),
 ]);
 
-// The inputs some library buttons ask for: a phone number for a call button, a link for a URL button.
-const inputsFor = template =>
-  (template.buttons || [])
-    .filter(button => ['PHONE_NUMBER', 'URL'].includes(button.type))
-    .map(button => ({
-      type: button.type,
-      text: button.text || '',
-      value: '',
-      suffix: '',
-      hasVariable: String(button.url || '').includes('{{'),
-    }));
-
-const use = template => {
-  picked.value = template;
-  form.name = toSnakeCase(template.name);
-  form.buttonInputs = inputsFor(template);
-  dialogRef.value?.open();
-};
-
-const buttonInputsPayload = () =>
-  form.buttonInputs
-    .filter(input => input.value.trim())
-    .map(input =>
-      input.type === 'PHONE_NUMBER'
-        ? { type: 'PHONE_NUMBER', phone_number: input.value.trim() }
-        : {
-            type: 'URL',
-            url: {
-              base_url: input.value.trim(),
-              url_suffix_example: input.suffix.trim() || undefined,
-            },
-          }
-    );
-
-const canCreate = computed(
-  () =>
-    Boolean(picked.value && form.name) &&
-    form.buttonInputs.every(input => input.value.trim())
-);
-
-const create = async () => {
-  if (!canCreate.value) return;
+const use = async template => {
+  if (isCreating.value) return;
   isCreating.value = true;
   try {
-    const { data } = await WhatsappTemplatesAPI.createFromLibrary(
-      picked.value.inboxId,
-      {
-        library_template_name: picked.value.name,
-        name: toSnakeCase(form.name),
-        language: picked.value.language || languageUsed.value || language.value,
-        category: picked.value.category,
-        button_inputs: buttonInputsPayload(),
-      }
-    );
-    useAlert(
-      t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.CREATED_LANGUAGE', {
-        language: languageLabel(data.language_used, locale.value),
-      })
-    );
-    dialogRef.value?.close();
-    emit('created');
+    const inbox = props.inboxes.find(item => item.id === template.inboxId);
+    const { data } = await DraftsAPI.fromLibrary({
+      channel_id: inbox.channel_id,
+      library_template_name: template.name,
+      name: toSnakeCase(template.name),
+      language: template.language || languageUsed.value || language.value,
+      category: template.category,
+      button_inputs: (template.buttons || [])
+        .filter(button => ['PHONE_NUMBER', 'URL'].includes(button.type))
+        .map(button =>
+          button.type === 'PHONE_NUMBER'
+            ? { type: button.type, phone_number: '' }
+            : {
+                type: button.type,
+                url: { base_url: '', url_suffix_example: '' },
+              }
+        ),
+      preview: {
+        body: template.body,
+        ...(template.header ? { header: template.header } : {}),
+        buttons: (template.buttons || []).map(button => ({
+          type: button.type,
+          text: button.text || '',
+          ...(button.url ? { url: button.url } : {}),
+          ...(button.phone_number ? { phone_number: button.phone_number } : {}),
+        })),
+      },
+    });
+    emit('created', data);
   } catch (error) {
     useAlert(
       error?.response?.data?.message ||
@@ -345,6 +314,8 @@ const inboxOptions = computed(() => [
             :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.USE')"
             icon="i-lucide-library"
             size="sm"
+            intent="primary"
+            :disabled="isCreating"
             data-testid="library-use"
             @click="use(template)"
           />
@@ -362,52 +333,5 @@ const inboxOptions = computed(() => [
         @click="visibleCount += PAGE_SIZE"
       />
     </div>
-
-    <Dialog
-      ref="dialogRef"
-      :title="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.TITLE')"
-      :description="
-        $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.DESCRIPTION')
-      "
-      :confirm-button-label="
-        $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.CREATE')
-      "
-      :disable-confirm-button="!canCreate"
-      :is-loading="isCreating"
-      @confirm="create"
-    >
-      <div v-if="picked" class="grid gap-3">
-        <Input
-          v-model="form.name"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.NAME')"
-        />
-        <template v-for="(input, index) in form.buttonInputs" :key="index">
-          <Input
-            v-model="input.value"
-            :label="
-              input.type === 'PHONE_NUMBER'
-                ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.PHONE', {
-                    text: input.text,
-                  })
-                : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.URL', {
-                    text: input.text,
-                  })
-            "
-            :placeholder="
-              input.type === 'PHONE_NUMBER'
-                ? '+593999999999'
-                : 'https://ejemplo.com'
-            "
-          />
-          <Input
-            v-if="input.type === 'URL' && input.hasVariable"
-            v-model="input.suffix"
-            :label="
-              $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.URL_SUFFIX')
-            "
-          />
-        </template>
-      </div>
-    </Dialog>
   </section>
 </template>

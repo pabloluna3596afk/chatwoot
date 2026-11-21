@@ -326,6 +326,7 @@
     },
     "MISSING_VARIABLES": "Falta el dato de {variables}",
     "DRAFTS": {
+      "LIBRARY_READ_ONLY": "Este texto pertenece a Meta. Puedes cambiar el nombre, idioma, categoría y valores de los botones. El texto se verifica con Meta en el idioma elegido al enviar.",
       "SAVE": "Guardar borrador",
       "EDIT_TITLE": "Editar borrador",
       "NEW_VERSION_TITLE": "Nueva versión",

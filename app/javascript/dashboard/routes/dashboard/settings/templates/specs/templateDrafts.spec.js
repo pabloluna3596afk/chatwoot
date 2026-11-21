@@ -118,4 +118,48 @@ describe('Local draft definitions', () => {
     record.definition.body.text = 'Hello {{nombre}}.';
     expect(formFromDraft(record, []).parameterFormat).toBe('NAMED');
   });
+  it('round-trips library mode without editable body and renders the saved Meta preview in the table', () => {
+    const library = {
+      template_name: 'appointment',
+      language: 'es',
+      button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }],
+      preview: {
+        body: 'Tu cita {{1}}',
+        buttons: [{ type: 'PHONE_NUMBER', text: 'Llamar' }],
+      },
+    };
+    const record = {
+      id: 31,
+      name: 'my_appointment',
+      language: 'es',
+      category: 'UTILITY',
+      definition: { library },
+      submissions: [],
+    };
+    const form = formFromDraft(record, []);
+    expect(form.body.text).toBe('');
+    expect(draftFromForm(form, []).definition).toEqual({ library });
+    form.library.button_inputs[0].phone_number = '+593999999999';
+    expect(record.definition.library.button_inputs[0].phone_number).toBe('');
+    expect(draftRow(record, []).components).toContainEqual({
+      type: 'BODY',
+      text: 'Tu cita {{1}}',
+    });
+  });
+  it('reopens a library definition with the documented omitted button inputs', () => {
+    const form = formFromDraft(
+      {
+        definition: {
+          library: { template_name: 'appointment', language: 'es' },
+        },
+      },
+      []
+    );
+    expect(form.library.button_inputs).toEqual([]);
+    expect(draftFromForm(form, []).definition.library).toEqual({
+      template_name: 'appointment',
+      language: 'es',
+      button_inputs: [],
+    });
+  });
 });

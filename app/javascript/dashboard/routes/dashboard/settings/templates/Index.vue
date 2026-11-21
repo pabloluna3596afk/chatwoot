@@ -566,9 +566,10 @@ const refreshTemplates = async () => {
   if (canSync.value) await syncTemplates();
   await fetchTemplates();
 };
-const onLibraryCreated = () => {
+const onLibraryCreated = draft => {
   activeTab.value = 'templates';
   fetchTemplates();
+  formDrawerRef.value?.openDraft(draft);
 };
 
 onActivated(fetchTemplates);

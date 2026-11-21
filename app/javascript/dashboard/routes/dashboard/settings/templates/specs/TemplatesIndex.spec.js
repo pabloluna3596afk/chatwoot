@@ -76,7 +76,12 @@ vi.mock('../TemplateFormDrawer.vue', () => ({
 vi.mock('../TemplatePreviewDrawer.vue', () => ({
   default: { template: '<div/>', methods: { open: openPreview } },
 }));
-vi.mock('../PresetsPanel.vue', () => ({ default: { template: '<div/>' } }));
+vi.mock('../PresetsPanel.vue', () => ({
+  default: {
+    template:
+      '<button data-testid="library-created" @click="$emit(\'created\', { id: 31 })" />',
+  },
+}));
 vi.mock('../flows/FlowsPanel.vue', () => ({ default: { template: '<div/>' } }));
 vi.mock('../../SettingsLayout.vue', () => ({
   default: {
@@ -121,6 +126,21 @@ describe('Templates page', () => {
     await flushPromises();
     return wrapper;
   };
+
+  it('opens the library draft emitted by presets in the existing drawer', async () => {
+    const wrapper = await render([]);
+    const tab = wrapper
+      .findAll('button')
+      .find(button => button.text() === 'WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS');
+    await tab.trigger('click');
+    await wrapper.get('[data-testid="library-created"]').trigger('click');
+    await flushPromises();
+    expect(openDraft).toHaveBeenCalledWith({ id: 31 });
+    expect(wrapper.find('[data-testid="library-created"]').exists()).toBe(
+      false
+    );
+    wrapper.unmount();
+  });
 
   it('filters pending variables, sorts utility first and offers Edit and a quiet pending indicator', async () => {
     const pending = {

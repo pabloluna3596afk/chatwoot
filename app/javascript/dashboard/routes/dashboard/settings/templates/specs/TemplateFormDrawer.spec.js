@@ -190,6 +190,58 @@ describe('TemplateFormDrawer drafts', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });
+  it('opens library text read-only, saves button values and submits through the common draft API', async () => {
+    const libraryRecord = {
+      ...record,
+      parameter_format: 'POSITIONAL',
+      definition: {
+        library: {
+          template_name: 'appointment',
+          language: 'es',
+          preview: {
+            body: 'Fixed Meta text',
+            buttons: [{ type: 'PHONE_NUMBER', text: 'Call' }],
+          },
+          button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }],
+        },
+      },
+    };
+    DraftsAPI.show.mockResolvedValue({ data: structuredClone(libraryRecord) });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(libraryRecord);
+    await flushPromises();
+    expect(wrapper.get('[data-testid="library-preview"]').text()).toContain(
+      'Fixed Meta text'
+    );
+    expect(wrapper.find('[data-testid="message-editor"]').exists()).toBe(false);
+    expect(
+      wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
+    ).toBeDefined();
+    await wrapper
+      .get('[data-testid="library-phone-0"] input')
+      .setValue('+593999999999');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.update).toHaveBeenCalledWith(
+      31,
+      expect.objectContaining({
+        definition: {
+          library: {
+            ...libraryRecord.definition.library,
+            button_inputs: [
+              { type: 'PHONE_NUMBER', phone_number: '+593999999999' },
+            ],
+          },
+        },
+      })
+    );
+    await wrapper.get('[data-testid="submit-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.submit).toHaveBeenCalledWith(31, expect.any(Number));
+    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it('shows the correct title for a new template, an edited draft and a new version', async () => {
     const wrapper = await mountDrawer();
     expect(wrapper.get('h3').text()).toBe(

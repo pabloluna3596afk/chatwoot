@@ -2,6 +2,7 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import LibraryPanel from '../LibraryPanel.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
+import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
 import { useAlert } from 'dashboard/composables';
 import spanish from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
 import english from 'dashboard/i18n/locale/en/whatsappTemplateMgmt.json';
@@ -30,11 +31,9 @@ vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: { library: vi.fn(), createFromLibrary: vi.fn() },
 }));
 
-const DialogStub = {
-  template: '<div><slot /></div>',
-  emits: ['confirm'],
-  methods: { open: vi.fn(), close: vi.fn() },
-};
+vi.mock('dashboard/api/whatsappTemplateDrafts', () => ({
+  default: { fromLibrary: vi.fn() },
+}));
 
 const entries = [
   {
@@ -48,10 +47,9 @@ const entries = [
 
 const mountPanel = async (props = {}) => {
   const wrapper = mount(LibraryPanel, {
-    props: { inboxes: [{ id: 5, name: 'Soporte' }], ...props },
+    props: { inboxes: [{ id: 5, channel_id: 50, name: 'Soporte' }], ...props },
     global: {
       mocks: { $t: translate },
-      stubs: { Dialog: DialogStub },
     },
   });
   await flushPromises();
@@ -64,9 +62,9 @@ describe('LibraryPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     WhatsappTemplatesAPI.library.mockReset();
-    WhatsappTemplatesAPI.createFromLibrary.mockReset();
-    WhatsappTemplatesAPI.createFromLibrary.mockResolvedValue({
-      data: { id: '1', language_used: 'es' },
+    DraftsAPI.fromLibrary.mockReset();
+    DraftsAPI.fromLibrary.mockResolvedValue({
+      data: { id: 31, definition: { library: {} } },
     });
     WhatsappTemplatesAPI.library.mockResolvedValue({
       data: { templates: entries, next: null, language_used: 'es' },
@@ -142,8 +140,8 @@ describe('LibraryPanel', () => {
     }));
     const wrapper = await mountPanel({
       inboxes: [
-        { id: 5, name: 'Soporte' },
-        { id: 6, name: 'Ventas' },
+        { id: 5, channel_id: 50, name: 'Soporte' },
+        { id: 6, channel_id: 60, name: 'Ventas' },
       ],
     });
     const [languages, inboxes] = wrapper.findAllComponents(FilterDropdown);
@@ -211,8 +209,8 @@ describe('LibraryPanel', () => {
     }));
     const wrapper = await mountPanel({
       inboxes: [
-        { id: 5, name: 'Soporte' },
-        { id: 6, name: 'Ventas' },
+        { id: 5, channel_id: 50, name: 'Soporte' },
+        { id: 6, channel_id: 60, name: 'Ventas' },
       ],
     });
     wrapper
@@ -220,11 +218,10 @@ describe('LibraryPanel', () => {
       .vm.$emit('update:modelValue', 'all');
     await flushPromises();
     await wrapper.findAll('[data-testid="library-use"]')[1].trigger('click');
-    wrapper.findComponent(DialogStub).vm.$emit('confirm');
     await flushPromises();
-    expect(WhatsappTemplatesAPI.createFromLibrary).toHaveBeenCalledWith(
-      6,
+    expect(DraftsAPI.fromLibrary).toHaveBeenCalledWith(
       expect.objectContaining({
+        channel_id: 60,
         library_template_name: 'reminder_6',
         language: 'es',
       })
@@ -333,8 +330,8 @@ describe('LibraryPanel', () => {
     }));
     const wrapper = await mountPanel({
       inboxes: [
-        { id: 5, name: 'Soporte' },
-        { id: 6, name: 'Ventas' },
+        { id: 5, channel_id: 50, name: 'Soporte' },
+        { id: 6, channel_id: 60, name: 'Ventas' },
       ],
     });
     const inboxes = wrapper.findAllComponents(FilterDropdown)[1];
@@ -400,29 +397,40 @@ describe('LibraryPanel', () => {
     ).toBe(true);
   });
 
-  it('creates from the library with the name, the library name and the values its buttons ask for', async () => {
-    WhatsappTemplatesAPI.createFromLibrary.mockResolvedValue({
-      data: { id: '1', language_used: 'es' },
-    });
+  it('creates a local draft with a read-only preview and incomplete button inputs, and opens that draft', async () => {
     const wrapper = await mountPanel();
-
     await wrapper.get('[data-testid="library-use"]').trigger('click');
-    const inputs = wrapper.findAll('input');
-    await inputs[inputs.length - 1].setValue('+593999999999');
-    wrapper.findComponent(DialogStub).vm.$emit('confirm');
     await flushPromises();
-
-    expect(WhatsappTemplatesAPI.createFromLibrary).toHaveBeenCalledWith(5, {
+    expect(DraftsAPI.fromLibrary).toHaveBeenCalledWith({
+      channel_id: 50,
       library_template_name: 'appointment_reminder',
       name: 'appointment_reminder',
       language: 'es',
       category: 'UTILITY',
-      button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '+593999999999' }],
+      button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }],
+      preview: { body: entries[0].body, buttons: entries[0].buttons },
     });
-    expect(wrapper.emitted('created')).toHaveLength(1);
-    expect(useAlert).toHaveBeenCalledWith(
-      'Plantilla enviada a Meta en Español.'
+    expect(wrapper.emitted('created')).toEqual([
+      [{ id: 31, definition: { library: {} } }],
+    ]);
+    expect(WhatsappTemplatesAPI.createFromLibrary).not.toHaveBeenCalled();
+  });
+
+  it('blocks duplicate clicks while creating a draft', async () => {
+    let resolve;
+    DraftsAPI.fromLibrary.mockImplementation(
+      () =>
+        new Promise(done => {
+          resolve = done;
+        })
     );
+    const wrapper = await mountPanel();
+    await wrapper.get('[data-testid="library-use"]').trigger('click');
+    await wrapper.get('[data-testid="library-use"]').trigger('click');
+    expect(DraftsAPI.fromLibrary).toHaveBeenCalledTimes(1);
+    resolve({ data: { id: 31 } });
+    await flushPromises();
+    expect(wrapper.emitted('created')).toEqual([[{ id: 31 }]]);
   });
 
   it('uses the library response language when the entry omits it', async () => {
@@ -435,38 +443,28 @@ describe('LibraryPanel', () => {
         language_used: 'en_US',
       },
     });
-    WhatsappTemplatesAPI.createFromLibrary.mockResolvedValue({
-      data: { id: '1', language_used: 'en_US' },
-    });
     const wrapper = await mountPanel();
     wrapper.findComponent(FilterDropdown).vm.$emit('update:modelValue', 'all');
     await flushPromises();
     await wrapper.get('[data-testid="library-use"]').trigger('click');
-    wrapper.findComponent(DialogStub).vm.$emit('confirm');
     await flushPromises();
 
-    expect(WhatsappTemplatesAPI.createFromLibrary).toHaveBeenCalledWith(
-      5,
+    expect(DraftsAPI.fromLibrary).toHaveBeenCalledWith(
       expect.objectContaining({ language: 'en_US' })
     );
-    expect(useAlert).toHaveBeenCalledWith(
-      'Plantilla enviada a Meta en Inglés estadounidense.'
-    );
+    expect(wrapper.emitted('created')).toHaveLength(1);
   });
 
-  it('shows the real Meta creation error and keeps the dialog open', async () => {
-    WhatsappTemplatesAPI.createFromLibrary.mockRejectedValue({
+  it('shows the draft creation error and leaves the catalog available', async () => {
+    DraftsAPI.fromLibrary.mockRejectedValue({
       response: { data: { message: 'Este nombre ya existe.' } },
     });
     const wrapper = await mountPanel();
     await wrapper.get('[data-testid="library-use"]').trigger('click');
-    const inputs = wrapper.findAll('input');
-    await inputs[inputs.length - 1].setValue('+593999999999');
-    wrapper.findComponent(DialogStub).vm.$emit('confirm');
     await flushPromises();
 
     expect(useAlert).toHaveBeenCalledWith('Este nombre ya existe.');
     expect(wrapper.emitted('created')).toBeUndefined();
-    expect(DialogStub.methods.close).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="library-use"]').exists()).toBe(true);
   });
 });

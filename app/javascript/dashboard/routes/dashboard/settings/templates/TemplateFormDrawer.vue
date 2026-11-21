@@ -24,12 +24,14 @@ import {
   currentSubmission,
   draftDestination,
   draftFromForm,
+  libraryPreview,
   formFromDraft,
   hasOpaqueComponents,
   draftVariableNamesValid,
 } from './templateDrafts';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TemplateComboBox from './TemplateComboBox.vue';
+import LibraryDraftFields from './LibraryDraftFields.vue';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -221,7 +223,27 @@ const automaticVariable = token =>
   templateVariables(editing.value).some(
     item => item.token === token && item.source === 'alias'
   ) && !form.variableBindings[token];
+const isLibrary = computed(() => Boolean(form.library));
 const errors = computed(() => {
+  if (isLibrary.value) {
+    const result = validateForm({
+      ...emptyForm(),
+      inboxId: form.inboxId,
+      name: form.name,
+      language: form.language,
+      category: form.category,
+      body: { text: 'library', examples: [] },
+    });
+    if (
+      form.library.button_inputs.some(input =>
+        input.type === 'PHONE_NUMBER'
+          ? !input.phone_number.trim()
+          : !input.url.base_url.trim()
+      )
+    )
+      result.buttons = 'BUTTON_TEXT_REQUIRED';
+    return result;
+  }
   const result = validateForm(form, {
     isEdit: isEdit.value,
     original: editing.value,
@@ -251,7 +273,11 @@ const isMediaHeader = computed(() =>
 );
 const bodyVariables = computed(() => variableTokens(form.body.text));
 const generatedName = computed(() => toSnakeCase(form.name));
-const preview = computed(() => previewTemplate(form, headerPreviewUrl.value));
+const preview = computed(() =>
+  isLibrary.value
+    ? libraryPreview(form)
+    : previewTemplate(form, headerPreviewUrl.value)
+);
 const variables = computed(() => previewVariables(form));
 const promoWords = computed(() => promoWarnings(form));
 const statusKey = computed(() =>
@@ -323,6 +349,7 @@ const resetForm = () => {
   savedSnapshot.value = '';
   if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
   delete form.parameterFormat;
+  delete form.library;
   Object.assign(form, emptyForm());
   saveError.value = '';
   loadFailed.value = false;
@@ -1179,7 +1206,7 @@ const buttonChoices = computed(() =>
           </p>
         </fieldset>
 
-        <div v-if="!isEdit" class="grid gap-1">
+        <div v-if="!isEdit && !isLibrary" class="grid gap-1">
           <span
             class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
           >
@@ -1218,8 +1245,10 @@ const buttonChoices = computed(() =>
           </div>
         </div>
 
+        <LibraryDraftFields v-if="isLibrary" v-model="form.library" />
         <!-- The message as the customer will read it, edited in place -->
         <div
+          v-if="!isLibrary"
           class="p-4 rounded-xl bg-n-alpha-2 outline outline-1 outline-n-weak"
           data-testid="message-editor"
         >

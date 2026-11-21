@@ -42,27 +42,29 @@ export const draftFromForm = (form, inboxes) => ({
   parameter_format: form.parameterFormat || 'NAMED',
   ...draftDestination(form.inboxId, inboxes),
   ...(!form.inboxId ? { waba_id: form.wabaId } : {}),
-  definition: {
-    header: {
-      format: form.header.format,
-      text: form.header.text,
-      examples: [...form.header.examples],
-    },
-    body: { text: form.body.text, examples: [...form.body.examples] },
-    footer: { text: form.footer.text },
-    buttons: form.buttons.map(button => ({
-      type: button.type,
-      text: button.text,
-      ...(button.type === 'URL'
-        ? { url: button.url, examples: [...button.examples] }
-        : {}),
-      ...(button.type === 'PHONE_NUMBER'
-        ? { phone_number: button.phoneNumber }
-        : {}),
-      ...(button.type === 'COPY_CODE' ? { code: button.code } : {}),
-    })),
-    preserved: JSON.parse(JSON.stringify(form.preserved)),
-  },
+  definition: form.library
+    ? { library: JSON.parse(JSON.stringify(form.library)) }
+    : {
+        header: {
+          format: form.header.format,
+          text: form.header.text,
+          examples: [...form.header.examples],
+        },
+        body: { text: form.body.text, examples: [...form.body.examples] },
+        footer: { text: form.footer.text },
+        buttons: form.buttons.map(button => ({
+          type: button.type,
+          text: button.text,
+          ...(button.type === 'URL'
+            ? { url: button.url, examples: [...button.examples] }
+            : {}),
+          ...(button.type === 'PHONE_NUMBER'
+            ? { phone_number: button.phoneNumber }
+            : {}),
+          ...(button.type === 'COPY_CODE' ? { code: button.code } : {}),
+        })),
+        preserved: JSON.parse(JSON.stringify(form.preserved)),
+      },
   variable_bindings: { ...form.variableBindings },
 });
 
@@ -79,6 +81,9 @@ export const formFromDraft = (draft, inboxes) => {
       ? 'POSITIONAL'
       : 'NAMED');
   Object.assign(form, {
+    library: definition.library
+      ? { button_inputs: [], ...JSON.parse(JSON.stringify(definition.library)) }
+      : null,
     title: draft.title,
     wabaId: draft.waba_id,
     name: draft.name || '',
@@ -122,6 +127,24 @@ export const draftVariableNamesValid = form =>
     )
   );
 
+export const libraryPreview = form => ({
+  name: form.name,
+  language: form.language,
+  category: form.category,
+  components: [
+    ...(form.library.preview?.header
+      ? [{ type: 'HEADER', format: 'TEXT', text: form.library.preview.header }]
+      : []),
+    {
+      type: 'BODY',
+      text: form.library.preview?.body || form.library.template_name,
+    },
+    ...(form.library.preview?.buttons?.length
+      ? [{ type: 'BUTTONS', buttons: form.library.preview.buttons }]
+      : []),
+  ],
+});
+
 export const draftRow = (draft, inboxes) => {
   const form = formFromDraft(draft, inboxes);
   const owners = inboxes.filter(inbox =>
@@ -130,7 +153,7 @@ export const draftRow = (draft, inboxes) => {
       : false
   );
   return {
-    ...previewTemplate(form),
+    ...(form.library ? libraryPreview(form) : previewTemplate(form)),
     ...draft,
     key: `draft-${draft.id}`,
     isLocalDraft: true,

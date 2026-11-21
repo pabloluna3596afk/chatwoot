@@ -326,6 +326,7 @@
     },
     "MISSING_VARIABLES": "Missing value for {variables}",
     "DRAFTS": {
+      "LIBRARY_READ_ONLY": "Meta owns this text. You can edit the name, language, category and button values. The text is checked with Meta in the selected language when submitted.",
       "SAVE": "Save draft",
       "EDIT_TITLE": "Edit draft",
       "NEW_VERSION_TITLE": "New version",
