@@ -35,7 +35,7 @@ describe('composer reply quote', () => {
     const quote = wrapper.getComponent({ name: 'ReplyPreview' });
     expect(quote.props('composer')).toBe(true);
     expect(quote.classes()).toContain('border-n-brand');
-    expect(quote.get('.line-clamp-2').text()).toBe('Thank you');
+    expect(quote.get('[class*="sm:line-clamp-2"]').text()).toBe('Thank you');
     expect(quote.text()).toContain('Ana');
   });
 
@@ -49,7 +49,12 @@ describe('composer reply quote', () => {
       })
     );
     expect(wrapper.get('.line-clamp-1').classes()).toContain('break-all');
-    expect(wrapper.get('.line-clamp-2').classes()).toContain('break-all');
+    expect(wrapper.get('[class*="sm:line-clamp-2"]').classes()).toContain(
+      'line-clamp-1'
+    );
+    expect(wrapper.get('[class*="sm:line-clamp-2"]').classes()).toContain(
+      'break-all'
+    );
     expect(wrapper.getComponent({ name: 'ReplyPreview' }).classes()).toEqual(
       expect.arrayContaining(['w-full', '!pe-10', '!rounded-b-none'])
     );

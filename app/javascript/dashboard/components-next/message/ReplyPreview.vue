@@ -76,7 +76,7 @@ const scrollToMessage = () =>
 <template>
   <button
     type="button"
-    class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
+    class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-solid border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
     :class="
       composer
         ? '!mx-0 !mb-0 !p-2 !bg-transparent'
@@ -127,7 +127,7 @@ const scrollToMessage = () =>
         v-dompurify-html="text"
         :class="
           composer || attachment.fileType
-            ? 'text-xs leading-4 text-n-slate-12 line-clamp-2 break-all'
+            ? 'text-xs leading-4 text-n-slate-12 line-clamp-1 sm:line-clamp-2 break-all'
             : 'text-xs text-n-slate-11 truncate'
         "
       />
