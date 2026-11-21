@@ -38,6 +38,8 @@ const URL_FORMAT = /^https?:\/\/\S+$/;
 const PHONE_FORMAT = /^\+\d{6,18}$/;
 
 export const emptyForm = () => ({
+  title: '',
+  wabaId: null,
   inboxId: null,
   name: '',
   language: 'es',

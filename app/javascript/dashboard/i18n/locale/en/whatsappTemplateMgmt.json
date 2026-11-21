@@ -1,7 +1,7 @@
 {
   "WHATSAPP_TEMPLATE_MGMT": {
     "TITLE": "Templates & Flows",
-    "DESCRIPTION": "View the message templates of your WhatsApp inboxes. Administrators can create, edit and delete templates on WhatsApp Cloud channels.",
+    "DESCRIPTION": "Prepare local WhatsApp template drafts, submit them for Meta review and view installed templates.",
     "COUNT": "{n} template | {n} templates",
     "LEARN_MORE": "Learn more about WhatsApp templates",
     "UPDATED_AT": "Updated: {date}",
@@ -66,14 +66,14 @@
       "REJECTED": "Rejected",
       "PAUSED": "Paused",
       "DISABLED": "Disabled",
-      "IN_APPEAL": "In appeal",
+      "IN_APPEAL": "Appeal requested",
       "FLAGGED": "Flagged",
       "LIMIT_EXCEEDED": "Limit exceeded"
     },
     "FORM": {
       "NEW_TITLE": "New WhatsApp template",
       "EDIT_TITLE": "Edit template",
-      "DESCRIPTION": "Meta reviews every template before it can be used. The preview updates as you type.",
+      "DESCRIPTION": "You can save without a channel. Choose a WhatsApp account before submitting for review.",
       "STATUS": "Status in Meta:",
       "REJECTED_REASON": "Rejection reason: {reason}",
       "CANNOT_EDIT_NOW": "Content editing is unavailable for this template. Variable values can still be configured when shown below.",
@@ -124,7 +124,7 @@
       "REMOVE_BUTTON": "Remove button",
       "RULES": {
         "TITLE": "Meta rules",
-        "REVIEW": "Every new or edited template goes back to review before it can be used.",
+        "REVIEW": "Saving stays local. Submit for review when your draft is ready.",
         "EDIT_LIMITS": "An approved template can be edited up to 10 times in 30 days and once every 24 hours.",
         "CATEGORY": "The category cannot be changed once the template is approved.",
         "DELETE_LOCK": "When you delete it, the name and language stay locked for 30 days.",
@@ -324,6 +324,55 @@
     "FILTER": {
       "MISSING": "Pending variables ({count})"
     },
-    "MISSING_VARIABLES": "Missing value for {variables}"
+    "MISSING_VARIABLES": "Missing value for {variables}",
+    "DRAFTS": {
+      "SAVE": "Save draft",
+      "EDIT_TITLE": "Edit draft",
+      "NEW_VERSION_TITLE": "New version",
+      "SUBMIT": "Submit for review",
+      "NEW_VERSION": "Create new version",
+      "DUPLICATE": "Duplicate to another channel",
+      "SAVED": "Draft saved. It has not been submitted to Meta yet.",
+      "NO_DESTINATION_HELP": "You can save without a channel. Choose a WhatsApp account before submitting for review.",
+      "SHARED": "This template is shared with channels {channels}.",
+      "UNCERTAIN": "We could not confirm the submission. We will check Meta before trying again.",
+      "REJECTED": "Meta rejected this version: {reason}.",
+      "PAUSED": "Meta paused this template. It is unavailable for sending.",
+      "DELETE": "Delete draft",
+      "DELETE_HELP": "This only deletes the local draft.",
+      "DELETE_REMOTE": "Delete from Meta",
+      "NO_CHANNEL": "No channel",
+      "UNTITLED": "Untitled draft",
+      "ALL_STATUSES": "All statuses",
+      "META_STATUS": "Meta status",
+      "LOCAL_STATUS": "Local status",
+      "INTERNAL_TITLE": "Internal title",
+      "CONFLICT": "Another administrator changed this draft. The latest revision has been loaded. Your unsaved changes are still in the form. Choose whether to keep them or load the saved content.",
+      "RELOAD": "Load saved content",
+      "KEEP_CHANGES": "Keep my changes",
+      "RELOAD_ERROR": "Could not reload the latest revision. Your changes are still in the form. Try loading the saved content again.",
+      "FETCH_ERROR": "Could not load local drafts. Refresh to try again.",
+      "READ_ONLY": "This version is read-only. Create a new version to make changes.",
+      "OPAQUE": "This template contains components this editor cannot submit. They are preserved in the local draft. Manage them in Meta.",
+      "VERIFY": "Verify in Meta",
+      "VERIFY_QUEUED": "Verification queued. Refresh to see the result.",
+      "REFRESH": "Refresh status",
+      "CONFIGURE_BINDINGS": "Configure variable sources",
+      "DISCARD_TITLE": "Discard unsaved changes?",
+      "DISCARD_HELP": "Your unsaved changes will be lost.",
+      "DISCARD": "Discard changes",
+      "DRAFTS_FILTER": "Drafts",
+      "STATUS": {
+        "DRAFT": "Draft",
+        "SUBMITTING": "Submitting for review…",
+        "RECONCILING": "Submission needs verification",
+        "FAILED": "Submission failed",
+        "SUBMITTED": "Submitted to Meta"
+      },
+      "REQUEST_ERROR": "Could not complete the action: {message}",
+      "SUBMIT_REQUIREMENTS": "Complete the required fields before submitting for review. You can keep saving your draft.",
+      "LAST_EDITED": "Last edited",
+      "DELETED": "Draft deleted."
+    }
   }
 }

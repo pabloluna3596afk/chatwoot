@@ -48,6 +48,54 @@ describe('shared templates table', () => {
     expect(footer.props('perPageOptions')).toEqual([10, 25, 50]);
   });
 
+  it('reserves full Meta status width and hides secondary columns below 2xl', async () => {
+    const wrapper = mount(TemplatesTable, {
+      props: {
+        columns: [
+          { key: 'NAME', label: 'Name' },
+          { key: 'META_STATUS', label: 'Meta status' },
+          { key: 'INBOX', label: 'Inbox' },
+          { key: 'CATEGORY', label: 'Category' },
+          { key: 'LANGUAGE', label: 'Language' },
+          { key: 'TYPE', label: 'Type' },
+          { key: 'UPDATED', label: 'Updated' },
+          { key: 'ACTIONS', label: 'Actions' },
+        ],
+        items: [{ id: 1, name: 'customer_welcome' }],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      },
+    });
+    const table = wrapper.get('table');
+    expect(table.classes()).toContain('table-fixed');
+    const metaStatusHeader = wrapper.get('th:nth-child(3)');
+    expect(metaStatusHeader.classes()).toContain('w-[9rem]');
+    expect(metaStatusHeader.classes()).toContain('min-w-[9rem]');
+    expect(wrapper.get('th:nth-child(4)').classes()).toContain('xl:w-[7rem]');
+    [
+      'th:nth-child(5)',
+      'td:nth-child(5)',
+      'th:nth-child(6)',
+      'td:nth-child(6)',
+      'th:nth-child(7)',
+      'td:nth-child(7)',
+      'th:nth-child(8)',
+      'td:nth-child(8)',
+    ].forEach(selector => {
+      const cell = wrapper.get(selector);
+      expect(cell.classes()).toContain('hidden');
+      expect(cell.classes()).toContain('2xl:table-cell');
+    });
+    ['th:nth-child(4)', 'td:nth-child(4)'].forEach(selector => {
+      expect(wrapper.get(selector).classes()).toContain('hidden');
+      expect(wrapper.get(selector).classes()).toContain('xl:table-cell');
+    });
+    expect(wrapper.get('th:last-child').classes()).toContain('sticky');
+    expect(wrapper.get('td:last-child').classes()).toContain('sticky');
+    wrapper.unmount();
+  });
+
   it('gives all three actions exactly the same Button props and emits distinct actions', async () => {
     const wrapper = mount(TemplateRowActions, {
       props: {
@@ -111,5 +159,30 @@ describe('shared templates table', () => {
     expect(Object.keys(spanish.FILTERS)).toEqual(Object.keys(english.FILTERS));
     expect(spanish.TABLE.INBOX).toBe('Bandeja');
     expect(spanish.FILTERS.ALL_INBOXES).toBe('Todas las bandejas');
+    expect(spanish.DRAFTS.EDIT_TITLE).toBe('Editar borrador');
+    expect(spanish.DRAFTS.NEW_VERSION_TITLE).toBe('Nueva versión');
+    expect(Object.keys(spanish.DRAFTS)).toEqual(Object.keys(english.DRAFTS));
+  });
+
+  it('renders template cards for mobile without changing the shared default for Flows', async () => {
+    const wrapper = mount(TemplatesTable, {
+      props: {
+        columns: [{ key: 'name', label: 'Name' }],
+        items: [{ id: 1, name: 'Draft' }],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      },
+    });
+    expect(wrapper.find('[data-testid="template-cards"]').exists()).toBe(false);
+    await wrapper.setProps({ cardsOnMobile: true });
+    expect(wrapper.get('[data-table-scroll]').classes()).toContain('hidden');
+    expect(wrapper.get('[data-table-scroll]').classes()).toContain('md:block');
+    const cards = wrapper.get('[data-testid="template-cards"]');
+    expect(cards.classes()).toContain('md:hidden');
+    expect(cards.text()).toContain('Draft');
+    await cards.get('article').trigger('keydown.enter');
+    expect(wrapper.emitted('open')[0]).toEqual([{ id: 1, name: 'Draft' }]);
+    wrapper.unmount();
   });
 });

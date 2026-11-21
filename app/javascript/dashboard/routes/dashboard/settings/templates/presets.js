@@ -1,5 +1,5 @@
 // ChatHub's ready-made WhatsApp templates (Spanish, neutral "tú", no emoji). Picking one opens the template form
-// filled in; nothing goes to Meta until the administrator saves it.
+// filled in; saving creates a local draft; submitting for review is a separate action.
 //
 // Variables are named so it is obvious what each one is: {{nombre}}, {{cita}}, {{fecha}}, {{hora}}, {{tema}}. The
 // appointment ones are the names Captain's reminders fill in by themselves when the template is picked in its

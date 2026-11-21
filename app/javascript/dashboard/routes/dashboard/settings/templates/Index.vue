@@ -11,6 +11,8 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import { useWhatsAppTemplateSync } from 'dashboard/composables/useWhatsAppTemplateSync';
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
+import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
+import { draftRow, LOCAL_STATUSES, META_STATUSES } from './templateDrafts';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
@@ -32,7 +34,7 @@ import TemplateFormDrawer from './TemplateFormDrawer.vue';
 import PresetsPanel from './PresetsPanel.vue';
 import FlowsPanel from './flows/FlowsPanel.vue';
 import SyncStatus from 'dashboard/components-next/whatsapp/sync-status/SyncStatus.vue';
-import { isEditable, formFromTemplate } from './templateForm';
+import { isEditable } from './templateForm';
 import { presetToForm } from './presets';
 import {
   formatTemplateDate,
@@ -54,7 +56,7 @@ const FUZZY_SEARCH_KEYS = [
 
 const store = useStore();
 const route = useRoute();
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const { checkPermissions } = usePolicy();
 const { isSyncing, canSync, whatsappInboxes, syncTemplates } =
@@ -69,13 +71,46 @@ const cloudInboxFor = template =>
   cloudInboxes.value.find(inbox =>
     template.inboxes.some(owner => owner.id === inbox.id)
   );
-const canManage = template => isAdmin.value && Boolean(cloudInboxFor(template));
+const canManage = template =>
+  isAdmin.value && (template.isLocalDraft || Boolean(cloudInboxFor(template)));
 const canEdit = template =>
   isAdmin.value &&
-  ((canManage(template) && isEditable(template)) ||
+  (template.isLocalDraft ||
+    (canManage(template) && isEditable(template)) ||
     (templateDataEligible(template) && templateVariables(template).length > 0));
 
 const templates = ref([]);
+const drafts = ref([]);
+const allTemplates = computed(() => [
+  ...(isAdmin.value
+    ? drafts.value.map(draft => draftRow(draft, cloudInboxes.value))
+    : []),
+  ...templates.value,
+]);
+const selectedStatus = ref('all');
+const stateOptions = computed(() => [
+  { value: 'all', label: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.ALL_STATUSES') },
+  ...LOCAL_STATUSES.map(value => ({
+    value,
+    label: t(
+      value === 'draft'
+        ? 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.DRAFTS_FILTER'
+        : 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.STATUS.' + value.toUpperCase()
+    ),
+  })),
+  ...META_STATUSES.map(value => ({
+    value,
+    label: t('WHATSAPP_TEMPLATE_MGMT.STATUS.' + value),
+  })),
+]);
+const remoteStatus = item =>
+  item.isLocalDraft ? item.remoteStatus : item.status;
+const remoteStatusLabel = item => {
+  const status = remoteStatus(item);
+  if (!status) return formatTemplateLabel(null);
+  const key = 'WHATSAPP_TEMPLATE_MGMT.STATUS.' + status.toUpperCase();
+  return te(key) ? t(key) : status;
+};
 const searchQuery = ref(route.query.q || '');
 const missingOnly = ref(route.query.filter === 'missing');
 const missingCount = computed(
@@ -92,22 +127,49 @@ const categoryOptions = computed(() => [
   {
     value: 'all',
     label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_CATEGORIES'),
-    count: templates.value.length,
+    count: allTemplates.value.length,
   },
   ...['UTILITY', 'MARKETING', 'AUTHENTICATION'].map(value => ({
     value,
     label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.CATEGORIES.' + value),
-    count: templates.value.filter(
+    count: allTemplates.value.filter(
       item => item.category?.toUpperCase() === value
     ).length,
   })),
 ]);
-const columns = computed(() => templateTableColumns(t, ['LANGUAGE', 'TYPE']));
+const columns = computed(() => {
+  const labels = {
+    STATUS: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.LOCAL_STATUS'),
+    UPDATED: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.LAST_EDITED'),
+  };
+  return templateTableColumns(t, ['LANGUAGE', 'TYPE'])
+    .map(column => ({ ...column, label: labels[column.key] || column.label }))
+    .flatMap(column =>
+      column.key === 'STATUS'
+        ? [
+            column,
+            {
+              key: 'META_STATUS',
+              label: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.META_STATUS'),
+            },
+          ]
+        : [column]
+    );
+});
 const actionLabels = computed(() => ({
   edit: t('WHATSAPP_TEMPLATE_MGMT.EDIT'),
   duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
-  delete: t('WHATSAPP_TEMPLATE_MGMT.DELETE'),
+  delete: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE_REMOTE'),
 }));
+const rowLabels = item =>
+  item.isLocalDraft
+    ? {
+        edit: t('WHATSAPP_TEMPLATE_MGMT.EDIT'),
+        duplicate: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DUPLICATE'),
+        delete: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE'),
+      }
+    : actionLabels.value;
+
 const previewPanelRef = ref(null);
 const flowsPanel = ref(null);
 const formDrawerRef = ref(null);
@@ -122,7 +184,7 @@ const {
   isPending: isLoading,
 } = useAbortableRequest();
 
-const hasTemplates = computed(() => templates.value.length > 0);
+const hasTemplates = computed(() => allTemplates.value.length > 0);
 
 const lastSyncAttemptAt = computed(() => {
   const timestamps = Object.values(lastSyncAttemptsByInboxId.value)
@@ -150,6 +212,9 @@ const inboxOptions = computed(() => [
     value: 'all',
     label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES'),
   },
+  ...(isAdmin.value
+    ? [{ value: 'none', label: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NO_CHANNEL') }]
+    : []),
   ...whatsappInboxes.value.map(inbox => ({
     value: String(inbox.id),
     label: inbox.name,
@@ -161,7 +226,7 @@ const languageOptions = computed(() => [
     value: 'all',
     label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_LANGUAGES'),
   },
-  ...[...new Set(templates.value.map(template => template.language))]
+  ...[...new Set(allTemplates.value.map(template => template.language))]
     .filter(Boolean)
     .sort()
     .map(language => ({
@@ -175,7 +240,7 @@ const typeOptions = computed(() => [
     value: 'all',
     label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_TYPES'),
   },
-  ...[...new Set(templates.value.map(templateTypeKey))]
+  ...[...new Set(allTemplates.value.map(templateTypeKey))]
     .map(type => ({
       value: type,
       label: typeLabels.value[type],
@@ -184,6 +249,14 @@ const typeOptions = computed(() => [
 ]);
 
 const openPreview = template => {
+  if (isAdmin.value && template.isLocalDraft) {
+    formDrawerRef.value?.openDraft(template);
+    return;
+  }
+  if (canManage(template)) {
+    formDrawerRef.value?.open(template);
+    return;
+  }
   selectedTemplate.value = template;
   previewPanelRef.value?.open();
 };
@@ -191,7 +264,7 @@ const openPreview = template => {
 const openCreate = () => formDrawerRef.value?.open();
 
 // Templates, ready-made presets and flows are the tabs of the page. Only administrators see the tabs: the presets need
-// a WhatsApp Cloud channel (they create templates); the flows are ChatHub's own and do not.
+// no channel to prepare a draft; the flows are ChatHub's own.
 // The builder's back arrow comes back to the Flows tab (?tab=flows).
 const activeTab = ref(
   isAdmin.value && route.query.tab === 'flows' ? 'flows' : 'templates'
@@ -205,15 +278,13 @@ const showPresets = computed(
 );
 const showFlows = computed(() => showTabs.value && activeTab.value === 'flows');
 const createAction = computed(() => {
-  return isAdmin.value && cloudInboxes.value.length
+  return isAdmin.value
     ? { label: t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE'), run: openCreate }
     : null;
 });
 const tabs = computed(() => [
   { key: 'templates', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.TEMPLATES') },
-  ...(cloudInboxes.value.length
-    ? [{ key: 'presets', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS') }]
-    : []),
+  { key: 'presets', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS') },
   { key: 'flows', label: t('WHATSAPP_FLOWS.TAB') },
 ]);
 const tabIndex = computed(() =>
@@ -224,21 +295,12 @@ const onTabChanged = tab => {
 };
 const applyPreset = preset =>
   formDrawerRef.value?.open(null, presetToForm(preset));
-const duplicateTemplate = template => {
-  const positional =
-    template.parameter_format === 'POSITIONAL' ||
-    template.components?.some(component =>
-      /\{\{\d+\}\}/.test(component.text || '')
-    );
-  if (positional) {
-    formDrawerRef.value?.openSystemCopy(template);
-    return;
-  }
-  const prefill = formFromTemplate(template, cloudInboxFor(template)?.id);
-  prefill.name = template.name.slice(0, 506) + '_copia';
-  formDrawerRef.value?.open(null, prefill);
-};
-const openEdit = template => formDrawerRef.value?.open(template);
+const duplicateTemplate = template =>
+  formDrawerRef.value?.openDuplicate(template);
+const openEdit = template =>
+  template.isLocalDraft
+    ? formDrawerRef.value?.openDraft(template)
+    : formDrawerRef.value?.openBindings(template);
 const openedLinkedTemplate = ref(false);
 watch(templates, records => {
   if (
@@ -260,7 +322,17 @@ const askDelete = template => {
 };
 
 const filteredTemplates = computed(() => {
-  let records = templates.value;
+  let records = allTemplates.value;
+  if (selectedStatus.value !== 'all') {
+    records = records.filter(template =>
+      LOCAL_STATUSES.includes(selectedStatus.value)
+        ? template.isLocalDraft && template.status === selectedStatus.value
+        : (template.isLocalDraft
+            ? template.remoteStatus
+            : template.status
+          )?.toUpperCase() === selectedStatus.value
+    );
+  }
   if (missingOnly.value)
     records = records
       .filter(hasPendingVariables)
@@ -271,7 +343,11 @@ const filteredTemplates = computed(() => {
 
   if (selectedInboxId.value !== 'all') {
     records = records.filter(template =>
-      template.inboxes.some(inbox => String(inbox.id) === selectedInboxId.value)
+      selectedInboxId.value === 'none'
+        ? template.isLocalDraft && !template.waba_id
+        : template.inboxes.some(
+            inbox => String(inbox.id) === selectedInboxId.value
+          )
     );
   }
 
@@ -319,6 +395,7 @@ watch(
     selectedLanguage,
     selectedType,
     selectedCategory,
+    selectedStatus,
     templatePageSize,
   ],
   () => {
@@ -342,6 +419,30 @@ const fetchTemplates = async () => {
         force: true,
       });
       if (!didFetchInboxes) throw new Error();
+      if (signal.aborted) return;
+
+      if (isAdmin.value) {
+        try {
+          const records = [];
+          let page = 1;
+          let total;
+          do {
+            // Pagination cursors depend on the preceding response.
+            // eslint-disable-next-line no-await-in-loop
+            const { data } = await DraftsAPI.get(
+              { page: String(page), per_page: '100' },
+              { signal }
+            );
+            records.push(...data.payload);
+            total = data.meta.total_count;
+            page += 1;
+          } while (!signal.aborted && records.length < total);
+          if (!signal.aborted) drafts.value = records;
+        } catch {
+          if (!signal.aborted)
+            useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.FETCH_ERROR'));
+        }
+      }
       if (signal.aborted) return;
 
       const inboxesToFetch = [...whatsappInboxes.value];
@@ -422,19 +523,36 @@ const fetchTemplates = async () => {
 const confirmDelete = async () => {
   const template = templateToDelete.value;
   const inbox = template && cloudInboxFor(template);
-  if (!inbox) return;
+  if (!template || (!template.isLocalDraft && !inbox)) return;
 
   isDeleting.value = true;
   try {
-    await WhatsappTemplatesAPI.deleteTemplate(
-      inbox.id,
-      template.id,
-      template.name
+    if (template.isLocalDraft) {
+      await DraftsAPI.delete(template.id, template.lock_version);
+    } else {
+      await WhatsappTemplatesAPI.deleteTemplate(
+        inbox.id,
+        template.id,
+        template.name
+      );
+    }
+    useAlert(
+      t(
+        template.isLocalDraft
+          ? 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETED'
+          : 'WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.DELETED'
+      )
     );
-    useAlert(t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.DELETED'));
     deleteDialogRef.value?.close();
     await fetchTemplates();
   } catch (error) {
+    if (error?.response?.status === 409 && template.isLocalDraft) {
+      deleteDialogRef.value?.close();
+      await fetchTemplates();
+      useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.CONFLICT'));
+      await formDrawerRef.value?.openDraft(template);
+      return;
+    }
     useAlert(
       error?.response?.data?.message ||
         t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.ERROR')
@@ -444,6 +562,10 @@ const confirmDelete = async () => {
   }
 };
 
+const refreshTemplates = async () => {
+  if (canSync.value) await syncTemplates();
+  await fetchTemplates();
+};
 const onLibraryCreated = () => {
   activeTab.value = 'templates';
   fetchTemplates();
@@ -457,7 +579,7 @@ onDeactivated(abortTemplateRequest);
   <SettingsLayout
     :is-loading="showTemplates && isLoading"
     :loading-message="$t('WHATSAPP_TEMPLATE_MGMT.LOADING')"
-    :no-records-found="showTemplates && !templates.length"
+    :no-records-found="showTemplates && !allTemplates.length"
     :no-records-message="$t('WHATSAPP_TEMPLATE_MGMT.EMPTY')"
   >
     <template #header>
@@ -499,9 +621,9 @@ onDeactivated(abortTemplateRequest);
               label-key="WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT"
               :date="lastSyncAttemptAt"
               :is-loading="isSyncing"
-              :disabled="!canSync"
+              :disabled="isLoading"
               :button-label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_TEMPLATES')"
-              @refresh="syncTemplates"
+              @refresh="refreshTemplates"
             />
           </div>
         </template>
@@ -561,6 +683,13 @@ onDeactivated(abortTemplateRequest);
               :label="$t('WHATSAPP_TEMPLATE_MGMT.TABLE.CATEGORY')"
               icon="i-lucide-folder"
             />
+            <FilterDropdown
+              v-model="selectedStatus"
+              :options="stateOptions"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.TABLE.STATUS')"
+              icon="i-lucide-list-filter"
+              data-testid="status-filter"
+            />
           </div>
         </template>
       </TemplatesToolbar>
@@ -589,6 +718,7 @@ onDeactivated(abortTemplateRequest);
         v-else-if="showTemplates"
         v-model:page="templatePage"
         v-model:page-size="templatePageSize"
+        cards-on-mobile
         :columns="columns"
         :items="pagedTemplates"
         :total="filteredTemplates.length"
@@ -597,58 +727,95 @@ onDeactivated(abortTemplateRequest);
         @open="openPreview"
       >
         <template #NAME="{ item }">
-          <span class="inline-flex items-center gap-2">
-            <span class="text-heading-3 text-n-slate-12">{{ item.name }}</span>
+          <span class="flex w-full min-w-0 items-center gap-2">
+            <span
+              class="block min-w-0 flex-1 truncate text-heading-3 text-n-slate-12"
+              :title="
+                item.name ||
+                item.title ||
+                $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNTITLED')
+              "
+            >
+              {{
+                item.name ||
+                item.title ||
+                $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNTITLED')
+              }}
+            </span>
             <TemplatePendingIndicator :template="item" />
           </span>
         </template>
         <template #CATEGORY="{ item }">
           <span
+            v-if="item.category"
             class="px-2 py-1 text-xs rounded-md"
             :class="
               item.category?.toUpperCase() === 'MARKETING'
                 ? 'bg-n-amber-3 text-n-amber-11'
                 : 'bg-n-teal-3 text-n-teal-11'
             "
-            >{{
+          >
+            {{
               $t(
                 'WHATSAPP_TEMPLATE_MGMT.FILTERS.CATEGORIES.' +
                   item.category?.toUpperCase()
               )
-            }}</span
-          >
+            }}
+          </span>
+          <span v-else>{{ formatTemplateLabel(null) }}</span>
         </template>
         <template #LANGUAGE="{ item }">
-          {{ formatTemplateLanguage(item.language) }}
+          {{
+            item.language
+              ? formatTemplateLanguage(item.language)
+              : formatTemplateLabel(null)
+          }}
         </template>
         <template #TYPE="{ item }">
-          {{ typeLabels[templateTypeKey(item)] }}
+          {{ typeLabels[templateTypeKey(item)] || formatTemplateLabel(null) }}
         </template>
-        <template #INBOX="{ item }">{{ item.inboxNames }}</template>
+        <template #INBOX="{ item }">
+          {{
+            item.inboxNames ||
+            item.waba_id ||
+            $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NO_CHANNEL')
+          }}
+        </template>
         <template #UPDATED="{ item }">
           {{
-            item.lastUpdatedAt
-              ? formatTemplateDate(item.lastUpdatedAt)
-              : formatTemplateLabel(null)
+            formatTemplateDate(
+              item.isLocalDraft ? item.updated_at : item.last_updated_time
+            )
           }}
         </template>
         <template #STATUS="{ item }">
           <span
-            class="px-2.5 py-1 text-xs rounded-full whitespace-nowrap"
-            :class="templateStatusClasses(item.status)"
-            >{{
-              $te('WHATSAPP_TEMPLATE_MGMT.STATUS.' + item.status?.toUpperCase())
-                ? $t(
-                    'WHATSAPP_TEMPLATE_MGMT.STATUS.' +
-                      item.status?.toUpperCase()
-                  )
-                : formatTemplateLabel(item.status)
-            }}</span
+            v-if="item.isLocalDraft && item.status"
+            class="px-2 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11"
           >
+            {{
+              $t(
+                'WHATSAPP_TEMPLATE_MGMT.DRAFTS.STATUS.' +
+                  item.status.toUpperCase()
+              )
+            }}
+          </span>
+          <span v-else class="text-n-slate-11">{{
+            formatTemplateLabel(null)
+          }}</span>
+        </template>
+        <template #META_STATUS="{ item }">
+          <span
+            class="px-2 py-1 text-xs rounded-full"
+            :class="templateStatusClasses(remoteStatus(item))"
+          >
+            {{ remoteStatusLabel(item) }}
+          </span>
         </template>
         <template #ACTIONS="{ item }">
           <TemplateRowActions
-            :labels="actionLabels"
+            v-if="isAdmin"
+            :labels="rowLabels(item)"
             :can-manage="canManage(item)"
             :can-edit="canEdit(item)"
             @edit="openEdit(item)"
@@ -671,13 +838,21 @@ onDeactivated(abortTemplateRequest);
       v-if="isAdmin"
       ref="deleteDialogRef"
       type="alert"
-      :title="$t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.TITLE')"
-      :confirm-button-label="$t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.CONFIRM')"
+      :title="
+        templateToDelete?.isLocalDraft
+          ? $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE')
+          : $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE_REMOTE')
+      "
+      :confirm-button-label="
+        templateToDelete?.isLocalDraft
+          ? $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE')
+          : $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE_REMOTE')
+      "
       :is-loading="isDeleting"
       @confirm="confirmDelete"
     >
       <div v-if="templateToDelete" class="grid gap-3 text-sm text-n-slate-11">
-        <p>
+        <p v-if="!templateToDelete.isLocalDraft">
           {{
             $t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.DESCRIPTION', {
               name: templateToDelete.name,
@@ -686,7 +861,11 @@ onDeactivated(abortTemplateRequest);
           }}
         </p>
         <p class="text-n-amber-11">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.LOCK_NOTE') }}
+          {{
+            templateToDelete.isLocalDraft
+              ? $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE_HELP')
+              : $t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.LOCK_NOTE')
+          }}
         </p>
       </div>
     </Dialog>

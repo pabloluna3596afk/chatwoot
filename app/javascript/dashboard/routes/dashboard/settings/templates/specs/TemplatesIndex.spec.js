@@ -1,18 +1,28 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { KeepAlive, h } from 'vue';
+import { mockNativeDialog } from 'dashboard/helper/specs/mockNativeDialog';
 import Index from '../Index.vue';
 import TemplatesTable from '../TemplatesTable.vue';
 import TemplateRowActions from '../TemplateRowActions.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
+import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import { useAlert } from 'dashboard/composables';
+import { ref } from 'vue';
+import { draftFromForm } from '../templateDrafts';
+import { emptyForm } from '../templateForm';
 
-const { openForm, openPreview, openSystemCopy, query } = vi.hoisted(() => ({
-  query: {},
-  openForm: vi.fn(),
-  openPreview: vi.fn(),
-  openSystemCopy: vi.fn(),
-}));
+const { openForm, openPreview, openDuplicate, openDraft, openBindings, query } =
+  vi.hoisted(() => ({
+    query: {},
+    openDraft: vi.fn(),
+    openBindings: vi.fn(),
+    openForm: vi.fn(),
+    openPreview: vi.fn(),
+    openDuplicate: vi.fn(),
+  }));
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query }),
   useRouter: () => ({ push: vi.fn() }),
@@ -25,8 +35,9 @@ vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => ({ value: false }),
   useStore: () => ({ dispatch: vi.fn().mockResolvedValue(true) }),
 }));
+const role = ref(true);
 vi.mock('dashboard/composables/usePolicy', () => ({
-  usePolicy: () => ({ checkPermissions: () => true }),
+  usePolicy: () => ({ checkPermissions: () => role.value }),
 }));
 vi.mock('dashboard/composables/useWhatsAppTemplateSync', () => ({
   useWhatsAppTemplateSync: () => ({
@@ -34,6 +45,8 @@ vi.mock('dashboard/composables/useWhatsAppTemplateSync', () => ({
       value: [
         {
           id: 7,
+          channel_id: 70,
+          provider_config: { business_account_id: 'waba-a' },
           name: 'Support',
           provider: 'whatsapp_cloud',
           channel_type: 'Channel::Whatsapp',
@@ -48,11 +61,17 @@ vi.mock('dashboard/composables/useWhatsAppTemplateSync', () => ({
 vi.mock('dashboard/api/inboxes', () => ({
   default: { getMessageTemplates: vi.fn() },
 }));
+vi.mock('dashboard/api/whatsappTemplateDrafts', () => ({
+  default: { get: vi.fn(), delete: vi.fn() },
+}));
 vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: { createTemplate: vi.fn() },
 }));
 vi.mock('../TemplateFormDrawer.vue', () => ({
-  default: { template: '<div/>', methods: { open: openForm, openSystemCopy } },
+  default: {
+    template: '<div/>',
+    methods: { open: openForm, openDuplicate, openDraft, openBindings },
+  },
 }));
 vi.mock('../TemplatePreviewDrawer.vue', () => ({
   default: { template: '<div/>', methods: { open: openPreview } },
@@ -73,6 +92,13 @@ vi.mock('../../components/BaseSettingsHeader.vue', () => ({
 }));
 
 describe('Templates page', () => {
+  beforeEach(() => {
+    mockNativeDialog();
+    role.value = true;
+    DraftsAPI.get.mockResolvedValue({
+      data: { payload: [], meta: { total_count: 0 } },
+    });
+  });
   const render = async (records = null) => {
     InboxesAPI.getMessageTemplates.mockResolvedValue({
       data: {
@@ -113,7 +139,9 @@ describe('Templates page', () => {
     ]);
     const actions = wrapper.findAllComponents(TemplateRowActions);
     expect(actions[0].props('canEdit')).toBe(true);
-    expect(wrapper.findAll('[data-testid="template-pending"]')).toHaveLength(2);
+    expect(
+      wrapper.findAll('tbody [data-testid="template-pending"]')
+    ).toHaveLength(2);
     await wrapper.get('button[aria-pressed]').trigger('click');
     const table = wrapper.findComponent(TemplatesTable);
     expect(table.props('items').map(item => item.name)).toEqual([
@@ -140,7 +168,7 @@ describe('Templates page', () => {
         missing_variables: ['1'],
       },
     ]);
-    expect(openForm).toHaveBeenCalledWith(
+    expect(openBindings).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'pedido_listo' })
     );
     delete query.q;
@@ -178,40 +206,14 @@ describe('Templates page', () => {
     wrapper.unmount();
   });
 
-  it('opens a copy in create mode without sending anything to Meta', async () => {
+  it('opens the shared duplicate workflow without creating anything in Meta', async () => {
     const wrapper = await render();
-    const actions = wrapper.findComponent(TemplateRowActions);
-    await actions.get('[data-action="duplicate"]').trigger('click');
-    expect(openForm).toHaveBeenCalledWith(
-      null,
-      expect.objectContaining({
-        name: 'template_0_copia',
-        language: 'en',
-        inboxId: 7,
-        category: 'UTILITY',
-        body: expect.objectContaining({ text: 'Hello' }),
-      })
-    );
-    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
-    wrapper.unmount();
-  });
-
-  it('opens the system mapping view from Duplicate for a positional template', async () => {
-    const wrapper = await render();
-    const table = wrapper.findComponent(TemplatesTable);
-    const template = {
-      ...table.props('items')[0],
-      parameter_format: 'POSITIONAL',
-    };
-    // Row actions forward the source template to the shared drawer entry point.
-    const actions = wrapper.findComponent(TemplateRowActions);
-    table.props('items')[0].parameter_format = 'POSITIONAL';
-    await actions.get('[data-action="duplicate"]').trigger('click');
-    expect(openSystemCopy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: template.name,
-        parameter_format: 'POSITIONAL',
-      })
+    await wrapper
+      .findComponent(TemplateRowActions)
+      .get('[data-action="duplicate"]')
+      .trigger('click');
+    expect(openDuplicate).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'template_0' })
     );
     expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
     wrapper.unmount();
@@ -226,8 +228,187 @@ describe('Templates page', () => {
     await wrapper.get('[data-testid="page-create"]').trigger('click');
     expect(openForm).toHaveBeenCalled();
     await wrapper.get('tbody tr').trigger('click');
-    expect(openPreview).toHaveBeenCalled();
+    expect(openForm).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'template_0' })
+    );
     expect(wrapper.find('[data-action="view"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('loads all local pages and combines status and no-channel filters', async () => {
+    const local = {
+      ...draftFromForm(emptyForm(), []),
+      id: 31,
+      lock_version: 0,
+      status: 'draft',
+      submissions: [],
+      updated_at: '2026-11-21T01:00:00Z',
+    };
+    DraftsAPI.get
+      .mockResolvedValueOnce({
+        data: { payload: [local], meta: { total_count: 2 } },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          payload: [{ ...local, id: 32, status: 'reconciling' }],
+          meta: { total_count: 2 },
+        },
+      });
+    const wrapper = await render([]);
+    expect(DraftsAPI.get).toHaveBeenCalledWith(
+      { page: '2', per_page: '100' },
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+    const table = wrapper.findComponent(TemplatesTable);
+    expect(table.props('total')).toBe(2);
+    expect(table.props('columns').map(column => column.key)).toContain(
+      'META_STATUS'
+    );
+    const status = wrapper.findComponent('[data-testid="status-filter"]');
+    expect(status.props('options').map(item => item.value)).toEqual([
+      'all',
+      'draft',
+      'submitting',
+      'reconciling',
+      'failed',
+      'submitted',
+      'PENDING',
+      'APPROVED',
+      'REJECTED',
+      'PAUSED',
+      'DISABLED',
+      'IN_APPEAL',
+    ]);
+    status.vm.$emit('update:modelValue', 'draft');
+    wrapper
+      .findAllComponents(FilterDropdown)[0]
+      .vm.$emit('update:modelValue', 'none');
+    await flushPromises();
+    expect(table.props('items').map(item => item.id)).toEqual([31]);
+    table.vm.$emit('open', table.props('items')[0]);
+    expect(openDraft).toHaveBeenCalledWith(expect.objectContaining({ id: 31 }));
+    wrapper.unmount();
+  });
+
+  it('deletes only the local draft with the revision after confirmation', async () => {
+    DraftsAPI.get.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            ...draftFromForm(emptyForm(), []),
+            id: 31,
+            lock_version: 7,
+            status: 'draft',
+            submissions: [],
+          },
+        ],
+        meta: { total_count: 1 },
+      },
+    });
+    const wrapper = await render([]);
+    await wrapper
+      .findComponent(TemplateRowActions)
+      .get('[data-action="delete"]')
+      .trigger('click');
+    await flushPromises();
+    const dialog = wrapper.findComponent(Dialog);
+    expect(dialog.props('title')).toBe('WHATSAPP_TEMPLATE_MGMT.DRAFTS.DELETE');
+    expect(document.body.textContent).toContain('DRAFTS.DELETE_HELP');
+    expect(DraftsAPI.delete).not.toHaveBeenCalled();
+    dialog.vm.$emit('confirm');
+    await flushPromises();
+    expect(DraftsAPI.delete).toHaveBeenCalledWith(31, 7);
+    wrapper.unmount();
+  });
+
+  it('shows fetch failures instead of treating them as an empty successful load', async () => {
+    DraftsAPI.get.mockRejectedValue(new Error('offline'));
+    const wrapper = await render([]);
+    expect(useAlert).toHaveBeenCalledWith(
+      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.FETCH_ERROR'
+    );
+    wrapper.unmount();
+  });
+
+  it('does not fetch drafts or expose admin actions for agents', async () => {
+    role.value = false;
+    const wrapper = await render();
+    expect(DraftsAPI.get).not.toHaveBeenCalled();
+    expect(wrapper.findComponent(TemplateRowActions).exists()).toBe(false);
+    expect(wrapper.find('[data-testid="page-create"]').exists()).toBe(false);
+    await wrapper.get('tbody tr').trigger('click');
+    expect(openPreview).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('filters every local state independently from the Meta review states', async () => {
+    const states = [
+      'draft',
+      'submitting',
+      'reconciling',
+      'failed',
+      'submitted',
+    ];
+    DraftsAPI.get.mockResolvedValue({
+      data: {
+        payload: states.map((status, index) => ({
+          ...draftFromForm(emptyForm(), []),
+          id: index + 1,
+          lock_version: 2,
+          status,
+          submissions:
+            status === 'submitted'
+              ? [{ revision: 2, remote_status: 'IN_APPEAL' }]
+              : [],
+        })),
+        meta: { total_count: 5 },
+      },
+    });
+    const wrapper = await render([]);
+    const filter = wrapper.findComponent('[data-testid="status-filter"]');
+    const table = wrapper.findComponent(TemplatesTable);
+    await states.reduce(async (previous, state, index) => {
+      await previous;
+      filter.vm.$emit('update:modelValue', state);
+      await flushPromises();
+      expect(table.props('items').map(item => item.id)).toEqual([index + 1]);
+    }, Promise.resolve());
+    filter.vm.$emit('update:modelValue', 'IN_APPEAL');
+    await flushPromises();
+    expect(table.props('items').map(item => item.id)).toEqual([5]);
+    wrapper.unmount();
+  });
+
+  it('reloads after a stale deletion instead of retrying with another revision', async () => {
+    DraftsAPI.get.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            ...draftFromForm(emptyForm(), []),
+            id: 31,
+            lock_version: 7,
+            status: 'draft',
+            submissions: [],
+          },
+        ],
+        meta: { total_count: 1 },
+      },
+    });
+    DraftsAPI.delete.mockRejectedValueOnce({
+      response: { status: 409, data: { error: 'stale_revision' } },
+    });
+    const wrapper = await render([]);
+    await wrapper
+      .findComponent(TemplateRowActions)
+      .get('[data-action="delete"]')
+      .trigger('click');
+    wrapper.findComponent(Dialog).vm.$emit('confirm');
+    await flushPromises();
+    expect(DraftsAPI.delete).toHaveBeenCalledTimes(1);
+    expect(openDraft).toHaveBeenCalledWith(expect.objectContaining({ id: 31 }));
+    expect(useAlert).toHaveBeenCalledWith(
+      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.CONFLICT'
+    );
     wrapper.unmount();
   });
 });

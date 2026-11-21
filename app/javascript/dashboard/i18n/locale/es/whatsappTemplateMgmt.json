@@ -1,7 +1,7 @@
 {
   "WHATSAPP_TEMPLATE_MGMT": {
     "TITLE": "Plantillas y Flows",
-    "DESCRIPTION": "Consulta las plantillas de mensajes de tus bandejas de WhatsApp. Los administradores pueden crear, editar y borrar plantillas en bandejas de WhatsApp Cloud.",
+    "DESCRIPTION": "Prepara borradores locales de plantillas de WhatsApp, envíalos a revisión de Meta y consulta las plantillas instaladas.",
     "COUNT": "{n} plantilla | {n} plantillas",
     "UPDATED_AT": "Actualizado: {date}",
     "SYNC_TEMPLATES": "Sincronizar plantillas",
@@ -65,7 +65,7 @@
       "APPROVED": "Aprobada",
       "REJECTED": "Rechazada",
       "PAUSED": "Pausada",
-      "DISABLED": "Desactivada",
+      "DISABLED": "Deshabilitada",
       "IN_APPEAL": "En apelación",
       "FLAGGED": "Marcada",
       "LIMIT_EXCEEDED": "Límite excedido"
@@ -73,7 +73,7 @@
     "FORM": {
       "NEW_TITLE": "Nueva plantilla de WhatsApp",
       "EDIT_TITLE": "Editar plantilla",
-      "DESCRIPTION": "Meta revisa cada plantilla antes de que se pueda usar. La vista previa se actualiza mientras escribes.",
+      "DESCRIPTION": "Puedes guardar sin canal. Elige una cuenta de WhatsApp antes de enviar a revisión.",
       "STATUS": "Estado en Meta:",
       "REJECTED_REASON": "Motivo del rechazo: {reason}",
       "CANNOT_EDIT_NOW": "La edición de contenido no está disponible para esta plantilla. Puedes configurar los datos de las variables si aparecen debajo.",
@@ -124,7 +124,7 @@
       "REMOVE_BUTTON": "Quitar botón",
       "RULES": {
         "TITLE": "Reglas de Meta",
-        "REVIEW": "Cada plantilla nueva o editada vuelve a revisión antes de poder usarse.",
+        "REVIEW": "Guardar conserva el borrador local. Envíalo a revisión cuando esté listo.",
         "EDIT_LIMITS": "Una plantilla aprobada se puede editar hasta 10 veces en 30 días y una vez cada 24 horas.",
         "CATEGORY": "La categoría no se puede cambiar cuando la plantilla ya está aprobada.",
         "DELETE_LOCK": "Al borrar, el nombre y el idioma quedan bloqueados 30 días.",
@@ -324,6 +324,55 @@
     "FILTER": {
       "MISSING": "Variables pendientes ({count})"
     },
-    "MISSING_VARIABLES": "Falta el dato de {variables}"
+    "MISSING_VARIABLES": "Falta el dato de {variables}",
+    "DRAFTS": {
+      "SAVE": "Guardar borrador",
+      "EDIT_TITLE": "Editar borrador",
+      "NEW_VERSION_TITLE": "Nueva versión",
+      "SUBMIT": "Enviar a revisión",
+      "NEW_VERSION": "Crear nueva versión",
+      "DUPLICATE": "Duplicar en otro canal",
+      "SAVED": "Borrador guardado. Todavía no se ha enviado a Meta.",
+      "NO_DESTINATION_HELP": "Puedes guardar sin canal. Elige una cuenta de WhatsApp antes de enviar a revisión.",
+      "SHARED": "Esta plantilla se comparte con los canales {channels}.",
+      "UNCERTAIN": "No pudimos confirmar el envío. Verificaremos Meta antes de volver a intentarlo.",
+      "REJECTED": "Meta rechazó esta versión: {reason}.",
+      "PAUSED": "Meta pausó esta plantilla. No está disponible para enviar.",
+      "DELETE": "Eliminar borrador",
+      "DELETE_HELP": "Esto elimina solo el borrador local.",
+      "DELETE_REMOTE": "Eliminar de Meta",
+      "NO_CHANNEL": "Sin canal",
+      "UNTITLED": "Borrador sin título",
+      "ALL_STATUSES": "Todos los estados",
+      "META_STATUS": "Estado en Meta",
+      "LOCAL_STATUS": "Estado local",
+      "INTERNAL_TITLE": "Título interno",
+      "CONFLICT": "Otro administrador cambió este borrador. Se cargó la revisión más reciente. Tus cambios sin guardar siguen en el formulario. Elige si deseas conservarlos o cargar el contenido guardado.",
+      "RELOAD": "Cargar contenido guardado",
+      "KEEP_CHANGES": "Conservar mis cambios",
+      "RELOAD_ERROR": "No se pudo cargar la revisión más reciente. Tus cambios siguen en el formulario. Intenta cargar el contenido guardado de nuevo.",
+      "FETCH_ERROR": "No se pudieron cargar los borradores locales. Actualiza para volver a intentarlo.",
+      "READ_ONLY": "Esta versión es de solo lectura. Crea una nueva versión para realizar cambios.",
+      "OPAQUE": "Esta plantilla contiene componentes que este editor no puede enviar. Se conservan en el borrador local. Adminístralos en Meta.",
+      "VERIFY": "Verificar en Meta",
+      "VERIFY_QUEUED": "Verificación en cola. Actualiza para ver el resultado.",
+      "REFRESH": "Actualizar estado",
+      "CONFIGURE_BINDINGS": "Configurar fuentes de variables",
+      "DISCARD_TITLE": "¿Descartar cambios sin guardar?",
+      "DISCARD_HELP": "Se perderán los cambios sin guardar.",
+      "DISCARD": "Descartar cambios",
+      "DRAFTS_FILTER": "Borradores",
+      "STATUS": {
+        "DRAFT": "Borrador",
+        "SUBMITTING": "Enviando a revisión…",
+        "RECONCILING": "Envío por verificar",
+        "FAILED": "Error de envío",
+        "SUBMITTED": "Enviada a Meta"
+      },
+      "REQUEST_ERROR": "No se pudo completar la acción: {message}",
+      "SUBMIT_REQUIREMENTS": "Completa los campos requeridos antes de enviar a revisión. Puedes seguir guardando el borrador.",
+      "LAST_EDITED": "Última edición",
+      "DELETED": "Borrador eliminado."
+    }
   }
 }
