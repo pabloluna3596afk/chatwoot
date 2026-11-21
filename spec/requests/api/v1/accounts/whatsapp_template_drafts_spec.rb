@@ -152,4 +152,62 @@ RSpec.describe 'WhatsApp template drafts API', type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  it 'creates a blueprint draft with an optional destination and rejects unknown blueprints' do
+    post "#{path}/from_blueprint", params: { blueprint_id: 'palu_cita_confirmacion' }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    expect(response.parsed_body).to include('preferred_channel_id' => nil, 'parameter_format' => 'POSITIONAL', 'language' => 'es')
+    post "#{path}/from_blueprint", params: { blueprint_id: 'missing' }, headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body['error']).to eq('unknown_blueprint')
+  end
+
+  it 'creates, reopens and duplicates a library draft without HTTP or an invented body' do
+    post "#{path}/from_library", params: { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY',
+                                          button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }], channel_id: channel.id },
+                                 headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    original = response.parsed_body
+    get "#{path}/#{original.fetch('id')}", headers: headers
+    expect(response.parsed_body['definition']).to eq(original['definition'])
+    post "#{path}/#{original.fetch('id')}/duplicate", params: { destination: {} }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    expect(response.parsed_body).to include('definition' => original['definition'], 'submissions' => [])
+    expect(response.parsed_body['name']).not_to eq(original['name'])
+    expect(response.parsed_body['source_remote_id']).to be_nil
+  end
+
+  it 'accepts library drafts without a channel but refuses submission until a destination exists' do
+    post "#{path}/from_library", params: { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY' },
+                                 headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    id = response.parsed_body.fetch('id')
+    post "#{path}/#{id}/submit", params: { lock_version: 0 }, headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body['error']).to eq('destination_required')
+  end
+
+  it 'rejects malformed library definitions and identities at the request boundary' do
+    valid = { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY' }
+    [{ library_template_name: '' }, { name: 'INVALID' }, { language: 'invalid_locale' }, { category: 'OTHER' },
+     { button_inputs: {} }, { button_inputs: [42] }, { button_inputs: [{ type: 'URL', url: { base_url: 42 } }] },
+     { preview: [] }, { preview: { body: 'a' * 1025 } }, { channel_id: '1' }].each do |invalid|
+      post "#{path}/from_library", params: valid.merge(invalid), headers: headers.dup, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+    post path, params: { draft: { definition: { library: { template_name: 'appointment', language: 'es' }, body: { text: 'editable' } } } },
+               headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  %w[from_library from_blueprint].each do |endpoint|
+    it "restricts #{endpoint} to administrators and returns 404 for another account channel" do
+      attributes = { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY', blueprint_id: 'palu_reenganche' }
+      post "#{path}/#{endpoint}", params: attributes, headers: agent.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unauthorized)
+      other = create(:channel_whatsapp, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false)
+      post "#{path}/#{endpoint}", params: attributes.merge(channel_id: other.id), headers: headers, as: :json
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

@@ -119,7 +119,7 @@ esa sincronización es completa: admite lista vacía y no aplica páginas parcia
 Guardar, archivar o eliminar localmente no cambia Meta ni bindings activos. Los
 bindings del borrador quedan como preparación local; su activación continúa siendo
 explícita mediante el recorrido existente de plantillas instaladas. No hay backfill,
-migración de consumidores, webhook nuevo ni cambio de presets/blueprints/Citas.
+migración de consumidores, webhook nuevo ni cambio del consumo de plantillas instaladas o Citas.
 Captain conserva su exclusión de marketing, incluso si Meta recategoriza una alta.
 
 ## Errores
@@ -135,3 +135,86 @@ Captain conserva su exclusión de marketing, incluso si Meta recategoriza una al
 
 El listado y el serializador no exponen snapshots, payloads con handles ni configuración
 del proveedor. Las APIs antiguas de crear/editar/eliminar plantillas siguen disponibles.
+
+## Crear desde blueprints y biblioteca
+
+Los endpoints legados de creación directa permanecen disponibles sin cambios.
+Las rutas nuevas siguientes son exclusivas de administradores y devuelven `201`
+con el mismo detalle de borrador; guardar no escribe ni consulta Meta.
+
+| Ruta POST relativa | Entrada JSON |
+| --- | --- |
+| `/from_blueprint` | `{ "blueprint_id": "palu_cita_confirmacion", "channel_id": 12 }` |
+| `/from_library` | `{ "library_template_name": "appointment_reminder", "name": "mi_recordatorio", "language": "es", "category": "UTILITY", "button_inputs": [], "channel_id": 12 }` |
+
+`channel_id` es opcional y debe ser un entero de un canal WhatsApp Cloud de la
+cuenta. Un canal ajeno devuelve `404`; un proveedor incompatible, `422`.
+Sin canal se puede guardar y duplicar; enviar exige destino.
+
+Blueprints permitidos: `palu_reenganche`, `palu_cita_confirmacion` y
+`palu_cita_recordatorio`. Leen las constantes del servicio legado y producen
+cuerpo, ejemplos y botones `QUICK_REPLY` equivalentes, idioma `es` y formato
+`POSITIONAL`. Si el nombre ya está activo en cuenta/WABA/idioma o en el espejo
+remoto de esa WABA, se prueba `_2`, `_3`, etc. Un ID desconocido devuelve
+`422 unknown_blueprint`. No se añade una pantalla para blueprints.
+
+Un borrador de biblioteca conserva exclusivamente este modo en `definition`:
+
+```json
+{
+  "library": {
+    "template_name": "appointment_reminder",
+    "language": "es",
+    "button_inputs": [{ "type": "PHONE_NUMBER", "phone_number": "" }],
+    "preview": {
+      "body": "Texto de Meta",
+      "buttons": [{ "type": "PHONE_NUMBER", "text": "Llamar" }]
+    }
+  }
+}
+```
+
+No admite `body`, `header`, `footer`, `buttons` o `preserved` editables al mismo
+nivel. `preview` es opcional, de solo presentación: `header`/`body` son cadenas
+hasta 1024 caracteres y `buttons` usa los límites del JSON del editor. También
+puede proporcionarse como `preview` en `/from_library`. No se confía en esta vista
+previa para crear ni reconciliar una plantilla.
+
+`template_name` es cadena hasta 512 caracteres; `language`, hasta 20. Los inputs
+son un array de hasta 10 objetos, en el orden de los botones URL/PHONE_NUMBER de
+Meta. PHONE_NUMBER admite solo `type` y `phone_number` (hasta 20 caracteres). URL
+admite `type` y `url: { base_url, url_suffix_example }`, cadenas hasta 2000
+caracteres; el ejemplo de sufijo es opcional al guardar. Se permiten valores
+vacíos para completar luego. Tipos incorrectos, campos desconocidos, tamaños o
+mezcla de modos devuelven `422 invalid_draft`. Los borradores antiguos sin
+`library`, incluido `definition: {}`, mantienen su contrato.
+
+`/from_library` exige el nombre de biblioteca y nombre/idioma/categoría con las
+mismas reglas de identidad del endpoint legado (`library_name_required`,
+`invalid_name`, `invalid_language`, `invalid_category`). Un homónimo local activo
+se rechaza por la validación existente; el administrador puede elegir otro nombre.
+
+PATCH conserva el formato de revisión existente y permite completar identidad e
+inputs. Al enviar se valida el catálogo de idiomas y el destino y se consulta la
+biblioteca mediante el cliente común, con paginación. El texto y los botones se
+resuelven en el idioma solicitado; un fallback distinto no se envía silenciosamente.
+Se exige un input por botón URL/PHONE_NUMBER, tipo y orden correctos, teléfono
+válido, URL HTTP(S) y ejemplo cuando el botón tiene sufijo dinámico. Errores de
+inputs devuelven `422 invalid_buttons`; una plantilla no disponible en ese idioma,
+`422 invalid_language`. Ningún intento se reserva si esta validación falla.
+
+El cliente existente normaliza idiomas regionales de biblioteca (`es_EC` → `es`,
+conserva `en_US`/`pt_BR`). El snapshot y la identidad reservada del intento usan el
+idioma efectivo, para que búsqueda previa, POST y reconciliación coincidan. El
+borrador conserva la selección del usuario. El snapshot congela inputs y texto
+obtenido de Meta, sin credenciales. El worker usa `create_from_library`, que envía
+`library_template_name` y `library_template_button_inputs`; se mantienen la misma
+idempotencia por revisión, bloqueo, backoff y reconciliación. Si el contenido
+remoto no coincide, no se adopta como éxito ni se repite el POST tras timeout.
+
+Duplicar conserva `library` y crea un nombre independiente sin intentos ni IDs
+remotos en la definición. Nueva versión de una plantilla creada por este camino
+recupera el modo desde el snapshot de su intento, por cuenta/WABA/ID remoto;
+conserva `source_remote_id` solo como trazabilidad. Las versiones de plantillas
+sin snapshot de biblioteca conservan el recorrido previo desde el espejo remoto.
+No hay migración nueva, backfill ni cambios de campañas, chat o Citas.

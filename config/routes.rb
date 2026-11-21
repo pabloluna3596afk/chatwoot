@@ -194,6 +194,8 @@ Rails.application.routes.draw do
             end
           end
           resources :whatsapp_template_drafts, only: [:index, :create, :show, :update, :destroy] do
+            post :from_blueprint, on: :collection
+            post :from_library, on: :collection
             post :new_version, on: :collection
             member do
               get :media, action: :download_media

@@ -20,11 +20,16 @@ class Whatsapp::TemplateDraftCopyService
     remote = Array(channel.message_templates).find { |template| template['id'] == remote_id }
     raise ActiveRecord::RecordNotFound unless remote
 
+    submission = WhatsappTemplateSubmission.where(account: @account, remote_id: remote_id,
+                                                  waba_id: channel.provider_config.fetch('business_account_id')).order(id: :desc).first
+    library_definition = submission&.snapshot&.fetch('library_definition', nil)
+
     WhatsappTemplateDraft.create!(account: @account, created_by: @actor, updated_by: @actor, preferred_channel: channel,
                                   waba_id: channel.provider_config.fetch('business_account_id'), source_remote_id: remote_id,
                                   name: suggested_name(remote.fetch('name')), title: remote.fetch('name').first(100),
                                   language: remote.fetch('language'), category: remote.fetch('category'),
-                                  parameter_format: remote['parameter_format'], definition: local_definition(definition(remote.fetch('components'))))
+                                  parameter_format: remote['parameter_format'],
+                                  definition: local_definition(library_definition || definition(remote.fetch('components'))))
   end
 
   private

@@ -20,7 +20,7 @@ class Whatsapp::SubmitTemplateDraftService
   def create_submission
     snapshot = Whatsapp::TemplateDraftValidator.new(@draft).snapshot!
     submission = @draft.submissions.create!(account: @draft.account, actor: @actor, revision: @revision, waba_id: @draft.waba_id,
-                                            name: @draft.name, language: @draft.language, snapshot: snapshot,
+                                            name: @draft.name, language: snapshot.fetch('payload').fetch('language'), snapshot: snapshot,
                                             payload_digest: Digest::SHA256.hexdigest(snapshot.to_json))
     submission.media.attach(@draft.media.blob) if @draft.media.attached?
     submission

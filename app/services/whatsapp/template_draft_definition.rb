@@ -6,6 +6,10 @@ module Whatsapp::TemplateDraftDefinition
   TEXT_LIMITS = { 'header' => 60, 'body' => 1024, 'footer' => 60 }.freeze
 
   def self.valid?(definition)
+    if definition.is_a?(Hash) && definition.key?('library')
+      return definition.keys == ['library'] && Whatsapp::TemplateLibraryDefinition.valid?(definition['library'])
+    end
+
     return false unless definition.is_a?(Hash) && (definition.keys - [*SECTIONS.keys, 'buttons', 'preserved']).empty?
 
     sections_valid?(definition) && buttons_valid?(definition.fetch('buttons', [])) &&

@@ -10,6 +10,11 @@ class Whatsapp::TemplateDraftValidator
 
   def snapshot!
     validate_identity!
+    if @draft.definition.key?('library')
+      invalid!('unsupported_components') if @draft.media.attached?
+      return Whatsapp::TemplateLibrarySnapshotService.new(@draft).snapshot!
+    end
+
     form = @draft.definition.deep_dup
     prepare_media!(form)
     validate_named_variables!(form)
