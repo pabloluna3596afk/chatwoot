@@ -193,6 +193,18 @@ Rails.application.routes.draw do
               post 'publications/:waba_id/retry', action: :retry_publish
             end
           end
+          resources :whatsapp_template_drafts, only: [:index, :create, :show, :update, :destroy] do
+            post :new_version, on: :collection
+            member do
+              get :media, action: :download_media
+              post :media, action: :upload_media
+              delete :media, action: :remove_media
+              post :submit
+              post 'submissions/:submission_id/reconcile', action: :reconcile
+              post :duplicate
+              post :archive
+            end
+          end
           resources :task_templates, only: [:index, :create, :show, :update, :destroy]
           resources :internal_tasks, only: [:index, :show, :update, :destroy] do
             member do
