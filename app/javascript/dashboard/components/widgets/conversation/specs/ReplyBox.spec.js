@@ -135,6 +135,32 @@ describe('ReplyBox', () => {
     });
   });
 
+  it.each([false, true])(
+    'joins the quote to the editor when private=%s',
+    async isPrivate => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Whatsapp' },
+        chat: { can_reply: false },
+      });
+      if (isPrivate) await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+      await wrapper.setData({
+        inReplyTo: { id: 8, content: 'Long quoted text '.repeat(100) },
+      });
+      const quote = wrapper.getComponent({ name: 'ReplyToMessage' });
+      const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+      expect(quote.element.nextElementSibling).toBe(input.element);
+      expect(input.classes()).toContain('!rounded-t-none');
+      expect(input.props('disabled')).toBe(!isPrivate);
+      if (isPrivate) expect(quote.classes()).toContain('!bg-n-amber-12/5');
+      await wrapper.vm.copilot.execute('reply_suggestion', '');
+      await nextTick();
+      expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(
+        false
+      );
+      wrapper.unmount();
+    }
+  );
+
   it.each([REPLY_EDITOR_MODES.NOTE, REPLY_EDITOR_MODES.REPLY])(
     'exits Copilot when switching to %s and preserves the draft',
     async mode => {
@@ -194,7 +220,7 @@ describe('ReplyBox', () => {
     wrapper.unmount();
   });
 
-  it('aborts generation on A → B → A and ignores a late result', async () => {
+  it('aborts generation on A â†’ B â†’ A and ignores a late result', async () => {
     let resolveRequest;
     useCaptain().processEvent.mockImplementation(
       () =>
@@ -472,7 +498,7 @@ describe('ReplyBox', () => {
       expect(topPanel(wrapper).isReplyRestricted).toBe(true);
       expect(bottomPanel(wrapper).enableWhatsAppTemplates).toBe(false);
       expect(bottomPanel(wrapper).enableContentTemplates).toBe(false);
-      // The note composer stays usable — this is a restriction, not a lockout.
+      // The note composer stays usable â€” this is a restriction, not a lockout.
       expect(topPanel(wrapper).isEditorDisabled).toBe(false);
     });
 

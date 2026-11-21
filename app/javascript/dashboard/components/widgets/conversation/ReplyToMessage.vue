@@ -13,11 +13,11 @@ const emit = defineEmits(['dismiss']);
 </script>
 
 <template>
-  <div class="reply-editor mt-2 flex w-full min-w-0 items-start gap-1.5">
+  <div class="reply-editor relative w-full min-w-0 rounded-t-2xl bg-n-alpha-1">
     <ReplyPreview
       :message="message"
       composer
-      class="flex-1"
+      class="!rounded-t-2xl !rounded-b-none !bg-transparent !pe-10"
       :aria-label="$t('CONVERSATION.REPLYBOX.REPLYING_TO')"
     />
     <Button
@@ -26,7 +26,7 @@ const emit = defineEmits(['dismiss']);
       intent="tertiary"
       size="xs"
       icon="i-lucide-x"
-      class="shrink-0 !size-6 focus-visible:ring-2 focus-visible:ring-n-brand"
+      class="absolute top-2 end-2 !size-6 focus-visible:ring-2 focus-visible:ring-n-brand"
       @click.stop="emit('dismiss')"
     />
   </div>

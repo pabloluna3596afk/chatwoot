@@ -23,11 +23,36 @@ describe('composer reply quote', () => {
       options({ id: 1, sender: { name: 'Ana' }, content: '**Thank you**' })
     );
     expect(wrapper.classes()).toContain('w-full');
+    expect(wrapper.classes()).toContain('relative');
+    expect(wrapper.classes()).toContain('rounded-t-2xl');
+    expect(
+      wrapper
+        .get(
+          'button[aria-label="' + en.CONVERSATION.REPLYBOX.DISMISS_REPLY + '"]'
+        )
+        .classes()
+    ).toEqual(expect.arrayContaining(['absolute', 'top-2', 'end-2']));
     const quote = wrapper.getComponent({ name: 'ReplyPreview' });
     expect(quote.props('composer')).toBe(true);
     expect(quote.classes()).toContain('border-n-brand');
     expect(quote.get('.line-clamp-2').text()).toBe('Thank you');
     expect(quote.text()).toContain('Ana');
+  });
+
+  it('bounds long author names and excerpts without shrinking the quote for cancellation', () => {
+    const wrapper = mount(
+      ReplyToMessage,
+      options({
+        id: 1,
+        sender: { name: 'Author'.repeat(100) },
+        content: 'Text '.repeat(100),
+      })
+    );
+    expect(wrapper.get('.line-clamp-1').classes()).toContain('break-all');
+    expect(wrapper.get('.line-clamp-2').classes()).toContain('break-all');
+    expect(wrapper.getComponent({ name: 'ReplyPreview' }).classes()).toEqual(
+      expect.arrayContaining(['w-full', '!pe-10', '!rounded-b-none'])
+    );
   });
 
   it.each(['en', 'es'])(

@@ -217,7 +217,7 @@ export default {
     },
     shouldShowReplyToMessage() {
       if (!this.inReplyTo?.id || this.copilot.isActive.value) return false;
-      // Private notes are internal — show reply preview without channel REPLY_TO.
+      // Private notes are internal â€” show reply preview without channel REPLY_TO.
       if (this.isOnPrivateNote) return true;
       return (
         this.inboxHasFeature(INBOX_FEATURES.REPLY_TO) &&
@@ -417,7 +417,7 @@ export default {
       }
       const keyLabel = this.isEditorHotKeyEnabled('cmd_enter')
         ? `(${this.shortcutKey})`
-        : '(↵)';
+        : '(â†µ)';
       return `${sendMessageText} ${keyLabel}`;
     },
     replyBoxClass() {
@@ -1485,11 +1485,6 @@ export default {
       leave-to-class="opacity-0 translate-y-2 scale-[0.98]"
     >
       <div :key="copilot.editorTransitionKey.value" class="reply-box__top">
-        <ReplyToMessage
-          v-if="shouldShowReplyToMessage"
-          :message="inReplyTo"
-          @dismiss="resetReplyToMessage"
-        />
         <EmojiIconPicker
           v-if="showEmojiPicker"
           v-on-clickaway="hideEmojiPicker"
@@ -1527,6 +1522,12 @@ export default {
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
         />
+        <ReplyToMessage
+          v-if="shouldShowReplyToMessage"
+          :message="inReplyTo"
+          :class="{ '!bg-n-amber-12/5': isPrivate }"
+          @dismiss="resetReplyToMessage"
+        />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
           :show-copilot-editor="copilot.showEditor.value"
@@ -1550,6 +1551,7 @@ export default {
           :class="{
             '!bg-n-amber-12/5': isPrivate,
             'text-n-slate-11': isEditorDisabled,
+            '!rounded-t-none': shouldShowReplyToMessage,
           }"
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"

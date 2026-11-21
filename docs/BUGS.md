@@ -1,3 +1,9 @@
+### B-NEW-295 - Cita integrada al editor (2026-11-20)
+
+- **Archivos:** `ReplyToMessage.vue`, `ReplyBox.vue`, `ReplyPreview.vue` y specs respectivos.
+- **Arreglo:** cita a ancho completo, X interior de 24 px, radio superior compartido con editor; fondo coherente en nota privada y textos largos limitados.
+- **Prueba:** specs con editor deshabilitado, nota y Copilot; suites vecinas en UTC/America/Guayaquil. Revision visual pendiente del PM en 3110; sin preview, Docker, push ni PR.
+
 ### B-NEW-294 - Freno de intercambios repetitivos de Captain (2026-11-20)
 
 - **Problema:** mensajes nuevos cada 8-15 segundos cancelaban continuamente la gracia de cierre; dos asistentes o una cadena de cortesías podian responderse indefinidamente antes de alcanzar el límite de 20 respuestas.

@@ -79,7 +79,7 @@ const scrollToMessage = () =>
     class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
     :class="
       composer
-        ? '!mx-0 !mb-0 !p-2 !bg-n-alpha-1'
+        ? '!mx-0 !mb-0 !p-2 !bg-transparent'
         : attachment.fileType
           ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
           : ''
@@ -118,9 +118,11 @@ const scrollToMessage = () =>
       class="min-w-0 flex flex-col"
       :class="attachment.fileType ? 'gap-0.5' : ''"
     >
-      <span v-if="heading" class="text-xs font-semibold text-n-brand">{{
-        heading
-      }}</span>
+      <span
+        v-if="heading"
+        class="text-xs font-semibold text-n-brand line-clamp-1 break-all"
+        >{{ heading }}</span
+      >
       <span
         v-dompurify-html="text"
         :class="
