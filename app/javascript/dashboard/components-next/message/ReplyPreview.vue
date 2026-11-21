@@ -139,6 +139,7 @@ const scrollToMessage = () =>
         >{{ heading }}</span
       >
       <span
+        dir="auto"
         class="min-w-0 text-xs leading-4 line-clamp-1 sm:line-clamp-2 break-all"
         :class="
           composer || attachment.fileType
