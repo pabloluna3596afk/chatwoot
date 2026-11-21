@@ -14,7 +14,6 @@ import { CHAT_SKIN } from 'dashboard/helper/chatSkin';
 
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
-  overlayMeta: { type: Boolean, default: false },
   captainDetailsAtStart: { type: Boolean, default: false },
 });
 
@@ -79,11 +78,8 @@ const shouldShowMeta = computed(
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
 const metaClass = computed(() => [
-  'mt-1 justify-end',
+  'mt-1 justify-end text-n-slate-11',
   variant.value === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
-  props.overlayMeta
-    ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/80 px-2 py-0.5 text-white backdrop-blur-sm [&>button]:!text-white [&>button:hover]:!bg-white/10'
-    : 'text-n-slate-11',
 ]);
 </script>
 
@@ -93,8 +89,6 @@ const metaClass = computed(() => [
     :class="[
       messageClass,
       {
-        'relative [&:has([role=status])_.media-meta]:static [&:has([role=status])_.media-meta]:w-fit [&:has([role=status])_.media-meta]:ms-auto':
-          overlayMeta,
         'max-w-lg':
           variant !== MESSAGE_VARIANTS.EMAIL &&
           variant !== MESSAGE_VARIANTS.ACTIVITY,
@@ -111,7 +105,6 @@ const metaClass = computed(() => [
         <template #meta="{ trigger }">
           <MessageMeta
             :show-timestamp="!shouldGroupWithNext"
-            :overlay="overlayMeta"
             :class="metaClass"
           >
             <template #captain><component :is="trigger" /></template>
@@ -121,7 +114,6 @@ const metaClass = computed(() => [
       <MessageMeta
         v-else
         :show-timestamp="!shouldGroupWithNext"
-        :overlay="overlayMeta"
         :class="metaClass"
       />
     </template>

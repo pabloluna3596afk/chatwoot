@@ -7,7 +7,6 @@ const { attachments, content } = useMessageContext();
 
 <template>
   <BaseBubble
-    overlay-meta
     class="overflow-hidden p-1 [&>button]:mx-0 [&>button]:w-auto"
     data-bubble-name="image"
   >

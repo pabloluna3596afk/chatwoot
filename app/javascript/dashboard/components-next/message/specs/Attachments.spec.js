@@ -152,7 +152,7 @@ describe('attachments across seed channels', () => {
 
 describe('attachment composition', () => {
   it.each([0, 1])(
-    'keeps photo, mosaic and video metadata readable for message type %s',
+    'places photo, mosaic and video metadata below media for message type %s',
     messageType => {
       channel = 'Channel::Api';
       [
@@ -174,14 +174,11 @@ describe('attachment composition', () => {
           global: globalOptions(),
         });
         const meta = wrapper.getComponent({ name: 'MessageMeta' });
-        if (attachments.length === 1 && attachments[0].fileType === 'image') {
-          expect(meta.classes()).toContain('bg-black/80');
-          expect(meta.attributes('overlay')).toBe('true');
-        } else {
-          // Mosaics and native video controls already place metadata below the media.
-          expect(meta.classes()).not.toContain('absolute');
-          expect(meta.classes()).toContain('text-n-slate-11');
-        }
+        expect(meta.classes()).toEqual(
+          expect.arrayContaining(['mt-1', 'justify-end', 'text-n-slate-11'])
+        );
+        expect(meta.classes()).not.toContain('absolute');
+        expect(meta.classes()).not.toContain('bg-black/80');
         wrapper.unmount();
       });
     }

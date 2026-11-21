@@ -79,19 +79,19 @@ describe('message metadata', () => {
   );
 
   it.each(['sent', 'delivered', 'read', 'progress'])(
-    'keeps overlay %s icons legible and ordered',
+    'keeps %s icons in the standard metadata row',
     status => {
       inbox.isAPIInbox = ref(true);
       context.status.value = status;
       context.contentAttributes.value = {
         messageSource: { type: 'flow', id: 9 },
       };
-      const wrapper = render({ overlay: true }, true);
+      const wrapper = render({}, true);
       const source = wrapper.get('[data-testid="message-source-indicator"]');
-      expect(source.classes()).toContain('text-white');
+      expect(source.classes()).toContain('text-n-slate-11');
       const tick = wrapper.getComponent({ name: 'MessageStatus' });
       expect(tick.classes()).toContain(
-        status === 'read' ? 'text-n-blue-7' : 'text-white'
+        status === 'read' ? 'text-n-blue-11' : 'text-n-slate-10'
       );
       expect([...wrapper.element.children].map(el => el.tagName)).toEqual([
         'SPAN',
