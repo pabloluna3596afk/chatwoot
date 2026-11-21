@@ -588,12 +588,12 @@ provideMessageContext({
   <div
     v-if="shouldRenderMessage"
     :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
+    class="flex w-full message-bubble-container"
     :data-message-id="props.id"
     :class="[
       flexOrientationClass,
+      shouldGroupWithNext ? 'mb-0.5' : 'mb-2',
       {
-        'group-with-next': shouldGroupWithNext,
         'bg-n-alpha-1': showBackgroundHighlight,
       },
     ]"
@@ -661,15 +661,3 @@ provideMessageContext({
     </div>
   </div>
 </template>
-
-<style lang="scss">
-.group-with-next + .message-bubble-container {
-  .left-bubble {
-    @apply ltr:rounded-tl-sm rtl:rounded-tr-sm;
-  }
-
-  .right-bubble {
-    @apply ltr:rounded-tr-sm rtl:rounded-tl-sm;
-  }
-}
-</style>

@@ -97,7 +97,20 @@ const metaClass = computed(() => [
       },
     ]"
   >
-    <div data-bubble-content class="min-w-0" :class="props.contentClass">
+    <div
+      data-bubble-content
+      class="min-w-0"
+      :class="[
+        props.contentClass,
+        {
+          'pb-2':
+            props.contentClass &&
+            !shouldShowMeta &&
+            !props.hideMeta &&
+            variant !== MESSAGE_VARIANTS.ACTIVITY,
+        },
+      ]"
+    >
       <ReplyPreview v-if="inReplyTo" />
       <slot />
     </div>

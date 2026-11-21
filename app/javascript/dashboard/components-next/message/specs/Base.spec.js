@@ -41,6 +41,29 @@ describe('bubble metadata composition', () => {
     expect(render().find('[data-meta]').exists()).toBe(false);
   });
 
+  it.each(['agent', 'user', 'private', 'template'])(
+    'preserves bottom padding when the %s text has no metadata',
+    variant => {
+      context.variant.value = variant;
+      context.shouldGroupWithNext.value = true;
+      const wrapper = render({ contentClass: 'px-3 pt-2' });
+      expect(wrapper.find('[data-meta]').exists()).toBe(false);
+      expect(wrapper.get('[data-bubble-content]').classes()).toContain('pb-2');
+    }
+  );
+
+  it('does not add padding to full-bleed media or explicitly hidden metadata', () => {
+    context.shouldGroupWithNext.value = true;
+    expect(render().get('[data-bubble-content]').classes()).not.toContain(
+      'pb-2'
+    );
+    expect(
+      render({ hideMeta: true, contentClass: 'p-2' })
+        .get('[data-bubble-content]')
+        .classes()
+    ).not.toContain('pb-2');
+  });
+
   it.each(['macro', 'automation', 'flow'])(
     'preserves %s on grouped messages',
     type => {
