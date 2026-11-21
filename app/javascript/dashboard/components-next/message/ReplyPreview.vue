@@ -91,7 +91,7 @@ const scrollToMessage = () =>
 <template>
   <button
     type="button"
-    class="relative flex items-center gap-2 p-1.5 ps-3 -mx-1 mb-2 rounded-lg rounded-s-none bg-n-alpha-black1 before:absolute before:inset-y-0 before:start-0 before:w-[3px] before:bg-n-brand before:content-[''] cursor-pointer text-start w-full min-w-0"
+    class="box-border relative flex items-center gap-2 p-1.5 ps-3 -mx-1 mb-2 rounded-lg rounded-s-none bg-n-alpha-black1 before:absolute before:inset-y-0 before:start-0 before:w-[3px] before:bg-n-brand before:content-[''] cursor-pointer text-start w-full min-w-0"
     :class="
       composer
         ? '!mx-0 !mb-0 !p-2 !ps-3 !bg-transparent before:!inset-y-2'
@@ -130,7 +130,7 @@ const scrollToMessage = () =>
       class="size-8 shrink-0 text-n-slate-12"
     />
     <span
-      class="min-w-0 flex flex-col"
+      class="min-w-0 flex-1 flex flex-col"
       :class="attachment.fileType ? 'gap-0.5' : ''"
     >
       <span
@@ -140,7 +140,7 @@ const scrollToMessage = () =>
       >
       <span
         dir="auto"
-        class="min-w-0 text-xs leading-4 line-clamp-1 sm:line-clamp-2 break-all"
+        class="min-w-0 text-xs leading-4 line-clamp-1 break-all"
         :class="
           composer || attachment.fileType
             ? 'text-n-slate-12'

@@ -811,7 +811,8 @@
     "BCC": "Bcc",
     "CC": "Cc",
     "SUBJECT": "Subject",
-    "EXPAND": "Expand email"
+    "EXPAND": "Expand email",
+    "COLLAPSE": "Collapse email"
   },
   "CONVERSATION_PARTICIPANTS": {
     "SIDEBAR_MENU_TITLE": "Participating",

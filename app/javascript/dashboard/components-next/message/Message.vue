@@ -23,6 +23,8 @@ import {
 } from './constants';
 
 import Avatar from 'next/avatar/Avatar.vue';
+import Button from 'next/button/Button.vue';
+import { useSwipeToReply, REPLY_INTERACTIVE_SELECTOR } from './useSwipeToReply';
 
 import TextBubble from './bubbles/Text/Index.vue';
 import CaptainHandoffBubble from './bubbles/CaptainHandoff.vue';
@@ -510,6 +512,40 @@ function handleReplyTo() {
   emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, props);
 }
 
+// The menu remains the single source of reply eligibility.
+const canReply = computed(
+  () =>
+    isBubble.value &&
+    shouldShowContextMenu.value &&
+    contextMenuEnabledOptions.value.replyTo
+);
+const {
+  isSwiping,
+  swipeClass,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+  onTouchCancel,
+} = useSwipeToReply({ enabled: canReply, onReply: handleReplyTo });
+
+function replyOnDoubleClick(event) {
+  if (
+    !canReply.value ||
+    event.button !== 0 ||
+    event.target.closest(REPLY_INTERACTIVE_SELECTOR)
+  )
+    return;
+  const selection = window.getSelection();
+  const selectedNode = selection?.anchorNode;
+  const selectedElement =
+    selectedNode?.nodeType === Node.ELEMENT_NODE
+      ? selectedNode
+      : selectedNode?.parentElement;
+  if (selection?.toString() && selectedElement?.closest('pre, code')) return;
+  selection?.removeAllRanges();
+  handleReplyTo();
+}
+
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
     const { name, avatar_url, channel_type, medium, voice_enabled } =
@@ -588,12 +624,12 @@ provideMessageContext({
   <div
     v-if="shouldRenderMessage"
     :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
+    class="flex w-full min-w-0 overflow-x-clip message-bubble-container"
     :data-message-id="props.id"
     :class="[
       flexOrientationClass,
+      shouldGroupWithNext ? 'mb-0.5' : 'mb-2',
       {
-        'group-with-next': shouldGroupWithNext,
         'bg-n-alpha-1': showBackgroundHighlight,
       },
     ]"
@@ -635,7 +671,49 @@ provideMessageContext({
           v-if="shouldShowWhatsappReferral"
           :referral="contentAttributes.referral"
         />
-        <Component :is="componentToRender" />
+        <div
+          class="relative flex min-w-0 max-w-full group/reply"
+          :class="{ 'w-full': variant === MESSAGE_VARIANTS.EMAIL }"
+        >
+          <div
+            data-reply-surface
+            class="flex min-w-0 max-w-full motion-reduce:transition-none"
+            :class="[
+              swipeClass,
+              isSwiping
+                ? 'transition-none'
+                : 'transition-transform duration-150',
+              { 'w-full': variant === MESSAGE_VARIANTS.EMAIL },
+            ]"
+            @dblclick="replyOnDoubleClick"
+            @touchstart="onTouchStart"
+            @touchmove="onTouchMove"
+            @touchend="onTouchEnd"
+            @touchcancel="onTouchCancel"
+          >
+            <Component :is="componentToRender" />
+          </div>
+          <Button
+            v-if="canReply"
+            data-reply-button
+            type="button"
+            intent="tertiary"
+            icon="i-lucide-reply"
+            :aria-label="$t('CONVERSATION.REPLYBOX.REPLY')"
+            class="absolute top-1/2 -translate-y-1/2 !h-8 !w-8 !p-0 !rounded-full bg-n-solid-2 text-n-slate-11 focus-visible:ring-2 focus-visible:ring-n-brand motion-reduce:transition-none"
+            :class="[
+              isSwiping
+                ? 'start-0'
+                : orientation === ORIENTATION.RIGHT
+                  ? '-start-8'
+                  : '-end-8',
+              isSwiping
+                ? 'opacity-100 pointer-events-none'
+                : 'opacity-0 pointer-events-none md:group-hover/reply:opacity-100 md:group-hover/reply:pointer-events-auto group-focus-within/reply:opacity-100 group-focus-within/reply:pointer-events-auto',
+            ]"
+            @click="handleReplyTo"
+          />
+        </div>
       </div>
       <MessageError
         v-if="contentAttributes.externalError"
@@ -661,15 +739,3 @@ provideMessageContext({
     </div>
   </div>
 </template>
-
-<style lang="scss">
-.group-with-next + .message-bubble-container {
-  .left-bubble {
-    @apply ltr:rounded-tl-sm rtl:rounded-tr-sm;
-  }
-
-  .right-bubble {
-    @apply ltr:rounded-tr-sm rtl:rounded-tl-sm;
-  }
-}
-</style>

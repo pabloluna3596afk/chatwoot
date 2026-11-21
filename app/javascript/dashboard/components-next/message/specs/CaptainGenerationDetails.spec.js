@@ -257,6 +257,8 @@ describe('Captain decision request path', () => {
     );
     expect(trigger.attributes('aria-expanded')).toBe('false');
     expect(trigger.classes()).toContain('size-6');
+    expect(trigger.classes()).toContain('rounded-full');
+    expect(trigger.get('.i-woot-captain').classes()).toContain('size-4');
     await trigger.trigger('click');
     await flushPromises();
     expect(API.getForMessage).toHaveBeenCalledWith(42, 7);
