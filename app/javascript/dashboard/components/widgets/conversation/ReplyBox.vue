@@ -417,7 +417,7 @@ export default {
       }
       const keyLabel = this.isEditorHotKeyEnabled('cmd_enter')
         ? `(${this.shortcutKey})`
-        : '(â†µ)';
+        : '(↵)';
       return `${sendMessageText} ${keyLabel}`;
     },
     replyBoxClass() {

@@ -7,11 +7,13 @@ import MessageSourceIndicator from '../MessageSourceIndicator.vue';
 import { hasCaptainDetails } from '../helpers/captainDecision';
 import { useMessageContext } from '../provider.js';
 import { highlightActivityNames } from 'dashboard/helper/activityMessageHighlighter';
+import { useMessageSource } from 'dashboard/composables/useMessageSource';
 
 const { id, sender, senderType, content, createdAt, contentAttributes } =
   useMessageContext();
 
 const { isoTime, exactTime, relativeTime } = useActivityTime(createdAt);
+const { icon: sourceIcon } = useMessageSource(contentAttributes);
 const displayContent = computed(() =>
   (content.value || '')
     .replace(/(?<!\.)\.(?=(?:\s|<\/[a-z][^>]*>)*\s*$)/i, '')
@@ -34,21 +36,25 @@ const showCaptain = computed(() =>
 
 <template>
   <BaseBubble
-    class="mx-auto flex w-fit max-w-[90%] items-center justify-center gap-x-1.5 px-3 py-1 text-center leading-[1.4]"
+    class="box-border mx-auto w-fit max-w-[90%] px-3 py-1 text-center leading-[1.4]"
+    content-class="flex min-w-0 items-center justify-center gap-x-1.5"
     data-bubble-name="activity"
   >
     <span
-      v-if="showCaptain"
-      class="flex size-6 shrink-0 items-center justify-center self-start"
+      v-if="showCaptain || sourceIcon"
+      class="flex size-6 shrink-0 items-center justify-center"
     >
-      <CaptainGenerationDetails :message-id="id" />
+      <CaptainGenerationDetails v-if="showCaptain" :message-id="id" />
+      <MessageSourceIndicator
+        v-else
+        :content-attributes="contentAttributes"
+        icon-class="size-4 shrink-0 text-n-slate-11"
+      />
     </span>
-    <MessageSourceIndicator
-      v-else
-      :content-attributes="contentAttributes"
-      icon-class="size-4 shrink-0 self-start text-n-slate-11"
-    />
-    <span class="min-w-0 flex-1 text-center" data-activity-layout>
+    <span
+      class="min-w-0 flex-1 text-center [overflow-wrap:anywhere]"
+      data-activity-layout
+    >
       <span v-dompurify-html="highlightedContent" data-activity-content />
       {{ ' ' }}
       <span aria-hidden="true" class="before:content-['\00b7']" />

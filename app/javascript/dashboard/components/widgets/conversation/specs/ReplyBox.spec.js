@@ -42,6 +42,7 @@ const buildStore = ({
   chat,
   templates,
   drafts = {},
+  uiSettings = {},
   inboxes,
   isMetaMessageSendingDisabled = false,
 }) =>
@@ -72,7 +73,7 @@ const buildStore = ({
       getCurrentUser: () => ({ id: 7, name: 'Agent', accounts: [] }),
       getCurrentAccountId: () => 1,
       getMessageSignature: () => '',
-      getUISettings: () => ({}),
+      getUISettings: () => uiSettings,
       getLastEmailInSelectedChat: () => null,
       'globalConfig/get': () => ({}),
       'globalConfig/isMetaMessageSendingDisabled': () =>
@@ -97,6 +98,7 @@ const mountWith = ({
   chat,
   templates = [{ name: 'greeting' }],
   drafts,
+  uiSettings,
   inboxes,
   isMetaMessageSendingDisabled,
 }) => {
@@ -105,6 +107,7 @@ const mountWith = ({
     chat,
     templates,
     drafts,
+    uiSettings,
     inboxes,
     isMetaMessageSendingDisabled,
   });
@@ -134,6 +137,21 @@ describe('ReplyBox', () => {
       currentChat: { value: { id: 1 } },
     });
   });
+
+  it.each([REPLY_EDITOR_MODES.NOTE, REPLY_EDITOR_MODES.REPLY])(
+    'renders an intact return symbol in %s mode',
+    async mode => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::WebWidget' },
+        uiSettings: { editor_message_key: 'enter' },
+      });
+      await wrapper.vm.setReplyMode(mode);
+      expect(wrapper.vm.replyButtonLabel).toBe(
+        `${mode === REPLY_EDITOR_MODES.NOTE ? 'CONVERSATION.REPLYBOX.CREATE' : 'CONVERSATION.REPLYBOX.SEND'} (↵)`
+      );
+      wrapper.unmount();
+    }
+  );
 
   it.each([false, true])(
     'joins the quote to the editor when private=%s',

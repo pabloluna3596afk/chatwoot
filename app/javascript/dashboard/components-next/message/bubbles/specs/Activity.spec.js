@@ -15,6 +15,10 @@ const mountActivity = (attributes = {}, activityContent = maliciousContent) => {
         content: ref(activityContent),
         createdAt: ref(1_723_456_789),
         id: ref(7),
+        variant: ref('activity'),
+        orientation: ref('center'),
+        inReplyTo: ref(null),
+        shouldGroupWithNext: ref(false),
         contentAttributes: ref(attributes),
       });
     },
@@ -25,14 +29,9 @@ const mountActivity = (attributes = {}, activityContent = maliciousContent) => {
     global: {
       plugins: [VueDOMPurifyHTML],
       stubs: {
-        BaseBubble: { template: '<div><slot /></div>' },
         CaptainGenerationDetails: {
           props: ['messageId'],
           template: '<span data-captain-icon :data-message-id="messageId" />',
-        },
-        MessageSourceIndicator: {
-          props: ['iconClass'],
-          template: '<span data-source-icon :data-icon-class="iconClass" />',
         },
       },
     },
@@ -52,15 +51,16 @@ describe('Activity', () => {
         'mx-auto',
         'w-fit',
         'max-w-[90%]',
-        'items-center',
-        'justify-center',
+        'box-border',
         'px-3',
         'py-1',
       ])
     );
     expect(icon.element.parentElement.classList).toContain('size-6');
-    const elements = Array.from(bubble.element.children);
-    expect(elements.indexOf(icon.element)).toBeLessThan(
+    const elements = Array.from(
+      wrapper.get('[data-bubble-content]').element.children
+    );
+    expect(elements.indexOf(icon.element.parentElement)).toBeLessThan(
       elements.indexOf(wrapper.get('[data-activity-layout]').element)
     );
     expect(
@@ -74,16 +74,20 @@ describe('Activity', () => {
     type => {
       const wrapper = mountActivity({ messageSource: { type, id: 3 } });
       const elements = Array.from(
-        wrapper.get('[data-bubble-name="activity"]').element.children
+        wrapper.get('[data-bubble-content]').element.children
       );
       expect(
-        elements.indexOf(wrapper.get('[data-source-icon]').element)
+        elements.indexOf(
+          wrapper.get('[data-testid="message-source-indicator"]').element
+            .parentElement
+        )
       ).toBeLessThan(
         elements.indexOf(wrapper.get('[data-activity-layout]').element)
       );
+      expect(wrapper.get('[data-bubble-content]').classes()).toContain('flex');
       expect(
-        wrapper.get('[data-source-icon]').attributes('data-icon-class')
-      ).toContain('self-start');
+        wrapper.get('[data-testid="message-source-indicator"]').classes()
+      ).toContain('size-4');
       expect(wrapper.find('time').exists()).toBe(true);
       wrapper.unmount();
     }
@@ -250,7 +254,7 @@ describe('Activity', () => {
     expect(
       wrapper.get('[data-activity-layout] [aria-hidden="true"]').exists()
     ).toBe(true);
-    expect(wrapper.get('[data-bubble-name="activity"]').classes()).toContain(
+    expect(wrapper.get('[data-bubble-content]').classes()).toContain(
       'items-center'
     );
     expect(wrapper.get('[data-captain-icon]').exists()).toBe(true);
