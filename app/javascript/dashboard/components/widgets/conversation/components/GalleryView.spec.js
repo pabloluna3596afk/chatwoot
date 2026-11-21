@@ -159,10 +159,20 @@ describe('gallery image interactions', () => {
     expect(image.attributes('draggable')).toBe('false');
     expect(image.classes()).toContain('touch-none');
     expect(image.classes()).not.toContain('duration-100');
-    await image.trigger('dblclick', { clientX: 0, clientY: 0 });
-    expect(image.element.style.transform).toContain('scale(3)');
-    await image.trigger('dblclick', { clientX: 0, clientY: 0 });
+    await image.trigger('click', { clientX: 0, clientY: 0 });
+    expect(image.element.style.transform).toContain('scale(2)');
+    await image.trigger('click', { clientX: 0, clientY: 0 });
     expect(image.element.style.transform).toContain('scale(1)');
+  });
+
+  it('handles a real double-click sequence once and advertises zoom out', async () => {
+    const image = wrapper.get('img');
+    image.element.dispatchEvent(new MouseEvent('click', { detail: 1 }));
+    image.element.dispatchEvent(new MouseEvent('click', { detail: 2 }));
+    image.element.dispatchEvent(new MouseEvent('dblclick', { detail: 2 }));
+    await nextTick();
+    expect(image.element.style.transform).toContain('scale(2)');
+    expect(image.element.style.cursor).toBe('zoom-out');
   });
 
   it('wires wheel, pointer capture, drag and cancellation without closing the gallery', async () => {
@@ -231,6 +241,7 @@ describe('gallery image interactions', () => {
     expect(image.element.style.transform).toBe(transform);
     await image.trigger('click');
     expect(wrapper.emitted('close')).toBeUndefined();
+    expect(image.element.style.transform).toBe(transform);
   });
 
   it.each([

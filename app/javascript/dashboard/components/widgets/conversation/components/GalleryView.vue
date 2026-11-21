@@ -65,7 +65,7 @@ const {
   imageStyle,
   onRotate,
   onZoom,
-  onDoubleClickZoomImage,
+  onClickZoomImage,
   onWheelImageZoom,
   onPointerDown,
   onPointerMove,
@@ -377,13 +377,13 @@ onMounted(async () => {
                 :style="imageStyle"
                 class="shrink-0 max-w-none object-contain select-none touch-none"
                 draggable="false"
-                @click.stop
+                @click.stop="onClickZoomImage"
                 @load="
                   onLoad();
                   updateImageBounds();
                 "
                 @error="onError"
-                @dblclick.stop="onDoubleClickZoomImage"
+                @dblclick.stop.prevent
                 @wheel.prevent.stop="onWheelImageZoom"
                 @pointerdown="onPointerDown"
                 @pointermove="onPointerMove"

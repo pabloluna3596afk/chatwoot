@@ -50,7 +50,7 @@ it('pinches around its midpoint and continues with one finger without jumping', 
   expect(zoom.imageStyle.value.transform).toBe(transform);
 });
 
-it('ignores a stationary wheel and resets pan when double clicking out', () => {
+it('ignores a stationary wheel and resets pan when clicking out', () => {
   zoom.onWheelImageZoom({
     deltaY: 0,
     clientX: 250,
@@ -58,8 +58,8 @@ it('ignores a stationary wheel and resets pan when double clicking out', () => {
     preventDefault,
   });
   expect(zoom.zoomScale.value).toBe(1);
-  zoom.onDoubleClickZoomImage({ clientX: 250, clientY: 150, preventDefault });
-  zoom.onDoubleClickZoomImage({ clientX: 100, clientY: 150, preventDefault });
+  zoom.onClickZoomImage({ clientX: 250, clientY: 150, preventDefault });
+  zoom.onClickZoomImage({ clientX: 100, clientY: 150, preventDefault });
   expect(zoom.zoomScale.value).toBe(1);
   expect(zoom.imageStyle.value.transform).toContain('translate(0px, 0px)');
 });
@@ -134,4 +134,38 @@ it('fits and bounds a rotated image after resizing to a 390px phone viewport', (
   expect(resized.imageStyle.value.transform).toBe(
     'translate(0px, 150px) rotate(90deg) scale(2)'
   );
+});
+
+it('anchors click zoom, tolerates hand jitter, and ignores a drag returning to its start', () => {
+  zoom.onPointerDown(pointer(1, 250, 150));
+  zoom.onPointerMove(pointer(1, 252, 150));
+  zoom.onPointerUp(pointer(1, 252, 150));
+  zoom.onClickZoomImage({
+    clientX: 250,
+    clientY: 150,
+    detail: 1,
+    preventDefault,
+  });
+  expect(zoom.zoomScale.value).toBe(2);
+  expect(zoom.imageStyle.value.transform).toContain('translate(-50px, 0px)');
+  zoom.onPointerDown(pointer(1, 250, 150));
+  zoom.onPointerMove(pointer(1, 260, 150));
+  zoom.onPointerMove(pointer(1, 250, 150));
+  zoom.onPointerUp(pointer(1, 250, 150));
+  zoom.onClickZoomImage({
+    clientX: 250,
+    clientY: 150,
+    detail: 1,
+    preventDefault,
+  });
+  expect(zoom.zoomScale.value).toBe(2);
+  zoom.onPointerDown(pointer(1, 250, 150));
+  zoom.onPointerUp(pointer(1, 250, 150));
+  zoom.onClickZoomImage({
+    clientX: 250,
+    clientY: 150,
+    detail: 1,
+    preventDefault,
+  });
+  expect(zoom.zoomScale.value).toBe(1);
 });

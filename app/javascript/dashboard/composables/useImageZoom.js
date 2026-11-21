@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const WHEEL_STEP = 0.2;
+const CLICK_ZOOM = 2;
+const DRAG_THRESHOLD = 5;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 // Translations use viewport coordinates; rotation never rotates the drag axes.
@@ -13,6 +15,8 @@ export const useImageZoom = (imageRef, viewportRef = null) => {
   const dimensions = ref(null);
   const pointers = new Map();
   const isDragging = ref(false);
+  let pointerStart = null;
+  let suppressClick = false;
 
   const bounds = () => {
     const viewport = viewportRef?.value;
@@ -65,7 +69,7 @@ export const useImageZoom = (imageRef, viewportRef = null) => {
   };
   const cursor = computed(() => {
     if (isDragging.value) return 'grabbing';
-    return zoomScale.value > MIN_ZOOM ? 'grab' : 'zoom-in';
+    return zoomScale.value > MIN_ZOOM ? 'zoom-out' : 'zoom-in';
   });
   const imageStyle = computed(() => ({
     ...(dimensions.value
@@ -118,10 +122,12 @@ export const useImageZoom = (imageRef, viewportRef = null) => {
     isDragging.value = false;
     updateImageBounds();
   };
-  const onDoubleClickZoomImage = event => {
+  const onClickZoomImage = event => {
     event.preventDefault();
+    // The second click of a double click must not undo the first one.
+    if (suppressClick || event.detail > 1) return;
     onZoom(
-      (zoomScale.value >= MAX_ZOOM ? MIN_ZOOM : MAX_ZOOM) - zoomScale.value,
+      (zoomScale.value > MIN_ZOOM ? MIN_ZOOM : CLICK_ZOOM) - zoomScale.value,
       event.clientX,
       event.clientY
     );
@@ -137,12 +143,26 @@ export const useImageZoom = (imageRef, viewportRef = null) => {
   };
   const onPointerDown = event => {
     if (event.button !== 0) return;
+    if (!pointers.size) {
+      pointerStart = { x: event.clientX, y: event.clientY };
+      suppressClick = false;
+    } else {
+      suppressClick = true;
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     isDragging.value = true;
   };
   const onPointerMove = event => {
     if (!pointers.has(event.pointerId)) return;
+    if (
+      pointerStart &&
+      Math.hypot(
+        event.clientX - pointerStart.x,
+        event.clientY - pointerStart.y
+      ) > DRAG_THRESHOLD
+    )
+      suppressClick = true;
     const before = [...pointers.values()];
     const previous = pointers.get(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -184,7 +204,7 @@ export const useImageZoom = (imageRef, viewportRef = null) => {
     imageStyle,
     onRotate,
     onZoom,
-    onDoubleClickZoomImage,
+    onClickZoomImage,
     onWheelImageZoom,
     onPointerDown,
     onPointerMove,

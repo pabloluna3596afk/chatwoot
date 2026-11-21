@@ -81,8 +81,8 @@ describe('useImageZoom', () => {
     expect(activeImageRotation.value).toBe(0);
   });
 
-  it('should handle double click zoom', () => {
-    const { zoomScale, onDoubleClickZoomImage } = useImageZoom(imageRef);
+  it('should handle click zoom', () => {
+    const { zoomScale, onClickZoomImage } = useImageZoom(imageRef);
 
     // Mock event
     const event = {
@@ -91,11 +91,11 @@ describe('useImageZoom', () => {
       preventDefault: vi.fn(),
     };
 
-    onDoubleClickZoomImage(event);
-    expect(zoomScale.value).toBe(3); // Max zoom
+    onClickZoomImage(event);
+    expect(zoomScale.value).toBe(2); // Click zoom
     expect(event.preventDefault).toHaveBeenCalled();
 
-    onDoubleClickZoomImage(event);
+    onClickZoomImage(event);
     expect(zoomScale.value).toBe(1); // Min zoom
   });
 

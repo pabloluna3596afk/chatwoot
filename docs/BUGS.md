@@ -1,3 +1,9 @@
+### B-NEW-296 - Clic para ampliar en el visor (2026-11-20)
+
+- **Archivos:** `useImageZoom.js`, `GalleryView.vue` y specs de componente/gestos.
+- **Arreglo:** clic alterna ajuste/2x anclado al punto, cursor zoom-out; movimiento superior a 5 px o pellizco suprime el clic posterior. Segundo clic de un doble clic no deshace el primero.
+- **Prueba:** clic, doble clic DOM, arrastre con retorno al origen, rueda, pellizco, limites, giro y teclado en ambas zonas. Interaccion real pendiente del PM; sin push ni PR.
+
 ### B-NEW-295 - Cita integrada al editor (2026-11-20)
 
 - **Archivos:** `ReplyToMessage.vue`, `ReplyBox.vue`, `ReplyPreview.vue` y specs respectivos.
