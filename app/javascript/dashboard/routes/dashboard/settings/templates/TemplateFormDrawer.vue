@@ -1684,17 +1684,18 @@ const buttonChoices = computed(() =>
       @confirm="discard"
     />
     <template #footer>
-      <div class="grid grid-cols-3 gap-2 sm:flex sm:justify-end">
+      <div class="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
         <Button
           v-if="!isRemote && draft && !localReadOnly"
           intent="primary"
-          class="col-span-3 w-full sm:order-last sm:w-auto"
+          class="w-full sm:order-last sm:w-auto"
           :disabled="!canSubmit || isSaving || isUploading || isLoading"
           :is-loading="isSaving"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT')"
           data-testid="submit-draft"
           @click="submitForReview"
-        />
+        >
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT') }}
+        </Button>
         <Button
           v-if="canEditContent || canEditBindings"
           type="button"
@@ -1702,30 +1703,33 @@ const buttonChoices = computed(() =>
           :intent="canSubmit ? 'secondary' : 'primary'"
           :is-loading="isSaving"
           :disabled="isSaving || isUploading || isLoading || conflict"
-          :label="
+          data-testid="save-draft"
+          @click="save"
+        >
+          {{
             canEditBindings
               ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_CHANGES')
               : $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVE')
-          "
-          data-testid="save-draft"
-          @click="save"
-        />
+          }}
+        </Button>
         <Button
           type="button"
           intent="secondary"
           icon="i-lucide-eye"
           class="w-full sm:order-2 sm:w-auto"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')"
           data-testid="template-preview-open"
           @click="openPreview"
-        />
+        >
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW') }}
+        </Button>
         <Button
           type="button"
           intent="tertiary"
-          class="w-full sm:order-1 sm:w-auto"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL')"
+          class="justify-self-end w-auto sm:order-1 sm:w-auto"
           @click="close"
-        />
+        >
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL') }}
+        </Button>
         <template v-if="isRemote || localReadOnly">
           <Button
             v-if="(isRemote && canCopyRemote) || currentAttempt?.remote_id"

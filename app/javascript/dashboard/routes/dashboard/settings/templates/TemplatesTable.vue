@@ -17,14 +17,17 @@ defineProps({
 const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
 const columnClasses = key => {
   const widths = {
-    NAME: 'w-[13rem] min-w-[13rem] max-w-[13rem] lg:w-[15rem] lg:min-w-[15rem] lg:max-w-[15rem]',
-    CATEGORY: 'hidden lg:table-cell w-[8rem] min-w-[8rem] max-w-[8rem]',
-    INBOX: 'hidden lg:table-cell w-[10rem] min-w-[10rem] max-w-[10rem]',
-    LANGUAGE: 'w-[5.5rem] min-w-[5.5rem] max-w-[5.5rem]',
-    TYPE: 'w-[5rem] min-w-[5rem] max-w-[5rem]',
+    NAME: 'w-[13rem] min-w-[13rem] max-w-[13rem]',
+    CATEGORY:
+      'hidden 2xl:table-cell 2xl:w-[7rem] 2xl:min-w-[7rem] 2xl:max-w-[7rem]',
+    INBOX: 'hidden xl:table-cell xl:w-[7rem] xl:min-w-[7rem] xl:max-w-[7rem]',
+    LANGUAGE:
+      'hidden 2xl:table-cell 2xl:w-[5.5rem] 2xl:min-w-[5.5rem] 2xl:max-w-[5.5rem]',
+    TYPE: 'hidden 2xl:table-cell 2xl:w-[5rem] 2xl:min-w-[5rem] 2xl:max-w-[5rem]',
     STATUS: 'w-[7rem] min-w-[7rem] max-w-[7rem]',
-    META_STATUS: 'w-[7rem] min-w-[7rem] max-w-[7rem]',
-    UPDATED: 'hidden lg:table-cell w-[9rem] min-w-[9rem] max-w-[9rem]',
+    META_STATUS: 'w-[9rem] min-w-[9rem] max-w-[9rem]',
+    UPDATED:
+      'hidden 2xl:table-cell 2xl:w-[8rem] 2xl:min-w-[8rem] 2xl:max-w-[8rem]',
     ACTIONS:
       'sticky right-0 z-10 w-[8rem] min-w-[8rem] max-w-[8rem] bg-n-solid-1 shadow-[-0.5rem_0_0.5rem_-0.5rem_rgba(0,0,0,0.2)]',
   };

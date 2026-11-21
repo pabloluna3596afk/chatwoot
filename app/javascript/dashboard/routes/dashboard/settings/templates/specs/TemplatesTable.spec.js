@@ -48,12 +48,16 @@ describe('shared templates table', () => {
     expect(footer.props('perPageOptions')).toEqual([10, 25, 50]);
   });
 
-  it('uses a fixed layout and keeps the actions column visible at medium widths', async () => {
+  it('reserves full Meta status width and hides secondary columns below 2xl', async () => {
     const wrapper = mount(TemplatesTable, {
       props: {
         columns: [
           { key: 'NAME', label: 'Name' },
+          { key: 'META_STATUS', label: 'Meta status' },
           { key: 'INBOX', label: 'Inbox' },
+          { key: 'CATEGORY', label: 'Category' },
+          { key: 'LANGUAGE', label: 'Language' },
+          { key: 'TYPE', label: 'Type' },
           { key: 'UPDATED', label: 'Updated' },
           { key: 'ACTIONS', label: 'Actions' },
         ],
@@ -65,8 +69,28 @@ describe('shared templates table', () => {
     });
     const table = wrapper.get('table');
     expect(table.classes()).toContain('table-fixed');
-    expect(wrapper.get('th:nth-child(3)').classes()).toContain('hidden');
-    expect(wrapper.get('td:nth-child(3)').classes()).toContain('lg:table-cell');
+    const metaStatusHeader = wrapper.get('th:nth-child(3)');
+    expect(metaStatusHeader.classes()).toContain('w-[9rem]');
+    expect(metaStatusHeader.classes()).toContain('min-w-[9rem]');
+    expect(wrapper.get('th:nth-child(4)').classes()).toContain('xl:w-[7rem]');
+    [
+      'th:nth-child(5)',
+      'td:nth-child(5)',
+      'th:nth-child(6)',
+      'td:nth-child(6)',
+      'th:nth-child(7)',
+      'td:nth-child(7)',
+      'th:nth-child(8)',
+      'td:nth-child(8)',
+    ].forEach(selector => {
+      const cell = wrapper.get(selector);
+      expect(cell.classes()).toContain('hidden');
+      expect(cell.classes()).toContain('2xl:table-cell');
+    });
+    ['th:nth-child(4)', 'td:nth-child(4)'].forEach(selector => {
+      expect(wrapper.get(selector).classes()).toContain('hidden');
+      expect(wrapper.get(selector).classes()).toContain('xl:table-cell');
+    });
     expect(wrapper.get('th:last-child').classes()).toContain('sticky');
     expect(wrapper.get('td:last-child').classes()).toContain('sticky');
     wrapper.unmount();

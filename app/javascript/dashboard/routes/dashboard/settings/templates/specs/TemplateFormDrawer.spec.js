@@ -214,23 +214,35 @@ describe('TemplateFormDrawer drafts', () => {
     wrapper.unmount();
   });
 
-  it('puts submit first on mobile and last on desktop with equal-width secondary actions', async () => {
+  it('keeps every footer action label visible in full on mobile', async () => {
     const wrapper = await mountDrawer();
     await wrapper.vm.openDraft(record);
     const footer = wrapper
       .findAll('div')
-      .find(element => element.classes().includes('grid-cols-3'));
+      .find(element => element.classes().includes('grid-cols-1'));
+    expect(footer.classes()).toContain('sm:flex');
     expect(footer.get('[data-testid="submit-draft"]').classes()).toContain(
-      'col-span-3'
+      'w-full'
     );
     expect(footer.get('[data-testid="submit-draft"]').classes()).toContain(
       'sm:order-last'
     );
     ['save-draft', 'template-preview-open'].forEach(testId => {
-      expect(footer.get(`[data-testid="${testId}"]`).classes()).toContain(
-        'w-full'
+      const button = footer.get(`[data-testid="${testId}"]`);
+      expect(button.classes()).toContain('w-full');
+    });
+    ['submit-draft', 'save-draft', 'template-preview-open'].forEach(testId => {
+      const button = footer.get(`[data-testid="${testId}"]`);
+      expect(button.text()).not.toBe('');
+    });
+    footer.findAll('button').forEach(button => {
+      expect(button.html()).not.toMatch(
+        /\b(truncate|text-ellipsis|line-clamp(?:-\d+)?)\b/
       );
     });
+    expect(footer.get('button:not([data-testid])').classes()).toContain(
+      'justify-self-end'
+    );
     expect(
       footer
         .findAll('button')
