@@ -1,5 +1,6 @@
 <script setup>
 import { computed, useTemplateRef, ref, onMounted } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
 import { Letter } from 'vue-letter';
 import { sanitizeTextForRender } from '@chatwoot/utils';
 import { allowedCssProperties } from 'lettersanitizer';
@@ -25,9 +26,13 @@ const showQuotedMessage = ref(false);
 const renderOriginal = ref(false);
 const contentContainer = useTemplateRef('contentContainer');
 
-onMounted(() => {
-  isExpandable.value = contentContainer.value?.scrollHeight > 400;
-});
+const COLLAPSED_EMAIL_HEIGHT = 400;
+const measureContent = () => {
+  isExpandable.value =
+    contentContainer.value?.scrollHeight > COLLAPSED_EMAIL_HEIGHT;
+};
+onMounted(measureContent);
+useResizeObserver(contentContainer, measureContent);
 
 const isOutgoing = computed(() => messageType.value === MESSAGE_TYPES.OUTGOING);
 const isIncoming = computed(() => !isOutgoing.value);
@@ -114,86 +119,80 @@ const handleSeeOriginal = () => {
     <EmailMeta
       class="p-3"
       :class="{
-        'border-b border-n-strong': isIncoming,
-        'border-b border-n-slate-8/20': isOutgoing,
+        'border-0 border-solid border-b border-n-strong': isIncoming,
+        'border-0 border-solid border-b border-n-slate-8/20': isOutgoing,
       }"
     />
-    <section ref="contentContainer" class="p-3">
+    <section class="p-3">
       <div
         :class="{
-          'max-h-[400px] overflow-hidden relative': !isExpanded && isExpandable,
-          'overflow-y-scroll relative': isExpanded,
+          'max-h-[25rem] overflow-hidden': !isExpanded && isExpandable,
+          'overflow-x-auto': isExpanded || !isExpandable,
         }"
       >
-        <div
-          v-if="isExpandable && !isExpanded"
-          class="absolute left-0 right-0 bottom-0 h-40 px-8 flex items-end"
-          :class="{
-            'bg-gradient-to-t from-n-slate-4 via-n-slate-4 via-20% to-transparent':
-              isIncoming,
-            'bg-gradient-to-t from-n-solid-blue via-n-solid-blue via-20% to-transparent':
-              isOutgoing,
-          }"
-        >
+        <div ref="contentContainer" data-email-content>
+          <FormattedContent
+            v-if="isOutgoing && content && !hasEmailContent"
+            class="text-n-slate-12"
+            :content="messageContent"
+          />
+          <template v-else>
+            <Letter
+              v-if="showQuotedMessage"
+              :key="`letter-quoted-${translationKeySuffix}`"
+              class-name="prose prose-bubble !max-w-none letter-render"
+              :allowed-css-properties="[
+                ...allowedCssProperties,
+                'transform',
+                'transform-origin',
+              ]"
+              :html="fullHTML"
+              :text="textToShow"
+            />
+            <Letter
+              v-else
+              :key="`letter-unquoted-${translationKeySuffix}`"
+              class-name="prose prose-bubble !max-w-none letter-render"
+              :html="unquotedHTML"
+              :allowed-css-properties="[
+                ...allowedCssProperties,
+                'transform',
+                'transform-origin',
+              ]"
+              :text="textToShow"
+            />
+          </template>
           <button
-            class="text-n-slate-12 py-2 px-8 mx-auto text-center flex items-center gap-2"
-            @click="isExpanded = true"
+            v-if="hasQuotedMessage"
+            class="text-n-slate-11 px-1 leading-none text-sm bg-n-alpha-black2 text-center flex items-center gap-1 mt-2"
+            @click="showQuotedMessage = !showQuotedMessage"
           >
-            <Icon icon="i-lucide-maximize-2" />
-            {{ $t('EMAIL_HEADER.EXPAND') }}
+            <template v-if="showQuotedMessage">
+              {{ $t('CHAT_LIST.HIDE_QUOTED_TEXT') }}
+            </template>
+            <template v-else>
+              {{ $t('CHAT_LIST.SHOW_QUOTED_TEXT') }}
+            </template>
+            <Icon
+              :icon="
+                showQuotedMessage
+                  ? 'i-lucide-chevron-up'
+                  : 'i-lucide-chevron-down'
+              "
+            />
           </button>
         </div>
-        <FormattedContent
-          v-if="isOutgoing && content && !hasEmailContent"
-          class="text-n-slate-12"
-          :content="messageContent"
-        />
-        <template v-else>
-          <Letter
-            v-if="showQuotedMessage"
-            :key="`letter-quoted-${translationKeySuffix}`"
-            class-name="prose prose-bubble !max-w-none letter-render"
-            :allowed-css-properties="[
-              ...allowedCssProperties,
-              'transform',
-              'transform-origin',
-            ]"
-            :html="fullHTML"
-            :text="textToShow"
-          />
-          <Letter
-            v-else
-            :key="`letter-unquoted-${translationKeySuffix}`"
-            class-name="prose prose-bubble !max-w-none letter-render"
-            :html="unquotedHTML"
-            :allowed-css-properties="[
-              ...allowedCssProperties,
-              'transform',
-              'transform-origin',
-            ]"
-            :text="textToShow"
-          />
-        </template>
-        <button
-          v-if="hasQuotedMessage"
-          class="text-n-slate-11 px-1 leading-none text-sm bg-n-alpha-black2 text-center flex items-center gap-1 mt-2"
-          @click="showQuotedMessage = !showQuotedMessage"
-        >
-          <template v-if="showQuotedMessage">
-            {{ $t('CHAT_LIST.HIDE_QUOTED_TEXT') }}
-          </template>
-          <template v-else>
-            {{ $t('CHAT_LIST.SHOW_QUOTED_TEXT') }}
-          </template>
-          <Icon
-            :icon="
-              showQuotedMessage
-                ? 'i-lucide-chevron-up'
-                : 'i-lucide-chevron-down'
-            "
-          />
-        </button>
       </div>
+      <button
+        v-if="isExpandable && !isExpanded"
+        type="button"
+        class="text-n-slate-12 py-2 px-8 mx-auto text-center flex items-center gap-2"
+        :aria-expanded="isExpanded"
+        @click="isExpanded = true"
+      >
+        <Icon icon="i-lucide-maximize-2" />
+        {{ $t('EMAIL_HEADER.EXPAND') }}
+      </button>
     </section>
     <TranslationToggle
       v-if="hasTranslations"
