@@ -1363,6 +1363,10 @@ en:
         already_confirmed: 'User is already confirmed.'
   whatsapp_templates:
     errors:
+      destination_required: 'Choose a connected WhatsApp Cloud account before submitting the draft.'
+      archived: 'Create a copy of this archived draft before submitting it.'
+      unsupported_components: 'This template contains components that cannot be submitted by this editor. Keep the original template in WhatsApp Manager.'
+      invalid_button_grouping: 'Keep quick reply buttons together, before or after the other buttons.'
       invalid_parameter_format: 'Parameter format must be NAMED or POSITIONAL.'
       edit_identity_locked: 'Name, language and parameter format cannot change during an edit.'
       edit_structure_locked: 'Keep the components and the number and order of variables when editing. Create a copy to change them.'
