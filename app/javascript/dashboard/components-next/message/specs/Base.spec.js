@@ -78,6 +78,8 @@ describe('bubble metadata composition', () => {
         'media-meta',
         'end-2',
         'text-white',
+        'bg-black/80',
+        '[&>button]:!text-white',
       ])
     );
   });
@@ -90,3 +92,26 @@ describe('bubble metadata composition', () => {
     expect(wrapper.find('[data-meta]').exists()).toBe(false);
   });
 });
+
+// WCAG sRGB luminance; black/80 composited over the two extreme photo colors.
+const luminance = rgb =>
+  rgb.reduce((sum, value, index) => {
+    const s = value / 255;
+    const linear = s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    return sum + linear * [0.2126, 0.7152, 0.0722][index];
+  }, 0);
+it.each([0, 255])(
+  'keeps white and read-blue above 4.5:1 on photo RGB %s',
+  photo => {
+    const background = luminance([photo * 0.2, photo * 0.2, photo * 0.2]);
+    [
+      [255, 255, 255],
+      [155, 195, 252],
+      [126, 182, 255],
+    ].forEach(foreground => {
+      expect(
+        (luminance(foreground) + 0.05) / (background + 0.05)
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+);

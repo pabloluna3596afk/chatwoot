@@ -1,3 +1,10 @@
+### B-NEW-297 - Contraste de metadatos sobre fotos (2026-11-20)
+
+- **Archivos:** `bubbles/Base.vue`, `MessageMeta.vue`, `MessageStatus.vue` y specs Base/MessageMeta/Attachments.
+- **Arreglo:** pildora black/80 con blur; hora, origen, candado y Captain blancos; leido azul con tokens blue-7 en claro y blue-11 en oscuro. Conserva orden y medidas del PR #384. Mosaicos y videos conservan metadatos debajo del contenido.
+- **Contraste:** sobre blanco puro: blanco 12.635:1, azul claro 6.982:1, azul oscuro 6.030:1; sobre negro: 21:1, 11.605:1, 10.022:1. Calculo sRGB WCAG probado en Base.spec.js, sin depender del blur.
+- **Prueba:** suites vecinas, entrantes/salientes, fuente/Captain, todos los estados y dos zonas horarias. Capturas y aprobacion visual pendientes del PM. Sin push ni PR.
+
 ### B-NEW-296 - Clic para ampliar en el visor (2026-11-20)
 
 - **Archivos:** `useImageZoom.js`, `GalleryView.vue` y specs de componente/gestos.

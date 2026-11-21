@@ -4,7 +4,8 @@ import { useIntervalFn } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { MESSAGE_STATUS } from './constants';
 
-const { status } = defineProps({
+const { status, overlay } = defineProps({
+  overlay: { type: Boolean, default: false },
   status: {
     type: String,
     required: true,
@@ -54,9 +55,11 @@ const statusIcon = computed(() => {
 
 const statusColor = computed(() => {
   const statusIconMap = {
-    [MESSAGE_STATUS.SENT]: 'text-n-slate-10',
-    [MESSAGE_STATUS.DELIVERED]: 'text-n-slate-10',
-    [MESSAGE_STATUS.READ]: 'text-n-blue-11',
+    [MESSAGE_STATUS.SENT]: overlay ? 'text-white' : 'text-n-slate-10',
+    [MESSAGE_STATUS.DELIVERED]: overlay ? 'text-white' : 'text-n-slate-10',
+    [MESSAGE_STATUS.READ]: overlay
+      ? 'text-n-blue-7 dark:text-n-blue-11'
+      : 'text-n-blue-11',
   };
 
   return statusIconMap[status];
@@ -78,8 +81,8 @@ const tooltipText = computed(() => {
   <span
     v-if="status === MESSAGE_STATUS.PROGRESS"
     v-tooltip.top-start="tooltipText"
-    :class="progessIcon"
-    class="size-3.5 text-n-slate-10"
+    :class="[progessIcon, overlay ? 'text-white' : 'text-n-slate-10']"
+    class="size-3.5"
     role="img"
     :aria-label="tooltipText"
   />

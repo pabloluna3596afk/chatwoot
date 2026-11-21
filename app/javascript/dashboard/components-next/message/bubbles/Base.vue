@@ -82,7 +82,7 @@ const metaClass = computed(() => [
   'mt-1 justify-end',
   variant.value === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
   props.overlayMeta
-    ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/60 px-2 py-0.5 text-white backdrop-blur-sm'
+    ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/80 px-2 py-0.5 text-white backdrop-blur-sm [&>button]:!text-white [&>button:hover]:!bg-white/10'
     : 'text-n-slate-11',
 ]);
 </script>
@@ -111,6 +111,7 @@ const metaClass = computed(() => [
         <template #meta="{ trigger }">
           <MessageMeta
             :show-timestamp="!shouldGroupWithNext"
+            :overlay="overlayMeta"
             :class="metaClass"
           >
             <template #captain><component :is="trigger" /></template>
@@ -120,6 +121,7 @@ const metaClass = computed(() => [
       <MessageMeta
         v-else
         :show-timestamp="!shouldGroupWithNext"
+        :overlay="overlayMeta"
         :class="metaClass"
       />
     </template>

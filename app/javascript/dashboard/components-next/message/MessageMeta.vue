@@ -10,6 +10,7 @@ import { useMessageContext } from './provider.js';
 import { MESSAGE_STATUS, MESSAGE_TYPES } from './constants';
 
 defineProps({
+  overlay: { type: Boolean, default: false },
   showTimestamp: { type: Boolean, default: true },
 });
 
@@ -138,11 +139,15 @@ const isoTime = computed(() => new Date(createdAt.value * 1000).toISOString());
 
 <template>
   <div class="text-xs flex items-center gap-1.5 min-h-6">
-    <MessageSourceIndicator :content-attributes="contentAttributes" />
+    <MessageSourceIndicator
+      :content-attributes="contentAttributes"
+      :icon-class="overlay ? 'size-4 text-white' : 'size-4 text-n-slate-11'"
+    />
     <slot name="captain" />
     <span
       v-if="isPrivate"
-      class="i-lucide-lock-keyhole size-3 text-n-amber-12"
+      class="i-lucide-lock-keyhole size-3"
+      :class="overlay ? 'text-white' : 'text-n-amber-12'"
       role="img"
       :aria-label="$t('MESSAGE_META.PRIVATE_NOTE')"
     />
@@ -156,6 +161,7 @@ const isoTime = computed(() => new Date(createdAt.value * 1000).toISOString());
     <MessageStatus
       v-if="showTimestamp && showStatusIndicator"
       :status="statusToShow"
+      :overlay="overlay"
     />
   </div>
 </template>

@@ -151,6 +151,42 @@ describe('attachments across seed channels', () => {
 });
 
 describe('attachment composition', () => {
+  it.each([0, 1])(
+    'keeps photo, mosaic and video metadata readable for message type %s',
+    messageType => {
+      channel = 'Channel::Api';
+      [
+        [image],
+        [image, { ...image, id: 2 }],
+        [{ ...image, fileType: 'video', dataUrl: '/clip.mp4' }],
+      ].forEach(attachments => {
+        const wrapper = mount(Message, {
+          props: {
+            id: 20,
+            messageType,
+            status: 'read',
+            conversationId: 1,
+            createdAt: 1732195656,
+            currentUserId: 1,
+            inboxId: 1,
+            attachments,
+          },
+          global: globalOptions(),
+        });
+        const meta = wrapper.getComponent({ name: 'MessageMeta' });
+        if (attachments.length === 1 && attachments[0].fileType === 'image') {
+          expect(meta.classes()).toContain('bg-black/80');
+          expect(meta.attributes('overlay')).toBe('true');
+        } else {
+          // Mosaics and native video controls already place metadata below the media.
+          expect(meta.classes()).not.toContain('absolute');
+          expect(meta.classes()).toContain('text-n-slate-11');
+        }
+        wrapper.unmount();
+      });
+    }
+  );
+
   it('keeps unavailable story and reel messages visible with their channel', async () => {
     channel = 'Channel::Instagram';
     const props = {
