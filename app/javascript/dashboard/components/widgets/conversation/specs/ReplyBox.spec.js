@@ -382,6 +382,25 @@ describe('ReplyBox', () => {
     vi.unstubAllGlobals();
   });
 
+  it('keeps composer placeholders on one truncated line on small screens', () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const editorComponent = wrapper.findComponent({
+      name: 'WootMessageEditor',
+    });
+
+    expect(editorComponent.classes()).toEqual(
+      expect.arrayContaining([
+        'max-sm:[&_.empty-node::before]:max-w-full',
+        'max-sm:[&_.empty-node::before]:overflow-hidden',
+        'max-sm:[&_.empty-node::before]:text-ellipsis',
+        'max-sm:[&_.empty-node::before]:whitespace-nowrap',
+      ])
+    );
+    wrapper.unmount();
+  });
+
   it('opens the shared center on Cloud with no templates and removes the loose Flow entry', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },
