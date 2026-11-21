@@ -1,3 +1,22 @@
+### B-NEW-297 - Contraste de metadatos sobre fotos (2026-11-20)
+
+- **Archivos:** `bubbles/Base.vue`, `MessageMeta.vue`, `MessageStatus.vue` y specs Base/MessageMeta/Attachments.
+- **Arreglo:** pildora black/80 con blur; hora, origen, candado y Captain blancos; leido azul con tokens blue-7 en claro y blue-11 en oscuro. Conserva orden y medidas del PR #384. Mosaicos y videos conservan metadatos debajo del contenido.
+- **Contraste:** sobre blanco puro: blanco 12.635:1, azul claro 6.982:1, azul oscuro 6.030:1; sobre negro: 21:1, 11.605:1, 10.022:1. Calculo sRGB WCAG probado en Base.spec.js, sin depender del blur.
+- **Prueba:** suites vecinas, entrantes/salientes, fuente/Captain, todos los estados y dos zonas horarias. Capturas y aprobacion visual pendientes del PM. Sin push ni PR.
+
+### B-NEW-296 - Clic para ampliar en el visor (2026-11-20)
+
+- **Archivos:** `useImageZoom.js`, `GalleryView.vue` y specs de componente/gestos.
+- **Arreglo:** clic alterna ajuste/2x anclado al punto, cursor zoom-out; movimiento superior a 5 px o pellizco suprime el clic posterior. Segundo clic de un doble clic no deshace el primero.
+- **Prueba:** clic, doble clic DOM, arrastre con retorno al origen, rueda, pellizco, limites, giro y teclado en ambas zonas. Interaccion real pendiente del PM; sin push ni PR.
+
+### B-NEW-295 - Cita integrada al editor (2026-11-20)
+
+- **Archivos:** `ReplyToMessage.vue`, `ReplyBox.vue`, `ReplyPreview.vue` y specs respectivos.
+- **Arreglo:** cita a ancho completo, X interior de 24 px, radio superior compartido con editor; fondo coherente en nota privada y textos largos limitados.
+- **Prueba:** specs con editor deshabilitado, nota y Copilot; suites vecinas en UTC/America/Guayaquil. Revision visual pendiente del PM en 3110; sin preview, Docker, push ni PR.
+
 ### B-NEW-294 - Freno de intercambios repetitivos de Captain (2026-11-20)
 
 - **Problema:** mensajes nuevos cada 8-15 segundos cancelaban continuamente la gracia de cierre; dos asistentes o una cadena de cortesías podian responderse indefinidamente antes de alcanzar el límite de 20 respuestas.
@@ -34,6 +53,26 @@
 - **Entrega:** sin migraciones nuevas, navegador, push ni PR. Requiere el backend #383 y aprobación visual del dueño antes de crear PR.
 
 - **Continuación 2026-11-20 (centro/textos):** el seeder localiza mensajes y razones según `account.locale` y actualiza las filas ficticias al repetirse; el contacto se llama Alex Rivera. Las actividades comparten columna centrada de hasta 90 % del hilo y el panel usa espaciado compacto. Vitest (21/21 por zona), RSpec del seeder (3/3), ESLint sin errores y build completados; capturas y mediciones en `docs-crm/codex/detalles-pr2-centro.md` fuera del repo. Preview ficticio recreado en español. Sin migraciones, push, PR ni despliegue.
+### B-NEW-292 - Zoom, movimiento y teclado del visor de im?genes (2026-11-20)
+
+- **Archivos:** `dashboard/composables/useImageZoom.js`, sus specs, `conversation/components/GalleryView.vue`, su spec y locales `en/es/conversation.json`.
+- **Problema:** el origen solo se calculaba al comenzar el zoom; no hab?a arrastre ni pellizco; la rotaci?n dimensionaba con la ventana en lugar del ?rea ?til; la transici?n de transform retrasaba los gestos; una rueda con delta cero ampliaba; faltaban zoom/restablecimiento por teclado y etiquetas de navegaci?n.
+- **Arreglo:** transforma desde el centro con traslaci?n en coordenadas del visor, conserva el punto bajo el cursor en cada paso y limita el pan al tama?o escalado/rotado. Pointer capture para mouse/t?ctil, pellizco y cancelaci?n; ajuste por tama?o natural/?rea disponible y ResizeObserver; sin transici?n durante gestos. Mantiene zoom 1?3 y reset al rotar/cambiar foto. Teclas +, =, -, 0, flechas y Escape; etiquetas anterior/siguiente en ingl?s/espa?ol. No agrega herramientas a la barra.
+- **C?mo probar:** pruebas de regresi?n rojas sobre HEAD original y verdes con el arreglo; panoramas, im?genes peque?as, giro, resize a 390 px, arrastre, pellizco y teclado. Suites vecinas en UTC/America/Guayaquil (557 aprobadas, una omitida preexistente) y galer?a final en ambas zonas (14 aprobadas, incluidas tres adicionales de distribuci?n de teclado). ESLint sin errores. Informe detallado en `docs-crm/codex/chat-lote-construccion.md` fuera del worktree; interacci?n real, capturas y aprobaci?n visual pendientes del PM. Sin Docker, preview, push, PR ni despliegue.
+
+### B-NEW-291 - Flecha al ?ltimo mensaje centrada y opaca (2026-11-20)
+
+- **Archivos:** `components/widgets/conversation/MessagesView.vue` y `specs/MessagesView.spec.js`.
+- **Problema:** el bot?n usaba chevron peque?o a la derecha y el hover de la variante s?lida reduc?a la opacidad del fondo.
+- **Arreglo:** bot?n de 40 px con `i-lucide-arrow-down`, centrado por encima del composer, fondo s?lido en reposo/hover y sombra creciente. Conserva contador, etiqueta accesible y foco visible.
+- **C?mo probar:** alejarse del final, recibir mensajes y pulsar la flecha; verificar ocultaci?n al llegar al final, contador y posici?n en escritorio/390 px. Specs de visibilidad, clases y acci?n en UTC/America/Guayaquil; revisi?n visual pendiente del PM. Sin push, PR ni despliegue.
+
+### B-NEW-290 - Cita de respuesta coherente en el composer (2026-11-20)
+
+- **Archivos:** `components/widgets/conversation/ReplyToMessage.vue`, `components-next/message/ReplyPreview.vue` y `specs/ReplyToMessage.spec.js`.
+- **Problema:** la barra de respuesta usaba un resumen diferente al de las burbujas, sin autor, tipo ni miniatura reconocible.
+- **Arreglo:** reutiliza `ReplyPreview` con variante de composer a ancho completo, acento y tokens existentes, extracto de dos l?neas y cancelaci?n accesible de 24 px. Conserva el contrato `dismiss`.
+- **C?mo probar:** responder a texto, foto, audio o archivo; cambiar el mensaje citado y cancelar. Specs en ingl?s/espa?ol y suites vecinas en UTC/America/Guayaquil. Verificaci?n visual clara/oscura y 390 px pendiente del PM; sin navegador, push, PR ni despliegue.
 
 ### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 

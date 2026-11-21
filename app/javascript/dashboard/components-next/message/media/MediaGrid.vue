@@ -14,8 +14,7 @@ const emit = defineEmits(['error']);
 
 defineOptions({ inheritAttrs: false });
 
-const { filteredCurrentChatAttachments, channelType, contentType } =
-  useMessageContext();
+const { filteredCurrentChatAttachments, channelType } = useMessageContext();
 const selected = shallowRef(null);
 const visibleItems = computed(() => props.items.slice(0, 4));
 </script>
@@ -27,7 +26,7 @@ const visibleItems = computed(() => props.items.slice(0, 4));
     class="max-w-full min-w-0"
     :class="
       items.length > 1
-        ? 'w-[20rem] grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg'
+        ? 'w-[20rem] grid grid-cols-2 gap-0.5 overflow-hidden rounded-[0.625rem]'
         : 'w-fit'
     "
   >
@@ -40,7 +39,6 @@ const visibleItems = computed(() => props.items.slice(0, 4));
       :total="items.length"
       :more="index === 3 ? Math.max(0, items.length - 4) : 0"
       :channel-type="channelType"
-      :transparent="contentType === 'sticker'"
       @error="emit('error')"
       @open="selected = $event"
     />

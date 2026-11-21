@@ -6,7 +6,7 @@ const { attachments, channelType } = useMessageContext();
 </script>
 
 <template>
-  <BaseBubble class="p-2" data-bubble-name="file">
+  <BaseBubble content-class="p-2" data-bubble-name="file">
     <FileCard :attachment="attachments[0]" :channel-type="channelType" />
   </BaseBubble>
 </template>

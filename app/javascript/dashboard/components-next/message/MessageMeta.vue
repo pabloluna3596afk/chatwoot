@@ -138,7 +138,10 @@ const isoTime = computed(() => new Date(createdAt.value * 1000).toISOString());
 
 <template>
   <div class="text-xs flex items-center gap-1.5 min-h-6">
-    <MessageSourceIndicator :content-attributes="contentAttributes" />
+    <MessageSourceIndicator
+      :content-attributes="contentAttributes"
+      icon-class="size-4 text-n-slate-11"
+    />
     <slot name="captain" />
     <span
       v-if="isPrivate"
@@ -151,8 +154,9 @@ const isoTime = computed(() => new Date(createdAt.value * 1000).toISOString());
       v-tooltip.top="fullReadableTime"
       :datetime="isoTime"
       :aria-label="fullReadableTime"
-      >{{ readableTime }}</time
     >
+      {{ readableTime }}
+    </time>
     <MessageStatus
       v-if="showTimestamp && showStatusIndicator"
       :status="statusToShow"

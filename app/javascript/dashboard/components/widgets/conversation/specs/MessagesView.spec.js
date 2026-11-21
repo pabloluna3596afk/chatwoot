@@ -1,5 +1,5 @@
 import { shallowMount, flushPromises } from '@vue/test-utils';
-import { nextTick, ref } from 'vue';
+import { nextTick, ref, reactive } from 'vue';
 import { createStore } from 'vuex';
 import MessagesView from '../MessagesView.vue';
 
@@ -66,14 +66,15 @@ describe('MessagesView list resizing', () => {
     const store = createStore({
       actions: { fetchAllAttachments: vi.fn(), fetchPreviousMessages: vi.fn() },
       getters: {
-        getSelectedChat: () => ({
-          id: 1,
-          inbox_id: 1,
-          status: 'open',
-          can_reply: true,
-          messages: [],
-          labels: [],
-        }),
+        getSelectedChat: () =>
+          reactive({
+            id: 1,
+            inbox_id: 1,
+            status: 'open',
+            can_reply: true,
+            messages: [],
+            labels: [],
+          }),
         getCurrentUserID: () => 1,
         getAllMessagesLoaded: () => true,
         getCurrentAccountId: () => 1,
@@ -210,6 +211,43 @@ describe('MessagesView list resizing', () => {
     });
     await nextTick();
     expect(wrapper.vm.showScrollToLatest).toBe(false);
+  });
+
+  it('centers an opaque 40px latest arrow above the composer with focus and unread count', async () => {
+    wrapper.vm.handleScroll({
+      target: { scrollHeight: 2000, scrollTop: 500, clientHeight: 600 },
+    });
+    wrapper.vm.currentChat.unread_count = 3;
+    wrapper.vm.$forceUpdate();
+    await nextTick();
+    const button = wrapper.get('[icon="i-lucide-arrow-down"]');
+    expect(button.attributes('aria-label')).toBe(
+      'CONVERSATION.SCROLL_TO_LATEST'
+    );
+    expect(button.classes()).toEqual(
+      expect.arrayContaining([
+        '!size-10',
+        '!bg-n-solid-1',
+        'hover:enabled:!bg-n-solid-1',
+        'hover:shadow-lg',
+        'focus-visible:ring-2',
+      ])
+    );
+    expect([...button.element.parentElement.classList]).toEqual(
+      expect.arrayContaining([
+        'inset-x-0',
+        'mx-auto',
+        '-top-14',
+        'max-md:-top-12',
+      ])
+    );
+    expect(button.element.parentElement.textContent).toContain('3');
+    panel.scrollTo = vi.fn();
+    await button.trigger('click');
+    expect(panel.scrollTo).toHaveBeenCalledWith({
+      top: 2000,
+      behavior: 'smooth',
+    });
   });
 
   it('keeps the full-bleed top border', () => {
