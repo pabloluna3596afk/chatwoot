@@ -47,8 +47,9 @@ class Whatsapp::TemplateManagementService
     end
   end
 
-  def initialize(whatsapp_channel)
+  def initialize(whatsapp_channel, sync_after_change: true)
     @channel = whatsapp_channel
+    @sync_after_change = sync_after_change
   end
 
   # Returns { id:, status:, category: }. `components` come from TemplateComponentsBuilder.
@@ -121,6 +122,23 @@ class Whatsapp::TemplateManagementService
       rejected_reason: data['rejected_reason'], quality_score: data.dig('quality_score', 'score'), components: data['components'] }
   end
 
+  # Complete remote mirror: no partial result is returned after a failed page, including an empty successful WABA.
+  def templates(name: nil)
+    entries = []
+    after = nil
+    loop do
+      response = request(:get, "#{waba_path}/message_templates", query: { fields: FIELDS, limit: 100, name: name, after: after }.compact)
+      raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash) && response.parsed_response['data'].is_a?(Array)
+
+      entries.concat(response.parsed_response.fetch('data'))
+      break if response.parsed_response.dig('paging', 'next').blank?
+
+      after = response.parsed_response.dig('paging', 'cursors', 'after')
+      raise Error, 'invalid_meta_response' if after.blank?
+    end
+    entries
+  end
+
   private
 
   def library_language(language)
@@ -149,7 +167,7 @@ class Whatsapp::TemplateManagementService
   def finish(response, *keys)
     raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
 
-    sync
+    sync if @sync_after_change
     response.parsed_response.slice(*keys).symbolize_keys
   end
 
