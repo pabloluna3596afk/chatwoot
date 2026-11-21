@@ -1,3 +1,11 @@
+### B-NEW-298 - Pulido de actividades, email, grupos y citas del chat (2026-11-21)
+
+- **Archivos:** `components-next/message/{Message,ReplyPreview,CaptainGenerationDetails}.vue`, `bubbles/{Activity,Base,Email/Index}.vue`, `widgets/conversation/ReplyBox.vue` y sus specs.
+- **Problema:** el wrapper interno separaba iconos y texto de actividades; el enlace de expansión se superponía al HTML del email; un literal mal decodificado rompía el símbolo de Enviar; grupos sin metadatos perdían padding y variaban de radio; las citas volvían a dos líneas en escritorio.
+- **Cambio:** fila flex interna e iconos de 16 px en controles de 24 px, control Captain redondo; expansión fuera del contenido y medición con ResizeObserver; literal `↵` restaurado de upstream; separación de grupo de 2 px y radios uniformes; extracto citado de una línea con ancho limitado. `box-border` respeta los máximos sin preflight.
+- **Cómo probar:** suites de mensajes y ReplyBox con `vitest.local.config.ts` en UTC y America/Guayaquil; revisar actividades largas/RTL, expansión con tablas/imágenes/citas, grupos de texto/notas/archivos/plantillas y respuestas citadas entre 360 y 1440 px en ambos temas.
+- **Entrega:** medidas de componentes aislados y autoevaluación en `../docs-crm/codex/resumen-chat-pulido-v2.md`. Preview real, capturas y aprobación visual pendientes del PM. Sin cambios de backend, migraciones, envío, ventana de plantillas ni implementación de adjuntos; sin push ni PR.
+
 
 ### B-NEW-293 - Borradores locales y revisión de plantillas WhatsApp (2026-11-20)
 
