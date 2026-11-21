@@ -89,6 +89,13 @@ class Captain::Followup::Nudger
   end
 
   def nudge
+    attempt = nudges.size + 1
+    message = create_nudge_message
+    Captain::Decisions::FollowupRecording.new(conversation, assistant, now: now).nudge(message, last_message, attempt)
+    :nudged
+  end
+
+  def create_nudge_message
     buttons = Captain::QuickReplies.supported?(conversation.inbox)
     content = translate('nudge') + (buttons ? '' : translate('nudge_hint', continue: translate('continue_button'), stop: translate('stop_button')))
     conversation.messages.create!(
@@ -96,7 +103,6 @@ class Captain::Followup::Nudger
         content: content, preserve_waiting_since: true,
         content_attributes: { 'captain_followup' => NUDGE_MARK } }.merge(buttons ? button_attributes : {})
     )
-    :nudged
   end
 
   def button_attributes

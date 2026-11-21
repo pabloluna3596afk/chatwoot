@@ -52,6 +52,47 @@ RSpec.describe Captain::Followup::Closer do
     closer = described_class.new(conversation, assistant)
     expect(closer.perform).to eq(:closed)
     expect { closer.perform }.not_to(change { conversation.messages.count })
+    expect(conversation.captain_decisions.where(kind: 'close_unanswered').count).to eq(1)
+  end
+
+  it 'records the effective close with its existing note, last turn, wait and historical settings' do
+    turn = create(:message, account: account, inbox: inbox, conversation: conversation, sender: assistant,
+                            message_type: :outgoing, created_at: now - 4.hours)
+    create(:message, account: account, inbox: inbox, conversation: conversation, sender: assistant,
+                     message_type: :outgoing, created_at: now - 3.hours, content_attributes: { captain_followup: 'nudge' })
+    described_class.new(conversation, assistant, now: now).perform
+    decision = conversation.captain_decisions.find_by!(kind: 'close_unanswered')
+    expect(decision.anchor_message).to eq(conversation.messages.where(private: true).last)
+    expect(decision.evidence).to eq('evaluated_through_message_id' => turn.id, 'nudges_sent' => 1, 'wait_seconds' => 10_800)
+    expect(decision.settings_snapshot).to eq('inactivity_threshold_minutes' => assistant.inactivity_threshold_minutes)
+    expect(decision.reason_text).to include('Silence does not confirm')
+    expect(decision.reason_locale).to eq('en')
+  end
+
+  it 'still closes if the decision write fails' do
+    allow(Captain::Decision).to receive(:create_or_find_by!).and_raise(ActiveRecord::StatementInvalid)
+    expect(described_class.new(conversation, assistant).perform).to eq(:closed)
+    expect(conversation.reload).to be_resolved
+    expect(conversation.captain_decisions).to be_empty
+  end
+
+  it 'retains the applied threshold when the eligibility check reloads changed settings' do
+    closer = described_class.new(conversation, assistant)
+    applied = assistant.inactivity_threshold_minutes
+    assistant.update!(config: assistant.config.merge('auto_resolve_after' => applied + 5))
+    closer.perform
+    expect(conversation.captain_decisions.find_by!(kind: 'close_unanswered').settings_snapshot).to eq('inactivity_threshold_minutes' => applied)
+  end
+
+  it 'rolls back the note and decision with the effective close' do
+    conversation
+    Conversation.transaction do
+      described_class.new(conversation, assistant).perform
+      raise ActiveRecord::Rollback
+    end
+    expect(conversation.reload).to be_pending
+    expect(conversation.messages.where(private: true)).to be_empty
+    expect(conversation.captain_decisions).to be_empty
   end
 
   it 'leaves a human-assigned conversation unchanged' do

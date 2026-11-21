@@ -70,7 +70,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       followup = captain_assistant.followup
       next if followup.inactivity_enabled? && followup.max_nudges.positive?
 
-      Captain::Followup::Closer.new(conversation, captain_assistant, note_key: 'captain.notes.closed_unanswered').perform
+      Captain::Followup::Closer.new(conversation, captain_assistant, note_key: 'captain.notes.closed_unanswered')
+                               .perform(inactivity_threshold_minutes: inactivity_threshold_minutes)
     end
     return unless closed == :closed
 

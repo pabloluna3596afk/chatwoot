@@ -83,6 +83,19 @@ RSpec.describe Captain::Followup do
     it 'does not send the same nudge twice' do
       nudge
       expect { nudge }.not_to(change { conversation.messages.count })
+      decision = conversation.captain_decisions.find_by!(kind: 'nudge')
+      expect(decision.anchor_message).to eq(public_messages.order(:id).last)
+      expect(decision.evidence).to include('nudge_attempt' => 1)
+      expect(decision.settings_snapshot).to eq('inactivity_after_minutes' => 30, 'max_nudges' => 1)
+      expect(decision.reason_text).to include('recordatorio 1 de 1')
+      expect(conversation.captain_decisions.where(kind: 'nudge').count).to eq(1)
+    end
+
+    it 'still sends a reminder if the decision write fails' do
+      allow(Captain::Decision).to receive(:create_or_find_by!).and_raise(ActiveRecord::StatementInvalid)
+      expect(nudge).to eq(:nudged)
+      expect(public_messages.count).to eq(2)
+      expect(conversation.captain_decisions).to be_empty
     end
 
     it 'sends nothing when the customer replied' do
@@ -154,6 +167,9 @@ RSpec.describe Captain::Followup do
         expect(nudge(now + 31.minutes)).to eq(:nudged)
         expect(nudge(now + 62.minutes)).to be_nil
         expect(public_messages.count).to eq(3)
+        decisions = conversation.captain_decisions.where(kind: 'nudge').order(:id)
+        expect(decisions.map { |decision| decision.evidence['nudge_attempt'] }).to eq([1, 2])
+        expect(decisions.pluck(:decision_key).uniq.size).to eq(2)
       end
     end
 
@@ -350,6 +366,9 @@ RSpec.describe Captain::Followup do
       )
       expect(message.content_attributes.fetch('whatsapp_template')).to include('name' => 'volver_a_hablar', 'category' => 'UTILITY')
       expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('status' => 'sent')
+      decision = conversation.captain_decisions.find_by!(kind: 'reengage')
+      expect(decision).to have_attributes(anchor_message: message, outcome: 'created', reason_code: 'reengage_sent', reason_locale: 'es')
+      expect(decision.reason_text).to include('no confirma su entrega')
     end
 
     context 'when the mapping puts other things in the variables' do
@@ -405,6 +424,14 @@ RSpec.describe Captain::Followup do
 
       expect(described_class.candidates(inbox, now: now)).to be_empty
       expect(reengage).to be_nil
+      expect(conversation.captain_decisions.where(kind: 'reengage').count).to eq(1)
+    end
+
+    it 'still creates the template when recording fails' do
+      allow(Captain::Decision).to receive(:create_or_find_by!).and_raise(ActiveRecord::StatementInvalid)
+      expect(reengage).to eq(:sent)
+      expect(conversation.reload.additional_attributes['captain_followup']['reengagement']['status']).to eq('sent')
+      expect(conversation.captain_decisions.where(kind: 'reengage')).to be_empty
     end
 
     it 'waits while the 24 h window is still open' do
@@ -412,6 +439,7 @@ RSpec.describe Captain::Followup do
 
       expect(reengage).to be_nil
       expect(public_messages.where.not(sender: assistant)).to be_empty
+      expect(conversation.captain_decisions.where(kind: 'reengage')).to be_empty
     end
 
     it 'waits until 08:00 and sends once the customer window is open' do
@@ -419,6 +447,7 @@ RSpec.describe Captain::Followup do
       night = zone.parse('2030-01-15 02:00:00')
       expect(described_class.new(conversation.reload, assistant, now: night).perform).to be_nil
       expect(conversation.reload.additional_attributes['captain_followup']).not_to have_key('reengagement')
+      expect(conversation.captain_decisions.where(kind: 'reengage')).to be_empty
       expect(described_class.new(conversation.reload, assistant, now: zone.parse('2030-01-15 08:00:00')).perform).to eq(:sent)
     end
 
@@ -435,6 +464,28 @@ RSpec.describe Captain::Followup do
 
       expect(reengage).to eq(:skipped)
       expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'cooldown')
+      expect(conversation.captain_decisions.find_by!(kind: 'reengage')).to have_attributes(
+        outcome: 'skipped', reason_code: 'reengage_cooldown', anchor_message: nil
+      )
+    end
+
+    it 'records an unsupported channel once without adding a note' do
+      web_inbox = create(:inbox, account: account)
+      web_conversation = create(:conversation, account: account, inbox: web_inbox, contact: contact, status: :resolved,
+                                               additional_attributes: conversation.additional_attributes).reload
+      allow(web_conversation).to receive(:can_reply?).and_return(false)
+      service = described_class.new(web_conversation, assistant, now: now)
+      expect { expect(service.perform).to eq(:skipped) }.not_to(change { web_conversation.messages.count })
+      expect(web_conversation.captain_decisions.sole).to have_attributes(reason_code: 'reengage_channel', outcome: 'skipped', anchor_message: nil)
+      expect { service.perform }.not_to(change { web_conversation.captain_decisions.count })
+    end
+
+    it 'records the daily template cap on its existing private note' do
+      account.update!(captain_template_daily_cap: 0)
+      expect(reengage).to eq(:skipped)
+      expect(conversation.captain_decisions.find_by!(kind: 'reengage')).to have_attributes(
+        reason_code: 'reengage_captain_template_cap_reached', outcome: 'skipped', anchor_message: conversation.messages.where(private: true).sole
+      )
     end
 
     context 'with paid messages off (the default)' do
@@ -446,6 +497,9 @@ RSpec.describe Captain::Followup do
         expect(public_messages.where(sender: assistant).count).to eq(1) # only the earlier message
         note = conversation.messages.where(private: true).last
         expect(note.content).to include('Asistente de Ventas no envió el reenganche', 'plantillas están desactivadas')
+        expect(conversation.captain_decisions.find_by!(kind: 'reengage')).to have_attributes(
+          anchor_message: note, outcome: 'skipped', reason_code: 'reengage_paid_templates_off'
+        )
         expect(described_class.candidates(inbox, now: now)).to be_empty
       end
     end
@@ -457,6 +511,9 @@ RSpec.describe Captain::Followup do
         expect(reengage).to eq(:skipped)
 
         expect(conversation.messages.where(private: true).last.content).to include('no hay una plantilla elegida')
+        expect(conversation.captain_decisions.find_by!(kind: 'reengage')).to have_attributes(
+          reason_code: 'reengage_no_template', anchor_message: conversation.messages.where(private: true).last
+        )
       end
     end
 
@@ -467,6 +524,9 @@ RSpec.describe Captain::Followup do
         expect(reengage).to eq(:skipped)
 
         expect(conversation.messages.where(private: true).last.content).to include('no está aprobada')
+        expect(conversation.captain_decisions.find_by!(kind: 'reengage')).to have_attributes(
+          reason_code: 'reengage_template_unavailable', anchor_message: conversation.messages.where(private: true).last
+        )
       end
     end
 

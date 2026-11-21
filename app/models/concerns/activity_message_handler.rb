@@ -73,8 +73,14 @@ module ActivityMessageHandler
 
     activity = { type: 'conversation_status_changed', status: status, previous_status: status_before_last_save }
     activity[:source] = captain_activity_source(user_name) if captain_content.present?
-    args = [self, activity_message_params(content, content_attributes: { activity: activity }, names: names)]
-    args << captain_decision_key if respond_to?(:captain_decision_key) && captain_decision_key
+    enqueue_activity_message(activity_message_params(content, content_attributes: { activity: activity }, names: names))
+  end
+
+  def enqueue_activity_message(params)
+    key = captain_decision_key if respond_to?(:captain_decision_key)
+    key ||= captain_control_decision_key if respond_to?(:captain_control_decision_key)
+    args = [self, params]
+    args << key if key
     ::Conversations::ActivityMessageJob.perform_later(*args)
   end
 

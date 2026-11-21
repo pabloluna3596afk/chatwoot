@@ -173,6 +173,11 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       described_class.perform_now(conversation, assistant, responding_to_message.id)
       expect(conversation.reload).to be_high
       expect(conversation.messages.where(private: true).last.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
+      decision = conversation.captain_decisions.find_by!(trigger: 'reply_limit')
+      expect(decision).to have_attributes(kind: 'handoff', anchor_message: conversation.messages.where(private: true).last,
+                                          settings_snapshot: { 'max_replies_per_conversation' => assistant.max_replies })
+      expect { described_class.perform_now(conversation, assistant, responding_to_message.id) }
+        .not_to(change { conversation.captain_decisions.count })
     end
 
     it 'never runs the internal Copilot assistant against a customer conversation' do

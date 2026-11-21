@@ -1,5 +1,6 @@
 # Retained structured facts only, ending at the next customer turn. Never infer history from today's status.
 class Captain::Decisions::Afterwards
+  MAX_FACTS = 2
   ATTRIBUTES_SQL = "(content_attributes #>> '{}')::jsonb".freeze
   EVENT_SQL = <<~SQL.squish.freeze
     (message_type = :incoming AND private = false) OR #{ATTRIBUTES_SQL} ? 'captain_handoff' OR
@@ -10,16 +11,35 @@ class Captain::Decisions::Afterwards
   SQL
 
   def self.build(decision)
-    messages = decision.conversation.messages.where('created_at > ?', decision.occurred_at)
-                       .where(EVENT_SQL, incoming: Message.message_types[:incoming], activity: Message.message_types[:activity])
-                       .where.not(id: decision.anchor_message_id).order(:created_at, :id).limit(2)
+    controls = retained_controls(decision)
+    events = controls.map { |control| control_event(control) } + message_events(decision, controls)
     facts = []
-    messages.each do |message|
-      fact = fact_type(message)
-      facts << { type: fact, occurred_at: message.created_at }
-      break if fact == 'new_incoming'
+    events.sort_by { |event| [event[:occurred_at], event[:priority], event[:id]] }.each do |event|
+      facts << event.slice(:type, :occurred_at)
+      break if event[:type] == 'new_incoming' || facts.size == MAX_FACTS
     end
     { status: facts.empty? ? 'not_recorded' : 'recorded', facts: facts }
+  end
+
+  def self.retained_controls(decision)
+    decision.conversation.captain_decisions.where(kind: %w[reopen human_control disengage])
+            .where('occurred_at > ?', decision.occurred_at).includes(:anchor_message).order(:occurred_at, :id).limit(MAX_FACTS)
+  end
+
+  def self.control_event(control)
+    at = control.kind == 'reopen' ? control.anchor_message&.created_at || control.occurred_at : control.occurred_at
+    { type: control.kind == 'reopen' ? 'reopened' : control.kind, occurred_at: at, id: control.id, priority: 0 }
+  end
+
+  def self.message_events(decision, controls)
+    messages = decision.conversation.messages.where('created_at > ?', decision.occurred_at)
+                       .where(EVENT_SQL, incoming: Message.message_types[:incoming], activity: Message.message_types[:activity])
+                       .where.not(id: decision.anchor_message_id).order(:created_at, :id).limit(MAX_FACTS + controls.size)
+    messages.filter_map do |message|
+      next if fact_type(message) == 'reopened' && controls.any? { |control| control.anchor_message_id == message.id }
+
+      { type: fact_type(message), occurred_at: message.created_at, id: message.id, priority: 1 }
+    end
   end
 
   def self.fact_type(message)

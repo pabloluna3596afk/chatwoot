@@ -32,4 +32,20 @@ describe('Captain decision translations', () => {
       'Ver detalles de la decisión de Captain'
     );
   });
+
+  it('localizes the recorded follow-up settings and exact control facts', () => {
+    [en, es].forEach(locale => {
+      const copy = locale.CONVERSATION.CAPTAIN_DECISION;
+      [
+        'inactivityAfterMinutes',
+        'maxNudges',
+        'maxRepliesPerConversation',
+      ].forEach(setting =>
+        expect(copy.SETTINGS[setting]).toContain('{minutes}')
+      );
+      ['human_control', 'disengage'].forEach(fact => {
+        expect(copy.LATER[fact]).toBeTruthy();
+      });
+    });
+  });
 });

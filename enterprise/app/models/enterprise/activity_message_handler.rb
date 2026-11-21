@@ -12,10 +12,19 @@ module Enterprise::ActivityMessageHandler
   private
 
   def activity_message_params(content, content_attributes: nil, names: [])
+    content_attributes = captain_control_activity_attributes(content_attributes)
     return super unless Current.executed_by.instance_of?(Captain::Assistant)
 
     attributes = (content_attributes || {}).deep_merge(activity: { source: { type: 'captain', name: Current.executed_by.name } })
     super(content, content_attributes: attributes, names: names)
+  end
+
+  def captain_control_activity_attributes(attributes)
+    event = captain_control_event || captain_control_decision_key&.split(':')&.first
+    return attributes unless event
+
+    source = event == 'reopen' ? { type: 'contact' } : activity_source(determine_user_name)
+    (attributes || {}).deep_merge(activity: { captain_event: event, source: source })
   end
 
   def status_activity_names(user_name, captain_content)
