@@ -72,6 +72,8 @@ const props = defineProps({
 
 const emit = defineEmits(['saved', 'viewDraft']);
 
+const DRAFT_SAVED_TOAST_DURATION = 8000;
+
 const formRef = ref(null);
 // Bound floating pickers to the scroll viewport, leaving the fixed footer free.
 provide(
@@ -709,6 +711,7 @@ const save = async () => {
       const record = await persistDraft();
       useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED'), {
         type: 'callback',
+        duration: DRAFT_SAVED_TOAST_DURATION,
         message: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.VIEW_IN_TEMPLATES'),
         onClick: () => {
           emit('viewDraft', record);

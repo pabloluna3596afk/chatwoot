@@ -10,6 +10,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { draftFromForm } from '../templateDrafts';
 import { emptyForm } from '../templateForm';
 import { useAlert } from 'dashboard/composables';
+import SnackbarContainer from 'dashboard/components/SnackbarContainer.vue';
 import InboxesAPI from 'dashboard/api/inboxes';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 vi.mock('dashboard/api/inboxes', () => ({
@@ -396,6 +397,47 @@ describe('TemplateFormDrawer drafts', () => {
       'DRAFTS.UNSAVED'
     );
     wrapper.unmount();
+  });
+
+  it('shows the saved toast above the open panel for eight seconds and navigates through its real action', async () => {
+    const wrapper = await mountDrawer({}, true);
+    const toast = mount(SnackbarContainer, {
+      attachTo: document.body,
+      global: { stubs: { RouterLink: true, TransitionGroup: true } },
+    });
+    const region = toast.get('[popover="manual"]');
+    const showPopover = vi.fn();
+    region.element.showPopover = showPopover;
+    vi.spyOn(region.element, 'matches').mockReturnValue(false);
+    const actual = await vi.importActual('dashboard/composables');
+    useAlert.mockImplementationOnce(actual.useAlert);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      document.querySelector('dialog [data-testid="save-draft"]').click();
+      await flushPromises();
+      expect(useAlert.mock.calls.at(-1)[1].duration).toBe(8000);
+      expect(showPopover).toHaveBeenCalledTimes(1);
+      expect(showPopover.mock.invocationCallOrder[0]).toBeGreaterThan(
+        HTMLDialogElement.prototype.showModal.mock.invocationCallOrder.at(-1)
+      );
+      expect(document.querySelector('dialog[open]')).not.toBeNull();
+      expect(region.classes()).toContain('fixed');
+      expect(region.classes()).toContain('top-4');
+      expect(wrapper.emitted('viewDraft')).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(7999);
+      const action = toast.get('button');
+      expect(action.text()).toContain('DRAFTS.VIEW_IN_TEMPLATES');
+      await action.trigger('click');
+      expect(wrapper.emitted('viewDraft')[0][0]).toMatchObject({ id: 31 });
+      expect(document.querySelector('dialog[open]')).toBeNull();
+      await vi.advanceTimersByTimeAsync(1);
+      await flushPromises();
+      expect(toast.find('button').exists()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+      wrapper.unmount();
+      toast.unmount();
+    }
   });
 
   it.each([
