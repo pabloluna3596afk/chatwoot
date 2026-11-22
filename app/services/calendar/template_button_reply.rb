@@ -57,7 +57,7 @@ class Calendar::TemplateButtonReply
     end
 
     scope.where("additional_attributes -> 'template_params' ->> 'name' IN (?) OR " \
-                "content_attributes -> 'calendar_template_resource' ->> 'function' IN (?)",
+                "(content_attributes #>> '{}')::jsonb -> 'calendar_template_resource' ->> 'function' IN (?)",
                 Calendar::ActivationKit::REPLY_TEMPLATE_NAMES, %w[confirmation reminder])
          .where("additional_attributes ->> 'calendar_event_id' IS NOT NULL").order(:id).last
   end

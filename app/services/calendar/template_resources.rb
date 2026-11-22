@@ -75,7 +75,7 @@ class Calendar::TemplateResources
     end
     contract = Calendar::TemplateContract.new(function: @function, language: @language, template: template)
     reason = contract.incompatibility
-    reason ||= 'version_changed' if contract.snapshot['version'] != resource.contract_snapshot['version']
+    reason = 'version_changed' if reason.nil? && contract.snapshot['version'] != resource.contract_snapshot['version']
     return template unless reason
 
     resource.update!(status: 'incompatible', incompatibility_reason: reason)
