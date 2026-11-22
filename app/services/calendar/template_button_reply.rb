@@ -35,15 +35,19 @@ class Calendar::TemplateButtonReply
     return if label.blank?
 
     snapshot = notice.content_attributes['calendar_template_resource']
-    if snapshot
-      action = snapshot.fetch('actions').find { |button, _answer| button.casecmp?(label) }&.last
-      return ANSWERS.find { |answer| answer.to_s == action }
-    end
+    action = snapshot ? snapshot_action(label, snapshot) : legacy_action(label)
+    ANSWERS.find { |answer| answer.to_s == action }
+  end
 
+  def snapshot_action(label, snapshot)
+    snapshot.fetch('actions').find { |button, _answer| button.casecmp?(label) }&.last
+  end
+
+  def legacy_action(label)
     index = Calendar::ActivationKit::TEMPLATES.values.filter_map do |template|
       template[:buttons].index { |button| button.casecmp?(label) }
     end.first
-    ANSWERS[index] if index
+    ANSWERS[index]&.to_s if index
   end
 
   def template_message

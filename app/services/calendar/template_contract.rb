@@ -1,6 +1,9 @@
 # The binding contract is stricter than the legacy name lookup. Editing copy is allowed,
 # but all values must come from the selected appointment and every action must be known.
 class Calendar::TemplateContract
+  COMPONENT_TYPES = %w[BODY HEADER FOOTER BUTTONS].freeze
+  VARIABLE_COMPONENT_TYPES = %w[BODY BUTTONS].freeze
+
   def initialize(function:, language:, template:)
     @function = function.to_s
     @language = language
@@ -8,17 +11,7 @@ class Calendar::TemplateContract
   end
 
   def incompatibility
-    return 'missing_template' unless @template
-    return 'category' unless @template['category'].to_s.casecmp?('UTILITY')
-    return 'status' unless @template['status'].to_s.casecmp?('APPROVED')
-    return 'language' unless @template['language'] == @language
-    return 'remote_identity' if @template['id'].blank?
-    return 'parameter_format' unless @template['parameter_format'] == 'NAMED'
-    return 'components' unless valid_components?
-    return 'variables' unless variables.sort == Calendar::TemplateDefinitions::VARIABLES.sort
-    return 'buttons' unless valid_buttons?
-
-    nil
+    metadata_incompatibility || component_incompatibility
   end
 
   def snapshot
@@ -38,19 +31,38 @@ class Calendar::TemplateContract
 
   private
 
+  def metadata_incompatibility
+    return 'missing_template' unless @template
+    return 'category' unless @template['category'].to_s.casecmp?('UTILITY')
+    return 'status' unless @template['status'].to_s.casecmp?('APPROVED')
+    return 'language' unless @template['language'] == @language
+    return 'remote_identity' if @template['id'].blank?
+    return 'parameter_format' unless @template['parameter_format'] == 'NAMED'
+  end
+
+  def component_incompatibility
+    return 'components' unless valid_components?
+    return 'variables' unless variables.sort == Calendar::TemplateDefinitions::VARIABLES.sort
+    return 'buttons' unless valid_buttons?
+  end
+
   def components
     Array(@template['components'])
   end
 
   def valid_components?
-    types = components.map { |component| component['type'] }
-    return false unless types.count('BODY') == 1 && types.uniq == types && (types - %w[BODY HEADER FOOTER BUTTONS]).empty?
+    valid_component_types? && components.all? { |component| static_component?(component) }
+  end
 
-    components.all? do |component|
-      next true if %w[BODY BUTTONS].include?(component['type'])
+  def valid_component_types?
+    types = components.pluck('type')
+    types.count('BODY') == 1 && types.uniq == types && (types - COMPONENT_TYPES).empty?
+  end
 
-      (component['type'] != 'HEADER' || component['format'] == 'TEXT') && !component['text'].to_s.include?('{{')
-    end
+  def static_component?(component)
+    return true if VARIABLE_COMPONENT_TYPES.include?(component['type'])
+
+    (component['type'] != 'HEADER' || component['format'] == 'TEXT') && component['text'].to_s.exclude?('{{')
   end
 
   def variables
@@ -64,10 +76,10 @@ class Calendar::TemplateContract
 
   def valid_buttons?
     expected = Calendar::TemplateDefinitions.definition(@function, @language).fetch(:buttons)
-    buttons.all? { |button| button['type'] == 'QUICK_REPLY' } && buttons.map { |button| button['text'] } == expected
+    buttons.all? { |button| button['type'] == 'QUICK_REPLY' } && buttons.pluck('text') == expected
   end
 
   def actions
-    buttons.map { |button| button['text'] }.zip(Calendar::TemplateDefinitions::ACTIONS).to_h
+    buttons.pluck('text').zip(Calendar::TemplateDefinitions::ACTIONS).to_h
   end
 end

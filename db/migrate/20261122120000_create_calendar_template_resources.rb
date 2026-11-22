@@ -15,8 +15,10 @@ class CreateCalendarTemplateResources < ActiveRecord::Migration[7.1]
       t.timestamps
     end
     add_index :calendar_template_resources, [:account_id, :function, :language, :waba_id], unique: true,
-              where: 'waba_id IS NOT NULL', name: 'index_calendar_resources_on_waba_identity'
+              where: 'waba_id IS NOT NULL',
+              name: 'index_calendar_resources_on_waba_identity'
     add_index :calendar_template_resources, [:account_id, :function, :language], unique: true,
-              where: 'waba_id IS NULL', name: 'index_calendar_resources_on_local_identity'
+              where: 'waba_id IS NULL',
+              name: 'index_calendar_resources_on_local_identity'
   end
 end

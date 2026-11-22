@@ -49,6 +49,6 @@ class Integrations::GoogleCalendar::ActivityMessageService
     return {} unless %w[notice_not_sent cancellation_notice_not_sent].include?(action_type.to_s)
 
     { 'calendar_template_settings' => { 'reason' => 'template_unavailable',
-                                      'path' => "/app/accounts/#{conversation.account_id}/settings/templates" } }
+                                        'path' => "/app/accounts/#{conversation.account_id}/settings/templates" } }
   end
 end

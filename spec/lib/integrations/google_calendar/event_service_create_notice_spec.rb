@@ -134,8 +134,10 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
 
       expect(sent_messages).to be_empty
       expect(result[:id]).to eq('g-1')
-      expect(result[:customer_notice]).to include(status: 'not_sent', reason: 'template_unavailable',
-                                                templates_path: "/app/accounts/#{account.id}/settings/templates")
+      expect(result[:customer_notice]).to include(
+        status: 'not_sent', reason: 'template_unavailable',
+        templates_path: "/app/accounts/#{account.id}/settings/templates"
+      )
       expect(connection.calendar_events.last.activities.last.details['customer_notice']).to include('status' => 'not_sent')
     end
   end
@@ -151,8 +153,8 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
 
     it 'creates the appointment and queues its selected version with immutable reply actions' do
       channel.update!(provider_config: channel.provider_config.merge('business_account_id' => 'waba'))
-      resource = Calendar::TemplateResources.new(account: account, function: :confirmation, language: 'es', channel: channel)
-                                           .link!(template_name: 'confirmacion_v2', remote_template_id: 'confirm-v2')
+      resources = Calendar::TemplateResources.new(account: account, function: :confirmation, language: 'es', channel: channel)
+      resource = resources.link!(template_name: 'confirmacion_v2', remote_template_id: 'confirm-v2')
       result = service.create(params.merge(send_to_contact: true))
       expect(result[:customer_notice]).to eq(status: 'queued')
       expect(sent_messages.count).to eq(1)
@@ -189,9 +191,15 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
       expect(sent_messages).to be_empty
       expect(connection.calendar_events.count).to eq(1)
       expect(Conversations::ActivityMessageJob).to have_been_enqueued.with(
-        conversation, hash_including(content_attributes: hash_including('calendar_template_settings' => {
-          'reason' => 'template_unavailable', 'path' => "/app/accounts/#{account.id}/settings/templates"
-        }))
+        conversation,
+        hash_including(
+          content_attributes: hash_including(
+            'calendar_template_settings' => {
+              'reason' => 'template_unavailable',
+              'path' => "/app/accounts/#{account.id}/settings/templates"
+            }
+          )
+        )
       )
     end
   end

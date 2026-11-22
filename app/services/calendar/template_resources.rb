@@ -29,15 +29,7 @@ class Calendar::TemplateResources
   def link!(template_name:, remote_template_id:, draft: nil)
     raise ArgumentError, 'WhatsApp Cloud WABA required' unless cloud? && waba_id.present?
 
-    write_resource do |record|
-      template = templates.find { |item| item['name'] == template_name && item['id'] == remote_template_id && item['language'] == @language }
-      contract = Calendar::TemplateContract.new(function: @function, language: @language, template: template)
-      reason = contract.incompatibility
-      snapshot = reason ? {} : contract.snapshot.merge('draft_revision_at_link' => draft&.lock_version)
-      record.update!(template_name: template_name, remote_template_id: remote_template_id, whatsapp_template_draft: draft,
-                     status: reason ? 'incompatible' : 'linked', incompatibility_reason: reason,
-                     linked_at: reason ? nil : Time.current, contract_snapshot: snapshot)
-    end
+    write_resource { |record| link_resource!(record, template_name, remote_template_id, draft) }
   end
 
   def resolve
@@ -68,6 +60,26 @@ class Calendar::TemplateResources
   end
 
   private
+
+  def link_resource!(record, template_name, remote_template_id, draft)
+    template = templates.find { |item| selected_template?(item, template_name, remote_template_id) }
+    contract = Calendar::TemplateContract.new(function: @function, language: @language, template: template)
+    reason = contract.incompatibility
+    record.update!(link_attributes(template_name, remote_template_id, draft, contract, reason))
+  end
+
+  def selected_template?(item, template_name, remote_template_id)
+    item['name'] == template_name && item['id'] == remote_template_id && item['language'] == @language
+  end
+
+  def link_attributes(template_name, remote_template_id, draft, contract, reason)
+    snapshot = reason ? {} : contract.snapshot.merge('draft_revision_at_link' => draft&.lock_version)
+    {
+      template_name: template_name, remote_template_id: remote_template_id, whatsapp_template_draft: draft,
+      status: reason ? 'incompatible' : 'linked', incompatibility_reason: reason,
+      linked_at: reason ? nil : Time.current, contract_snapshot: snapshot
+    }
+  end
 
   def verified_template
     template = templates.find do |item|
