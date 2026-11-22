@@ -1787,7 +1787,7 @@ const buttonChoices = computed(() =>
     />
     <template #footer>
       <div
-        class="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-end"
+        class="grid grid-cols-[auto_auto_minmax(0,1fr)] gap-2 sm:flex sm:flex-wrap sm:justify-end"
         data-testid="draft-footer"
       >
         <Button
@@ -1812,7 +1812,7 @@ const buttonChoices = computed(() =>
           type="button"
           intent="tertiary"
           size="sm"
-          class="sm:order-1"
+          class="min-h-10 whitespace-nowrap px-2 sm:order-1"
           @click="close"
         >
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL') }}
@@ -1821,17 +1821,21 @@ const buttonChoices = computed(() =>
           type="button"
           intent="secondary"
           size="sm"
-          class="sm:order-2"
+          class="min-h-10 whitespace-nowrap px-2 sm:order-2"
+          icon="i-lucide-eye"
+          :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')"
           data-testid="template-preview-open"
           @click="openPreview"
         >
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW') }}
+          <span class="hidden sm:inline">{{
+            $t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')
+          }}</span>
         </Button>
         <Button
           v-if="!isRemote && draft && !localReadOnly"
           intent="secondary"
           size="sm"
-          class="!h-auto min-h-8 py-1 sm:order-4"
+          class="min-h-10 whitespace-nowrap px-2 sm:order-4"
           :disabled="!canAttemptSubmit || isSaving || isUploading || isLoading"
           :is-loading="activeOperation === 'submit'"
           :title="
@@ -1842,7 +1846,7 @@ const buttonChoices = computed(() =>
           data-testid="submit-draft"
           @click="submitForReview"
         >
-          <span class="min-w-0 break-words whitespace-normal">{{
+          <span class="whitespace-nowrap">{{
             activeOperation === 'submit'
               ? $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SENDING')
               : $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT')

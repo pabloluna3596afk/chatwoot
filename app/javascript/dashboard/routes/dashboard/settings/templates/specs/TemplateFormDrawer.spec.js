@@ -295,7 +295,7 @@ describe('TemplateFormDrawer drafts', () => {
     const wrapper = await mountDrawer();
     await wrapper.vm.openDraft(record);
     const footer = wrapper.get('[data-testid="draft-footer"]');
-    expect(footer.classes()).toContain('grid-cols-3');
+    expect(footer.classes()).toContain('grid-cols-[auto_auto_minmax(0,1fr)]');
     expect(footer.get('[data-testid="save-draft"]').classes()).toContain(
       'col-span-3'
     );
@@ -307,10 +307,22 @@ describe('TemplateFormDrawer drafts', () => {
       expect(button.classes()).not.toContain('w-full');
       expect(button.classes()).not.toContain('bg-n-brand');
       expect(button.text()).not.toBe('');
+      expect(button.classes()).toContain('whitespace-nowrap');
+      expect(button.classes()).toContain('min-h-10');
     });
     expect(footer.get('[data-testid="submit-draft"] span').classes()).toContain(
-      'whitespace-normal'
+      'whitespace-nowrap'
     );
+    expect(
+      footer
+        .get('[data-testid="template-preview-open"]')
+        .attributes('aria-label')
+    ).toContain('FORM.PREVIEW');
+    expect(
+      footer
+        .get('[data-testid="template-preview-open"] span.sm\\:inline')
+        .classes()
+    ).toContain('hidden');
     wrapper.unmount();
   });
 
