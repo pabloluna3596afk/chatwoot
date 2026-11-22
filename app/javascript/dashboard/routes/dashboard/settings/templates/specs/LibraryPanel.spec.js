@@ -226,6 +226,11 @@ describe('LibraryPanel', () => {
         language: 'es',
       })
     );
+    expect(DraftsAPI.fromLibrary).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('created')).toEqual([
+      [{ id: 31, definition: { library: {} } }],
+    ]);
+    expect(WhatsappTemplatesAPI.createFromLibrary).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -380,6 +385,18 @@ describe('LibraryPanel', () => {
     expect(Object.keys(es).sort()).toEqual(Object.keys(en).sort());
     expect(Object.keys(es.DIALOG).sort()).toEqual(
       Object.keys(en.DIALOG).sort()
+    );
+  });
+
+  it('keeps every English and Spanish template management translation path in sync', () => {
+    const paths = value =>
+      Object.entries(value).flatMap(([key, child]) =>
+        typeof child === 'object'
+          ? paths(child).map(path => `${key}.${path}`)
+          : [key]
+      );
+    expect(paths(english.WHATSAPP_TEMPLATE_MGMT).sort()).toEqual(
+      paths(spanish.WHATSAPP_TEMPLATE_MGMT).sort()
     );
   });
 
