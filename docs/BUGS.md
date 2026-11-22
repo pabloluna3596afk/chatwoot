@@ -6,6 +6,8 @@
 - **Cómo probar:** specs de modelo, contrato, recursos/concurrencia, disponibilidad, CustomerNotice, creación, dispatcher/delivery y botones; ejecutar también los consumidores indicados en el brief. Frontend: suites `appointmentStatus` y `ContactPanelAppointments` en UTC y America/Guayaquil.
 - **Pendiente:** aplicar migración antes de servir bandejas/Citas, regenerar schema desde base aislada y ejecutar RSpec/RuboCop con el PM. No se ejecutan Docker, navegador ni llamadas a Meta en esta sesión. Contrato detallado en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Recursos de Citas.
 
+- **Correcciones PM (637 ejemplos, 4 fallos):** la búsqueda de avisos sin contexto decodifica el JSON serializado de `Message.content_attributes` antes de extraer la función, igual que otros consumidores WhatsApp. La comprobación de versión solo calcula el snapshot cuando el contrato es válido; un ID remoto ausente conserva `missing_template`. El spec concurrente fija la WABA después de la factory, que sobrescribe `business_account_id` durante `before(:create)`; mantiene sus expectativas de una sola fila para la WABA solicitada. Specs de botones y homónimo sin cambios; pendiente repetir RSpec con el PM, sin Docker en esta sesión.
+
 ### B-NEW-300 - Segundo pulido de borradores de plantillas (2026-11-21)
 
 - **Archivos:** `settings/templates/TemplateFormDrawer.vue`, `PresetsPanel.vue`, traducciones en/es y specs de ambos paneles.

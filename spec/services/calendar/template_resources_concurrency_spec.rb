@@ -10,8 +10,10 @@ RSpec.describe Calendar::TemplateResources do
     it "serializes two preparations for WABA #{waba.inspect} into one identity" do
       channels = if waba
                    Array.new(2) do
-                     create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
-                                               validate_provider_config: false, provider_config: { 'business_account_id' => waba })
+                     channel = create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
+                                                         validate_provider_config: false)
+                     channel.update!(provider_config: channel.provider_config.merge('business_account_id' => waba))
+                     channel
                    end
                  else
                    [nil, nil]
