@@ -198,7 +198,9 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
 
   def validate_input
     raw = params[:draft]
-    invalid_input unless Whatsapp::TemplateDraftInput.valid?(raw)
+    return invalid_input unless Whatsapp::TemplateDraftInput.valid?(raw)
+
+    invalid_input unless Whatsapp::TemplateDraftInput.library_language_valid?(raw, @draft)
   end
 
   def invalid_input

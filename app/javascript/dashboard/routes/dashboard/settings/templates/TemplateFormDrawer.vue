@@ -1132,7 +1132,7 @@ const buttonChoices = computed(() =>
             <TemplateComboBox
               :model-value="form.language"
               :options="LANGUAGE_OPTIONS"
-              :disabled="isEdit"
+              :disabled="isEdit || isLibrary"
               :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
               :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
               show-search

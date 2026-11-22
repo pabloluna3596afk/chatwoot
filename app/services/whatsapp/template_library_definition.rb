@@ -47,6 +47,10 @@ module Whatsapp::TemplateLibraryDefinition
     Whatsapp::TemplateManagementService::LIBRARY_REGIONAL_LANGUAGES.include?(value) ? value : value.split('_').first
   end
 
+  def self.same_language?(value, library_language)
+    value.is_a?(String) && language(value) == language(library_language)
+  end
+
   def self.validate_inputs!(inputs, buttons)
     required = buttons.select { |button| INPUT_BUTTON_TYPES.include?(button.fetch('type')) }
     valid = inputs.size == required.size && inputs.zip(required).all? { |input, button| complete_input?(input, button) }

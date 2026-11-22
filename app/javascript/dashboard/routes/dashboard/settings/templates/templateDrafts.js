@@ -37,7 +37,7 @@ export const draftDestination = (inboxId, inboxes) => {
 export const draftFromForm = (form, inboxes) => ({
   title: form.title || '',
   name: form.name || null,
-  language: form.language || null,
+  language: (form.library ? form.library.language : form.language) || null,
   category: form.category || null,
   parameter_format: form.parameterFormat || 'NAMED',
   ...draftDestination(form.inboxId, inboxes),
@@ -87,7 +87,7 @@ export const formFromDraft = (draft, inboxes) => {
     title: draft.title,
     wabaId: draft.waba_id,
     name: draft.name || '',
-    language: draft.language || '',
+    language: definition.library?.language ?? draft.language ?? '',
     category: draft.category || '',
     parameterFormat,
     inboxId:
@@ -129,7 +129,7 @@ export const draftVariableNamesValid = form =>
 
 export const libraryPreview = form => ({
   name: form.name,
-  language: form.language,
+  language: form.library.language,
   category: form.category,
   components: [
     ...(form.library.preview?.header
@@ -155,6 +155,7 @@ export const draftRow = (draft, inboxes) => {
   return {
     ...(form.library ? libraryPreview(form) : previewTemplate(form)),
     ...draft,
+    ...(form.library ? { language: form.library.language } : {}),
     key: `draft-${draft.id}`,
     isLocalDraft: true,
     inboxes: owners,

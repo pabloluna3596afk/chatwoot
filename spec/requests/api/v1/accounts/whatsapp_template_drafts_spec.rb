@@ -200,6 +200,26 @@ RSpec.describe 'WhatsApp template drafts API', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
   end
 
+  it 'rejects a library language change without replacing the matching preview definition' do
+    post "#{path}/from_library", params: { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY',
+                                           preview: { body: 'Tu cita' } }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    original = response.parsed_body
+    patch "#{path}/#{original.fetch('id')}", params: { draft: { lock_version: 0, language: 'en_US' } }, headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body['error']).to eq('invalid_draft')
+    get "#{path}/#{original.fetch('id')}", headers: headers
+    expect(response.parsed_body).to include('language' => 'es', 'definition' => original.fetch('definition'), 'lock_version' => 0)
+  end
+
+  it 'rejects contradictory library languages on create and accepts the same effective regional language' do
+    attributes = { language: 'en_US', definition: { library: { template_name: 'appointment', language: 'es', preview: { body: 'Tu cita' } } } }
+    post path, params: { draft: attributes }, headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    post path, params: { draft: attributes.merge(language: 'es_EC') }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+  end
+
   %w[from_library from_blueprint].each do |endpoint|
     it "restricts #{endpoint} to administrators and returns 404 for another account channel" do
       attributes = { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY', blueprint_id: 'palu_reenganche' }

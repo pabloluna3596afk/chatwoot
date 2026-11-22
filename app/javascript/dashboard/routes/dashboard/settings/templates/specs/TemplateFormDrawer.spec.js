@@ -210,6 +210,11 @@ describe('TemplateFormDrawer drafts', () => {
     const wrapper = await mountDrawer();
     await wrapper.vm.openDraft(libraryRecord);
     await flushPromises();
+    expect(
+      wrapper
+        .findComponent('[data-testid="template-language"]')
+        .props('disabled')
+    ).toBe(true);
     expect(wrapper.get('[data-testid="library-preview"]').text()).toContain(
       'Fixed Meta text'
     );

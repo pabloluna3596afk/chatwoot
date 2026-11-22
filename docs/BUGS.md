@@ -11,6 +11,8 @@
 
 ### B-NEW-293 - Borradores locales y revisión de plantillas WhatsApp (2026-11-20)
 
+- **Cierre de biblioteca (2026-11-21):** `templateDrafts.js` toma el idioma de `definition.library` para abrir, guardar y previsualizar; `TemplateFormDrawer.vue` bloquea cambiarlo sin elegir otra plantilla. `TemplateDraftInput` rechaza con `422 invalid_draft` crear/editar con idiomas efectivos contradictorios, incluido un PATCH solo de idioma; permite la equivalencia regional de biblioteca existente. Specs: `templateDrafts.spec.js`, `TemplateFormDrawer.spec.js` y requests `whatsapp_template_drafts_spec.rb` (estos últimos quedan para el PM, sin ejecutar RSpec en este cierre).
+
 - **Archivos:** modelos `WhatsappTemplateDraft`/`WhatsappTemplateSubmission`, migración `20261120120000`, API `whatsapp_template_drafts`, servicios de validación/copia/envío/reconciliación y sincronización por WABA.
 - **Problema:** guardar una plantilla con el recorrido existente crea inmediatamente el recurso en Meta; no había preparación local durable ni intento inmutable para recuperar un timeout.
 - **Cambio:** CRUD local exclusivo de administradores, control de revisión, adjunto local, copias con nombre distinto, intentos previos al HTTP y snapshots inmutables. Doble clic devuelve el mismo intento; un timeout verifica identidad sin repetir el alta a ciegas. 429/5xx usan reintentos limitados. El éxito remoto se conserva aunque falle el sync posterior; la lectura nueva no aplica páginas parciales y admite un catálogo vacío.

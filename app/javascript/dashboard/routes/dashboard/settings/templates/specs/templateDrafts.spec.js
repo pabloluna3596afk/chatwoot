@@ -5,11 +5,34 @@ import {
   formFromDraft,
   draftRow,
   hasOpaqueComponents,
+  libraryPreview,
 } from '../templateDrafts';
 import en from 'dashboard/i18n/locale/en/whatsappTemplateMgmt.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
 
 describe('Local draft definitions', () => {
+  it('uses the library language for reopening, saving and previewing conflicting form languages', () => {
+    const library = {
+      template_name: 'appointment',
+      language: 'es',
+      preview: { body: 'Tu cita' },
+    };
+    const form = formFromDraft(
+      { language: 'en_US', definition: { library } },
+      []
+    );
+    expect(form.language).toBe('es');
+    form.language = 'en_US';
+    expect(draftFromForm(form, []).language).toBe('es');
+    expect(libraryPreview(form)).toMatchObject({ language: 'es' });
+    expect(libraryPreview(form).components).toContainEqual({
+      type: 'BODY',
+      text: 'Tu cita',
+    });
+    expect(
+      draftRow({ language: 'en_US', definition: { library } }, []).language
+    ).toBe('es');
+  });
   const inboxes = [
     {
       id: 7,
