@@ -7,6 +7,21 @@ import {
 } from '../bubbleFromTemplate';
 
 describe('WhatsAppBubble', () => {
+  it.each(['ltr', 'rtl'])(
+    'uses a logical bubble corner in %s without changing content',
+    dir => {
+      const wrapper = mount(WhatsAppBubble, {
+        attrs: { dir },
+        props: { body: 'Hola', buttons: ['Confirmar'] },
+      });
+      expect(wrapper.find('.rounded-ss-none').exists()).toBe(true);
+      expect(wrapper.find('.rounded-tl-none').exists()).toBe(false);
+      expect(wrapper.text()).toContain('Hola');
+      expect(wrapper.text()).toContain('Confirmar');
+      wrapper.unmount();
+    }
+  );
+
   it('draws header, body with small gaps for blank lines, footer and typed buttons', () => {
     const wrapper = mount(WhatsAppBubble, {
       props: {
