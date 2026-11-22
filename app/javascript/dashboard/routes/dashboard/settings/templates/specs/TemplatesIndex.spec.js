@@ -2,6 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { KeepAlive, h } from 'vue';
 import { mockNativeDialog } from 'dashboard/helper/specs/mockNativeDialog';
 import Index from '../Index.vue';
+import TemplateFormDrawer from '../TemplateFormDrawer.vue';
+import PresetsPanel from '../PresetsPanel.vue';
+import TemplatesToolbar from '../TemplatesToolbar.vue';
 import TemplatesTable from '../TemplatesTable.vue';
 import TemplateRowActions from '../TemplateRowActions.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
@@ -126,6 +129,54 @@ describe('Templates page', () => {
     await flushPromises();
     return wrapper;
   };
+
+  it('keeps filters and tab on save, resets them only on View in Templates, including an unnamed draft', async () => {
+    const record = {
+      id: 31,
+      title: 'My draft',
+      name: null,
+      language: 'es',
+      category: 'UTILITY',
+      status: 'draft',
+      definition: {},
+      submissions: [],
+    };
+    const wrapper = await render([]);
+    const toolbar = wrapper.findComponent(TemplatesToolbar);
+    toolbar.vm.$emit('update:modelValue', 'hidden');
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    filters.forEach(filter => {
+      filter.vm.$emit(
+        'update:modelValue',
+        filter.props('options').at(-1).value
+      );
+    });
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS')
+      .trigger('click');
+    expect(wrapper.findComponent(PresetsPanel).attributes('search')).toBe(
+      'hidden'
+    );
+    const drawer = wrapper.findComponent(TemplateFormDrawer);
+    drawer.vm.$emit('saved');
+    await flushPromises();
+    expect(wrapper.findComponent(PresetsPanel).exists()).toBe(true);
+    expect(toolbar.props('modelValue')).toBe('hidden');
+    drawer.vm.$emit('viewDraft', record);
+    await flushPromises();
+    expect(wrapper.findComponent(PresetsPanel).exists()).toBe(false);
+    expect(toolbar.props('modelValue')).toBe('');
+    expect(
+      wrapper
+        .findAllComponents(FilterDropdown)
+        .every(filter => filter.props('modelValue') === 'all')
+    ).toBe(true);
+    expect(wrapper.findComponent(TemplatesTable).props('items')).toEqual([
+      expect.objectContaining({ id: 31, title: 'My draft' }),
+    ]);
+    wrapper.unmount();
+  });
 
   it('opens the library draft emitted by presets in the existing drawer', async () => {
     const wrapper = await render([]);
