@@ -16,9 +16,9 @@ class Calendar::TemplateButtonReply
   end
 
   def perform
-    answer = answer_from(@message.content)
-    notice = answer && template_message
-    record = notice && appointment_of(notice)
+    notice = template_message
+    answer = notice && answer_from(@message.content, notice)
+    record = answer && appointment_of(notice)
     return if record.blank? || notice.additional_attributes['customer_answer'] == answer.to_s
 
     I18n.with_locale(@conversation.account.locale) do
@@ -30,9 +30,15 @@ class Calendar::TemplateButtonReply
 
   private
 
-  def answer_from(text)
+  def answer_from(text, notice)
     label = text.to_s.strip
     return if label.blank?
+
+    snapshot = notice.content_attributes['calendar_template_resource']
+    if snapshot
+      action = snapshot.fetch('actions').find { |button, _answer| button.casecmp?(label) }&.last
+      return ANSWERS.find { |answer| answer.to_s == action }
+    end
 
     index = Calendar::ActivationKit::TEMPLATES.values.filter_map do |template|
       template[:buttons].index { |button| button.casecmp?(label) }
@@ -50,14 +56,18 @@ class Calendar::TemplateButtonReply
       return
     end
 
-    scope.where("additional_attributes -> 'template_params' ->> 'name' IN (?)", Calendar::ActivationKit::REPLY_TEMPLATE_NAMES)
+    scope.where("additional_attributes -> 'template_params' ->> 'name' IN (?) OR " \
+                "content_attributes -> 'calendar_template_resource' ->> 'function' IN (?)",
+                Calendar::ActivationKit::REPLY_TEMPLATE_NAMES, %w[confirmation reminder])
          .where("additional_attributes ->> 'calendar_event_id' IS NOT NULL").order(:id).last
   end
 
   def template_notice?(notice)
     return false unless notice
 
-    Calendar::ActivationKit::REPLY_TEMPLATE_NAMES.include?(notice.additional_attributes.dig('template_params', 'name')) &&
+    identity = notice.content_attributes.dig('calendar_template_resource', 'function')
+    (%w[confirmation reminder].include?(identity) ||
+      Calendar::ActivationKit::REPLY_TEMPLATE_NAMES.include?(notice.additional_attributes.dig('template_params', 'name'))) &&
       notice.additional_attributes['calendar_event_id'].present?
   end
 

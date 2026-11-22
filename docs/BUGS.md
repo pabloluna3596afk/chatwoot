@@ -1,3 +1,11 @@
+### B-NEW-301 - Identidad y contrato de recursos de Citas (2026-11-22)
+
+- **Archivos:** `CalendarTemplateResource`, `Calendar::Template{Definitions,Contract,Resources}`, migración `20261122120000`, CustomerNotice, EventService, recordatorios, botones y disponibilidad de bandejas.
+- **Problema:** los consumidores solo conocían nombres fijos; confirmación podía caer a texto libre y los avisos humanos aceptaban plantillas recategorizadas como MARKETING.
+- **Cambio:** vínculo explícito por cuenta/función/idioma/WABA, contrato aprobado UTILITY y versión congelada, snapshot por mensaje, compatibilidad con mensajes e instalaciones antiguas y actividad con destino Plantillas cuando no hay aviso. Sin texto libre de confirmación en Cloud; sin creación automática de borradores ni cambios a Captain.
+- **Cómo probar:** specs de modelo, contrato, recursos/concurrencia, disponibilidad, CustomerNotice, creación, dispatcher/delivery y botones; ejecutar también los consumidores indicados en el brief. Frontend: suites `appointmentStatus` y `ContactPanelAppointments` en UTC y America/Guayaquil.
+- **Pendiente:** aplicar migración antes de servir bandejas/Citas, regenerar schema desde base aislada y ejecutar RSpec/RuboCop con el PM. No se ejecutan Docker, navegador ni llamadas a Meta en esta sesión. Contrato detallado en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Recursos de Citas.
+
 ### B-NEW-300 - Segundo pulido de borradores de plantillas (2026-11-21)
 
 - **Archivos:** `settings/templates/TemplateFormDrawer.vue`, `PresetsPanel.vue`, traducciones en/es y specs de ambos paneles.

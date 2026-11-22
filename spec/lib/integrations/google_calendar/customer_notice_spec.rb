@@ -15,7 +15,7 @@ RSpec.describe Integrations::GoogleCalendar::CustomerNotice do
   end
   let(:channel) do
     create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false,
-                              message_templates: templates)
+                              provider_config: { 'business_account_id' => 'waba-1' }, message_templates: templates)
   end
   let(:conversation) { create(:conversation, account: account, inbox: channel.inbox, contact: contact) }
   let(:appointment) do
@@ -98,6 +98,41 @@ RSpec.describe Integrations::GoogleCalendar::CustomerNotice do
         expect(values).to include('nombre' => contact.name, 'cita' => 'Consulta', 'hora' => '10:00')
         expect(values['fecha']).to eq(locale == 'es' ? '15/01/2030' : '01/15/2030')
       end
+    end
+  end
+
+  it 'does not send a reclassified legacy cancellation' do
+    channel.update!(message_templates: templates.map { |template| template.merge('category' => 'MARKETING') })
+    expect(notice.deliver!).to be(false)
+    expect(outgoing).to be_empty
+  end
+
+  context 'with an explicitly linked cancellation resource' do
+    let(:templates) do
+      [{ 'id' => 'cancel-v2', 'name' => 'cancelacion_v2', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+         'parameter_format' => 'NAMED', 'components' => [
+           { 'type' => 'BODY', 'text' => 'Cancelada: {{nombre}}, {{cita}}, {{fecha}}, {{hora}}.' }
+         ] }]
+    end
+    let(:resources) { Calendar::TemplateResources.new(account: account, function: :cancellation, language: 'es', channel: channel) }
+
+    it 'uses the bound name and snapshots identity, version, variables and resolved appointment values' do
+      resource = resources.link!(template_name: 'cancelacion_v2', remote_template_id: 'cancel-v2')
+      expect(notice.deliver!).to be(true)
+      message = outgoing.last
+      expect(message.additional_attributes.dig('template_params', 'name')).to eq('cancelacion_v2')
+      expect(message.content_attributes['calendar_template_resource']).to include(
+        'resource_id' => resource.id, 'version' => resource.contract_snapshot['version'],
+        'variables' => %w[nombre cita fecha hora], 'actions' => {}, 'remote_template_id' => 'cancel-v2'
+      )
+      expect(message.additional_attributes.dig('template_params', 'processed_params', 'body')).to include('cita' => appointment.summary)
+    end
+
+    it 'does not send or silently select a legacy template after recategorization' do
+      resources.link!(template_name: 'cancelacion_v2', remote_template_id: 'cancel-v2')
+      channel.update!(message_templates: [templates.first.merge('category' => 'MARKETING')])
+      expect(notice.deliver!).to be(false)
+      expect(outgoing).to be_empty
     end
   end
 end

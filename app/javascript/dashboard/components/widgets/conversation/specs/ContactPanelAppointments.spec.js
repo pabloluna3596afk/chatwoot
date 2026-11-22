@@ -173,14 +173,28 @@ it.each([
   [
     'WhatsApp Cloud with approved template',
     true,
-    [{ name: 'cita_confirmacion', status: 'APPROVED', language: 'es' }],
+    [
+      {
+        name: 'cita_confirmacion',
+        status: 'APPROVED',
+        language: 'es',
+        category: 'UTILITY',
+      },
+    ],
     true,
   ],
   ['WhatsApp Cloud without approved template', true, [], false],
   [
     'another WhatsApp provider',
     false,
-    [{ name: 'cita_confirmacion', status: 'APPROVED', language: 'es' }],
+    [
+      {
+        name: 'cita_confirmacion',
+        status: 'APPROVED',
+        language: 'es',
+        category: 'UTILITY',
+      },
+    ],
     false,
   ],
   ['another channel', false, [], false],

@@ -5,7 +5,7 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
   let(:account) { create(:account, locale: 'es', reporting_timezone: 'America/Guayaquil', customer_reminders_enabled: true) }
   let(:channel) do
     create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
-                              validate_provider_config: false, message_templates: templates)
+                              validate_provider_config: false, provider_config: { 'business_account_id' => 'waba-1' }, message_templates: templates)
   end
   let(:templates) do
     [{ 'name' => 'cita_recordatorio', 'language' => account.locale, 'status' => 'APPROVED', 'category' => 'UTILITY' }]
@@ -41,6 +41,33 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     described_class.new.perform
     expect(outgoing).to be_empty
     expect(event.reload.customer_reminder_status).to be_nil
+  end
+
+  it 'queues the linked reminder version and preserves its resource snapshot' do
+    template = {
+      'id' => 'reminder-v2', 'name' => 'recordatorio_v2', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+      'parameter_format' => 'NAMED', 'components' => [
+        { 'type' => 'BODY', 'text' => '{{nombre}}, {{cita}}, {{fecha}}, {{hora}}' },
+        { 'type' => 'BUTTONS', 'buttons' => %w[Confirmar Reagendar Cancelar].map { |label| { 'type' => 'QUICK_REPLY', 'text' => label } } }
+      ]
+    }
+    channel.update!(message_templates: [template])
+    resource = Calendar::TemplateResources.new(account: account, function: :reminder, language: 'es', channel: channel)
+                                         .link!(template_name: template['name'], remote_template_id: template['id'])
+    described_class.new.perform
+    expect(outgoing.count).to eq(1)
+    expect(outgoing.last.additional_attributes.dig('template_params', 'name')).to eq('recordatorio_v2')
+    expect(outgoing.last.content_attributes.dig('calendar_template_resource', 'resource_id')).to eq(resource.id)
+  end
+
+  it 'does not queue a reclassified legacy reminder or consume an attempt' do
+    channel.update!(message_templates: [templates.first.merge('category' => 'MARKETING')])
+    described_class.new.perform
+    expect(outgoing).to be_empty
+    expect(event.reload.customer_reminder_status).to eq('no_template')
+    expect(conversation.messages.activity.last.additional_attributes['calendar_template_settings']).to include(
+      'path' => "/app/accounts/#{account.id}/settings/templates"
+    )
   end
 
   it 'does not enqueue reminders for appointments that opted out of customer notice' do

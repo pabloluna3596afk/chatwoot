@@ -5,9 +5,12 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
 
   let(:now) { Time.utc(2030, 1, 14, 15) }
   let(:account) { create(:account, locale: 'es', reporting_timezone: 'UTC', customer_reminders_enabled: true) }
+  let(:templates) do
+    [{ 'name' => 'cita_recordatorio', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY' }]
+  end
   let(:channel) do
     create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false,
-                              message_templates: [{ 'name' => 'cita_recordatorio', 'language' => 'es', 'status' => 'APPROVED' }])
+                              message_templates: templates)
   end
   let(:conversation) { create(:conversation, account: account, inbox: channel.inbox) }
   let(:event) do
@@ -63,7 +66,7 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     2.times { Calendar::CustomerReminders::Dispatcher.new.perform }
     expect(event.reload.customer_reminder_status).to eq('retry_1')
     expect(conversation.messages.activity.count).to eq(1)
-    channel.update!(message_templates: [{ 'name' => 'cita_recordatorio', 'language' => 'es', 'status' => 'APPROVED' }])
+    channel.update!(message_templates: [{ 'name' => 'cita_recordatorio', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY' }])
     Calendar::CustomerReminders::Dispatcher.new.perform
     expect(event.reload.customer_reminder_status).to eq('queued_2')
   end
@@ -83,6 +86,15 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     expect(service).not_to have_received(:perform)
     expect(event.reload.customer_reminder_status).to be_nil
     expect(Automations::ProactiveSendCap).not_to have_received(:new)
+  end
+
+  it 'does not send a queued reminder after its template becomes MARKETING' do
+    channel.update!(message_templates: [{ 'name' => 'cita_recordatorio', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'MARKETING' }])
+    SendReplyJob.perform_now(outgoing.last.id)
+    expect(service).not_to have_received(:perform)
+    expect(event.reload.customer_reminder_status).to be_nil
+    Calendar::CustomerReminders::Dispatcher.new.perform
+    expect(event.reload.customer_reminder_status).to eq('no_template')
   end
 
   it 'rechecks cancellation before delivery' do

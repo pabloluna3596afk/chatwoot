@@ -49,6 +49,30 @@ RSpec.shared_examples 'calendar template button replies' do |template_name|
     allow(Integrations::GoogleCalendar::Client).to receive(:new).and_return(client)
   end
 
+  it 'uses the sent action snapshot after a resource is renamed, replaced or removed' do
+    notice.update!(
+      additional_attributes: notice.additional_attributes.merge('template_params' => { 'name' => 'confirmacion_v2' }),
+      content_attributes: { 'calendar_template_resource' => {
+        'resource_id' => 123, 'version' => 'sent-version', 'function' => 'confirmation', 'actions' => { 'Asistiré' => 'confirm' }
+      } }
+    )
+    incoming = tap_button('Asistiré')
+    described_class.new(incoming).perform
+    expect(appointment.reload.appointment_status).to eq('confirmed')
+  end
+
+  it 'finds the most recent versioned notice without reply context' do
+    notice.update!(
+      additional_attributes: notice.additional_attributes.merge('template_params' => { 'name' => 'confirmacion_v2' }),
+      content_attributes: { 'calendar_template_resource' => {
+        'function' => 'confirmation', 'actions' => { 'Confirmar' => 'confirm' }
+      } }
+    )
+    incoming = tap_button('Confirmar', reply_to: nil)
+    described_class.new(incoming).perform
+    expect(appointment.reload.appointment_status).to eq('confirmed')
+  end
+
   %w[customer_confirmed customer_cancelled customer_cancel_failed customer_reschedule_requested answer_ignored_past
      answer_ignored_cancelled].each do |key|
     it "stores the literal contact and appointment names for #{key}" do

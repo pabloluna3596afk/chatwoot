@@ -12,6 +12,7 @@ class Calendar::CustomerReminders::Delivery
       next if @message.additional_attributes['customer_reminder_processed']
       next cancel unless current_claim? && eligible?
       next cancel unless Calendar::CustomerReminders::Schedule.sending_hours?(event.account, Time.current)
+      next cancel unless current_template?
 
       deliver
     end
@@ -35,6 +36,19 @@ class Calendar::CustomerReminders::Delivery
 
   def attempt
     @metadata.fetch('attempt')
+  end
+
+  # The queue can outlive an approval, category or explicit version selection.
+  def current_template?
+    return true if @message.source_id.present?
+
+    resources = Calendar::TemplateResources.new(account: event.account, function: :reminder,
+                                                language: Calendar::TemplateDefinitions.language(event.account), channel: @message.inbox.channel)
+    template = resources.resolve
+    return false unless template && template['name'] == @message.additional_attributes.dig('template_params', 'name')
+
+    snapshot = @message.content_attributes['calendar_template_resource']
+    snapshot.nil? || snapshot['version'] == resources.message_snapshot(template)['version']
   end
 
   def deliver

@@ -11,6 +11,7 @@ import {
 describe('hasApprovedAppointmentConfirmation', () => {
   const appointmentTemplate = {
     name: 'cita_confirmacion',
+    category: 'UTILITY',
     status: 'APPROVED',
     language: 'es',
   };
@@ -58,6 +59,33 @@ describe('hasApprovedAppointmentConfirmation', () => {
     expect(
       hasApprovedAppointmentConfirmation(
         { message_templates: [{ ...appointmentTemplate, name: 'other' }] },
+        'es'
+      )
+    ).toBe(false);
+  });
+
+  it('uses the current backend resource, including an unavailable replacement', () => {
+    const inbox = {
+      message_templates: [appointmentTemplate],
+      calendar_confirmation_template: {
+        name: 'confirmacion_v2',
+        language: 'es',
+        available: true,
+      },
+    };
+    expect(hasApprovedAppointmentConfirmation(inbox, 'es')).toBe(true);
+    inbox.calendar_confirmation_template.available = false;
+    expect(hasApprovedAppointmentConfirmation(inbox, 'es')).toBe(false);
+  });
+
+  it('rejects a reclassified legacy template', () => {
+    expect(
+      hasApprovedAppointmentConfirmation(
+        {
+          message_templates: [
+            { ...appointmentTemplate, category: 'MARKETING' },
+          ],
+        },
         'es'
       )
     ).toBe(false);

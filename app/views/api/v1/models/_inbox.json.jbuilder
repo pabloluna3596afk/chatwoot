@@ -147,6 +147,16 @@ json.bot_name resource.channel.try(:bot_name) if resource.telegram?
 
 ### WhatsApp Channel
 if resource.whatsapp?
+  if resource.channel.provider == 'whatsapp_cloud'
+    language = Calendar::TemplateDefinitions.language(resource.account)
+    confirmation = Calendar::TemplateResources.new(account: resource.account, function: :confirmation,
+                                                   language: language, channel: resource.channel).resolve
+    json.calendar_confirmation_template do
+      json.name confirmation&.fetch('name')
+      json.language language
+      json.available confirmation.present?
+    end
+  end
   message_templates = resource.channel.try(:message_templates)
   json.message_templates message_templates.is_a?(Array) ? Whatsapp::TemplateVariableBindingsService.new(resource.channel).merge_into(message_templates) : []
   json.provider_config resource.channel.try(:provider_config) if Current.account_user&.administrator?

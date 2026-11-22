@@ -19,10 +19,7 @@ class Integrations::GoogleCalendar::CustomerNotice
 
   # The requested approved template of this channel, or nil while it is missing, pending or rejected.
   def template
-    @template ||= Array(channel.message_templates).find do |item|
-      item.is_a?(Hash) && item['name'] == @template_name && item['status'].to_s.casecmp?('approved') &&
-        item['language'].to_s.casecmp?(language)
-    end
+    @template ||= resources.resolve
   end
 
   def deliver!(additional_attributes: {})
@@ -32,6 +29,7 @@ class Integrations::GoogleCalendar::CustomerNotice
     message = @conversation.messages.new(
       account_id: @conversation.account_id, inbox_id: @conversation.inbox_id, message_type: :outgoing, sender: @sender,
       content: rendered_body(values),
+      content_attributes: { 'calendar_template_resource' => resources.message_snapshot(template) },
       additional_attributes: additional_attributes.merge('template_params' => template_params(values), 'calendar_event_id' => @record.id)
     )
     message.variables_resolved!
@@ -40,6 +38,13 @@ class Integrations::GoogleCalendar::CustomerNotice
   end
 
   private
+
+  def resources
+    @resources ||= Calendar::TemplateResources.new(
+      account: @conversation.account, function: Calendar::TemplateDefinitions::FUNCTIONS.key(@template_name),
+      language: language, channel: channel
+    )
+  end
 
   def channel
     @conversation.inbox.channel
@@ -61,7 +66,7 @@ class Integrations::GoogleCalendar::CustomerNotice
 
   def body_text
     body = Array(template['components']).find { |component| component['type'] == 'BODY' }
-    body&.dig('text').presence || Calendar::ActivationKit::DEFINITIONS.fetch(@template_name).fetch(language)[:body]
+    body&.dig('text').presence || Calendar::TemplateDefinitions::DEFINITIONS.fetch(@template_name).fetch(language)[:body]
   end
 
   def rendered_body(values)
