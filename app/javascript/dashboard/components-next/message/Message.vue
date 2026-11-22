@@ -700,13 +700,13 @@ provideMessageContext({
             intent="tertiary"
             icon="i-lucide-reply"
             :aria-label="$t('CONVERSATION.REPLYBOX.REPLY')"
-            class="absolute top-1/2 -translate-y-1/2 !h-8 !w-8 !p-0 !rounded-full bg-n-solid-2 text-n-slate-11 focus-visible:ring-2 focus-visible:ring-n-brand motion-reduce:transition-none"
+            class="absolute top-1/2 -translate-y-1/2 !h-8 !w-8 !p-0 !rounded-full !bg-n-solid-3 hover:enabled:!bg-n-solid-3 !text-n-slate-12 shadow-md outline outline-1 outline-n-strong transition-opacity duration-150 before:absolute before:-inset-x-3 before:-inset-y-1 before:content-[''] focus-visible:ring-2 focus-visible:ring-n-brand motion-reduce:transition-none"
             :class="[
               isSwiping
                 ? 'start-0'
                 : orientation === ORIENTATION.RIGHT
-                  ? '-start-8'
-                  : '-end-8',
+                  ? '-start-11'
+                  : '-end-11',
               isSwiping
                 ? 'opacity-100 pointer-events-none'
                 : 'opacity-0 pointer-events-none md:group-hover/reply:opacity-100 md:group-hover/reply:pointer-events-auto group-focus-within/reply:opacity-100 group-focus-within/reply:pointer-events-auto',
