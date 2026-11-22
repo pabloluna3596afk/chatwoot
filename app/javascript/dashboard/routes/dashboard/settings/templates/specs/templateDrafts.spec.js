@@ -11,6 +11,17 @@ import en from 'dashboard/i18n/locale/en/whatsappTemplateMgmt.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
 
 describe('Local draft definitions', () => {
+  it.each([en, es])(
+    'keeps the compact local notice aligned with the translated review action',
+    messages => {
+      const drafts = messages.WHATSAPP_TEMPLATE_MGMT.DRAFTS;
+      expect(drafts.LOCAL_SAVE_HELP).toContain(drafts.SUBMIT);
+      expect(drafts.LOCAL_SAVE_HELP).not.toContain('?');
+      expect(drafts.LOCAL_SAVE_HELP).not.toContain('\uFFFD');
+      expect(drafts.LOCAL_DRAFT).not.toBe('');
+    }
+  );
+
   it('uses the library language for reopening, saving and previewing conflicting form languages', () => {
     const library = {
       template_name: 'appointment',

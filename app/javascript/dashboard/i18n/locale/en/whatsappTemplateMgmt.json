@@ -379,7 +379,7 @@
       "LAST_EDITED": "Last edited",
       "DELETED": "Draft deleted.",
       "LOCAL_DRAFT": "Local draft",
-      "LOCAL_SAVE_HELP": "Only ?Send for review? sends it to Meta.",
+      "LOCAL_SAVE_HELP": "Only “Submit for review” sends it to Meta.",
       "SAVING": "Saving…",
       "SENDING": "Submitting…",
       "UNSAVED": "Unsaved changes",

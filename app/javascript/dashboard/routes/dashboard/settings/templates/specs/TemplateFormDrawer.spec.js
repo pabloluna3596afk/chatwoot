@@ -875,7 +875,15 @@ describe('TemplateFormDrawer drafts', () => {
     );
     expect(
       wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
-    ).toBeDefined();
+    ).toBeUndefined();
+    await wrapper.get('[data-testid="submit-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).toBe('true');
     wrapper.unmount();
   });
 

@@ -1,3 +1,9 @@
+### B-NEW-300 - Segundo pulido de borradores de plantillas (2026-11-21)
+
+- **Archivos:** `settings/templates/TemplateFormDrawer.vue`, `PresetsPanel.vue`, traducciones en/es y specs de ambos paneles.
+- **Arreglo:** un bloque compacto de estado local; requisitos de envío en tooltip; bandeja opcional neutral al guardar/reabrir, validación al intentar enviar; pie móvil sin partir etiquetas y vista previa con nombre accesible; notas de categorías como chips; aviso de navegación de 8 segundos usando el popover compartido.
+- **Cómo probar:** guardar y reabrir sin bandeja, intentar enviar y corregir; comprobar que el intento inválido no llama a Meta; usar Ver en Plantillas y verificar filtros; revisar a 390 px, RTL y oscuro. Specs de paneles y snackbar en UTC y America/Guayaquil. Las medidas reales y la superposición nativa quedan para las fotos del PM, sin navegador ni preview en esta sesión.
+
 ### B-NEW-299 - Indicadores y correcci?n de borradores de plantillas (2026-11-21)
 
 - **Archivos:** `settings/templates/{LibraryPanel,PresetsPanel,TemplateFormDrawer,Index}.vue`, `presets.js`, `templateDraftErrors.js`; componentes compartidos `PresetPicker`, `WhatsAppBubble` y `Snackbar`; traducciones en/es y specs correspondientes.
