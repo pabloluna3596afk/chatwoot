@@ -14,11 +14,16 @@ class CreateCalendarTemplateResources < ActiveRecord::Migration[7.1]
       t.jsonb :contract_snapshot, null: false, default: {}
       t.timestamps
     end
-    add_index :calendar_template_resources, [:account_id, :function, :language, :waba_id], unique: true,
-              where: 'waba_id IS NOT NULL',
-              name: 'index_calendar_resources_on_waba_identity'
-    add_index :calendar_template_resources, [:account_id, :function, :language], unique: true,
-              where: 'waba_id IS NULL',
-              name: 'index_calendar_resources_on_local_identity'
+    add_identity_indexes
+  end
+
+  private
+
+  def add_identity_indexes
+    columns = [:account_id, :function, :language]
+    add_index :calendar_template_resources, columns + [:waba_id],
+              unique: true, where: 'waba_id IS NOT NULL', name: 'index_calendar_resources_on_waba_identity'
+    add_index :calendar_template_resources, columns,
+              unique: true, where: 'waba_id IS NULL', name: 'index_calendar_resources_on_local_identity'
   end
 end

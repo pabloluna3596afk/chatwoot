@@ -91,8 +91,8 @@ RSpec.describe Calendar::TemplateResources do
   it 'shares an identity between two numbers of the same WABA, never across WABAs' do
     binding
     second = create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
-                                        validate_provider_config: false, provider_config: channel.provider_config,
-                                        message_templates: [template])
+                                       validate_provider_config: false, provider_config: channel.provider_config,
+                                       message_templates: [template])
     resolver = described_class.new(account: account, function: :confirmation, language: 'es', channel: second)
     expect(resolver.resolve).to eq(template)
     expect(resolver.resource.id).to eq(binding.id)
