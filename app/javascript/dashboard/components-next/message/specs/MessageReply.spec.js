@@ -71,7 +71,7 @@ describe('message reply shortcuts', () => {
     const wrapper = render();
     const button = wrapper.get('[data-reply-button]');
     expect(button.attributes('aria-label')).toBe('CONVERSATION.REPLYBOX.REPLY');
-    expect(button.classes()).toContain('-end-8');
+    expect(button.classes()).toContain('-end-11');
     expect(button.classes()).toContain('group-focus-within/reply:opacity-100');
     await button.trigger('click');
     const remove = vi.spyOn(window.getSelection(), 'removeAllRanges');
@@ -85,7 +85,7 @@ describe('message reply shortcuts', () => {
       )
     ).toHaveLength(2);
     await wrapper.setProps({ messageType: 1, sender: { id: 3, type: 'User' } });
-    expect(button.classes()).toContain('-start-8');
+    expect(button.classes()).toContain('-start-11');
     wrapper.unmount();
   });
 
