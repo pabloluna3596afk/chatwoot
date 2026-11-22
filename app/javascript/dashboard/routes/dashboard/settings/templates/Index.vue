@@ -566,9 +566,26 @@ const refreshTemplates = async () => {
   if (canSync.value) await syncTemplates();
   await fetchTemplates();
 };
-const onLibraryCreated = () => {
+const viewDraft = record => {
+  // Only the toast action changes the list context; saving keeps every filter.
+  activeTab.value = 'templates';
+  selectedStatus.value = 'all';
+  selectedInboxId.value = 'all';
+  selectedLanguage.value = 'all';
+  selectedType.value = 'all';
+  selectedCategory.value = 'all';
+  missingOnly.value = false;
+  searchQuery.value = '';
+  drafts.value = [
+    record,
+    ...drafts.value.filter(item => item.id !== record.id),
+  ];
+  templatePage.value = 1;
+};
+const onLibraryCreated = draft => {
   activeTab.value = 'templates';
   fetchTemplates();
+  formDrawerRef.value?.openDraft(draft);
 };
 
 onActivated(fetchTemplates);
@@ -700,6 +717,7 @@ onDeactivated(abortTemplateRequest);
       </KeepAlive>
       <PresetsPanel
         v-if="showPresets"
+        :search="searchQuery"
         :inboxes="cloudInboxes"
         :templates="templates"
         @use="applyPreset"
@@ -833,6 +851,7 @@ onDeactivated(abortTemplateRequest);
       :inboxes="whatsappInboxes"
       :templates="templates"
       @saved="fetchTemplates"
+      @view-draft="viewDraft"
     />
     <Dialog
       v-if="isAdmin"

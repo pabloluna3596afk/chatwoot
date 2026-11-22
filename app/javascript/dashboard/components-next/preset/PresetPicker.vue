@@ -7,6 +7,7 @@ const props = defineProps({
   items: { type: Array, default: () => [] },
   groups: { type: Array, default: () => [] },
   searchable: { type: Boolean, default: false },
+  searchQuery: { type: String, default: '' },
   columns: {
     type: Number,
     default: 2,
@@ -19,7 +20,9 @@ const emit = defineEmits(['apply']);
 const search = ref('');
 
 const visibleItems = computed(() => {
-  const query = search.value.trim().toLocaleLowerCase();
+  const query = (props.searchable ? search.value : props.searchQuery)
+    .trim()
+    .toLocaleLowerCase();
   if (!query) return props.items;
   return props.items.filter(item =>
     [item.title, item.description, ...(item.tags || []).map(tag => tag.label)]

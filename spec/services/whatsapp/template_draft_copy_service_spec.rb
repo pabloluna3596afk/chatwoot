@@ -29,4 +29,20 @@ RSpec.describe Whatsapp::TemplateDraftCopyService do
     expect(copy.definition.dig('body', 'examples')).to eq(%w[Ana lunes])
     expect(channel.reload.message_templates).to eq([remote])
   end
+
+  it 'keeps library mode in a new version from the immutable submitted snapshot, without remote IDs' do
+    definition = { 'library' => { 'template_name' => 'appointment', 'language' => 'es', 'button_inputs' => [],
+                                  'preview' => { 'body' => 'Tu cita' } } }
+    draft = create(:whatsapp_template_draft, account: account, definition: definition)
+    WhatsappTemplateSubmission.create!(whatsapp_template_draft: draft, account: account, remote_id: 'meta-library',
+                                       revision: 0, name: draft.name, language: 'es', payload_digest: 'digest',
+                                       waba_id: channel.provider_config.fetch('business_account_id'),
+                                       snapshot: { 'library_definition' => definition })
+    channel.update!(message_templates: [{ 'id' => 'meta-library', 'name' => 'installed', 'language' => 'es', 'category' => 'UTILITY' }])
+    copy = service.from_remote(channel, 'meta-library')
+    expect(copy.definition).to eq(definition)
+    expect(copy.submissions).to be_empty
+    expect(copy.definition.to_json).not_to include('meta-library')
+    expect(copy.source_remote_id).to eq('meta-library')
+  end
 end

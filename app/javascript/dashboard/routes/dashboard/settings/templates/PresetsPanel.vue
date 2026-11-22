@@ -13,6 +13,7 @@ defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
   inboxes: { type: Array, default: () => [] },
   templates: { type: Array, default: () => [] },
+  search: { type: String, default: '' },
 });
 
 const emit = defineEmits(['use', 'created']);
@@ -53,13 +54,36 @@ const presets = computed(() =>
       <h2 class="text-heading-2 text-n-slate-12">
         {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.TITLE') }}
       </h2>
-      <p class="mt-1 text-body-main text-n-slate-11">
+      <p class="mb-0 mt-1 text-body-main text-n-slate-11">
         {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DESCRIPTION') }}
       </p>
+      <div
+        class="mt-1 flex flex-wrap gap-1.5 text-xs text-n-slate-11"
+        data-testid="category-help"
+      >
+        <span
+          class="inline-flex max-w-full items-center gap-1 rounded-md bg-n-alpha-1 px-1 py-0.5"
+          data-testid="category-chip"
+        >
+          <span class="shrink-0 rounded bg-n-teal-3 px-1 text-n-teal-11">{{
+            $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.UTILITY.LABEL')
+          }}</span>
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.UTILITY') }}
+        </span>
+        <span
+          class="inline-flex max-w-full items-center gap-1 rounded-md bg-n-alpha-1 px-1 py-0.5"
+          data-testid="category-chip"
+        >
+          <span class="shrink-0 rounded bg-n-amber-3 px-1 text-n-amber-11">{{
+            $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.MARKETING.LABEL')
+          }}</span>
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.MARKETING') }}
+        </span>
+      </div>
     </div>
-
     <PresetPicker
       :items="presets"
+      :search-query="search"
       :groups="groups"
       :columns="2"
       @apply="preset => emit('use', preset)"
@@ -88,13 +112,6 @@ const presets = computed(() =>
                 })
               }}
             </p>
-            <p class="mt-2 text-xs text-n-slate-10">
-              {{
-                $t(
-                  `WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.${item.category}`
-                )
-              }}
-            </p>
             <p v-if="item.disabled" class="mt-2 text-xs text-n-amber-11">
               {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DISABLED_FORMS') }}
             </p>
@@ -102,6 +119,7 @@ const presets = computed(() =>
           <template #actions>
             <Button
               :label="item.actionLabel"
+              :aria-label="`${item.actionLabel}: ${item.title}`"
               :icon="item.actionIcon"
               size="sm"
               intent="primary"
@@ -117,7 +135,7 @@ const presets = computed(() =>
     <LibraryPanel
       :inboxes="inboxes"
       :templates="templates"
-      @created="emit('created')"
+      @created="draft => emit('created', draft)"
     />
   </div>
 </template>

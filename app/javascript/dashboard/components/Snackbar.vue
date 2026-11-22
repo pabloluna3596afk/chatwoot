@@ -1,20 +1,10 @@
-<script>
-export default {
-  props: {
-    message: { type: String, default: '' },
-    action: {
-      type: Object,
-      default: () => {},
-    },
-  },
-  data() {
-    return {
-      toggleAfterTimeout: false,
-    };
-  },
-  mounted() {},
-  methods: {},
-};
+<script setup>
+import Button from 'dashboard/components-next/button/Button.vue';
+
+defineProps({
+  message: { type: String, default: '' },
+  action: { type: Object, default: null },
+});
 </script>
 
 <template>
@@ -33,6 +23,14 @@ export default {
         >
           {{ action.message }}
         </router-link>
+        <Button
+          v-else-if="action.type === 'callback'"
+          intent="link"
+          size="sm"
+          @click="action.onClick"
+        >
+          {{ action.message }}
+        </Button>
       </div>
     </div>
   </div>

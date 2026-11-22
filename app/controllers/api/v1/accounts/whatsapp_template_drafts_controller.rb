@@ -1,6 +1,6 @@
 class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?
-  before_action :fetch_draft, except: [:index, :create, :new_version]
+  before_action :fetch_draft, except: [:index, :create, :new_version, :from_blueprint, :from_library]
   before_action :validate_input, only: [:create, :update]
   before_action :validate_pagination, only: :index
   before_action :validate_revision, only: [:update, :archive, :destroy, :remove_media, :submit]
@@ -11,6 +11,10 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
   end
   rescue_from Whatsapp::TemplateHeaderMedia::InvalidFile do |error|
     render json: { error: "file_#{error.reason}" }, status: :unprocessable_entity
+  end
+
+  rescue_from Whatsapp::TemplateManagementService::Error do |error|
+    render json: { error: error.code, message: error.detail }, status: :unprocessable_entity
   end
 
   rescue_from ActiveRecord::StaleObjectError do
@@ -51,6 +55,21 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
     draft = Current.account.whatsapp_template_drafts.new(draft_attributes.merge(created_by: Current.user, updated_by: Current.user))
     draft.save!
     render_draft(draft, :created)
+  end
+
+  def from_blueprint
+    return invalid_input unless params[:blueprint_id].is_a?(String)
+    return invalid_input unless Whatsapp::TemplateDraftInput.optional?(params, :channel_id, Integer)
+
+    service = Whatsapp::TemplateDraftSourceService.new(Current.account, Current.user, source_channel)
+    render_draft(service.from_blueprint(params[:blueprint_id]), :created)
+  end
+
+  def from_library
+    return invalid_input unless library_input_valid?
+
+    service = Whatsapp::TemplateDraftSourceService.new(Current.account, Current.user, source_channel)
+    render_draft(service.from_library(library_attributes), :created)
   end
 
   def update
@@ -124,6 +143,34 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
 
   private
 
+  def library_input_valid?
+    %i[library_template_name name language category].all? { |key| params[key].is_a?(String) } &&
+      Whatsapp::TemplateDraftInput.optional?(params, :channel_id, Integer) &&
+      library_optional_input?(:button_inputs, Array) && library_optional_input?(:preview, ActionController::Parameters)
+  end
+
+  def library_optional_input?(key, type)
+    !params.key?(key) || params[key].is_a?(type)
+  end
+
+  def library_attributes
+    attributes = params.permit(:library_template_name, :name, :language, :category).to_h.symbolize_keys
+    if params.key?(:button_inputs)
+      attributes[:button_inputs] = params[:button_inputs].map { |input| input.is_a?(ActionController::Parameters) ? input.to_unsafe_h : input }
+    end
+    attributes[:preview] = params[:preview].to_unsafe_h if params.key?(:preview)
+    attributes
+  end
+
+  def source_channel
+    return unless params[:channel_id]
+
+    channel = Current.account.whatsapp_channels.find(params[:channel_id])
+    raise Whatsapp::TemplateComponentsBuilder::Invalid, 'cloud_channel_required' unless channel.provider == 'whatsapp_cloud'
+
+    channel
+  end
+
   def fetch_draft
     @draft = Current.account.whatsapp_template_drafts.find(params[:id])
   end
@@ -151,7 +198,9 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
 
   def validate_input
     raw = params[:draft]
-    invalid_input unless Whatsapp::TemplateDraftInput.valid?(raw)
+    return invalid_input unless Whatsapp::TemplateDraftInput.valid?(raw)
+
+    invalid_input unless Whatsapp::TemplateDraftInput.library_language_valid?(raw, @draft)
   end
 
   def invalid_input

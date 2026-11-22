@@ -190,4 +190,48 @@ RSpec.describe Whatsapp::TemplateSubmissionService do
     described_class.new(submission).perform(refresh: true)
     expect(submission.reload).to have_attributes(status: 'submitted', remote_status: 'NEW_STATE', remote_reason: 'Remote reason')
   end
+
+  context 'with a library draft' do
+    let(:draft) do
+      Whatsapp::TemplateDraftSourceService.new(account, actor, channel).from_library(
+        library_template_name: 'appointment', name: 'my_appointment', language: 'es_EC', category: 'UTILITY',
+        button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '+593999999999' }]
+      )
+    end
+    let(:remote) do
+      submission.snapshot.fetch('reconciliation_payload').merge('id' => 'meta-library', 'name' => draft.name, 'language' => 'es',
+                                                                'status' => 'PENDING', 'category' => 'UTILITY')
+    end
+
+    before do
+      stub_request(:get, 'https://graph.facebook.com/v22.0/message_template_library').with(query: hash_including('language' => 'es')).to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json' },
+        body: { data: [{ name: 'appointment', language: 'es', body: 'Tu cita', buttons: [{ type: 'PHONE_NUMBER', text: 'Llamar' }] }] }.to_json
+      )
+    end
+
+    it 'sends the library wire payload through the existing Meta client rather than generic components' do
+      post = stub_request(:post, endpoint).with(body: {
+        name: 'my_appointment', language: 'es', category: 'UTILITY', library_template_name: 'appointment',
+        library_template_button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '+593999999999' }]
+      }.to_json).to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: remote.to_json)
+      described_class.new(submission).perform
+      described_class.new(submission).perform
+      expect(post).to have_been_requested.once
+      expect(submission.reload).to have_attributes(status: 'submitted', language: 'es', remote_id: 'meta-library')
+    end
+
+    it 'matches the canonical remote language and content after a library POST timeout without repeating it' do
+      post = stub_request(:post, endpoint).to_timeout
+      described_class.new(submission).perform
+      stub_request(:get, endpoint).with(query: hash_including('name' => draft.name)).to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json' }, body: { data: [remote] }.to_json
+      )
+      travel 31.seconds do
+        described_class.new(submission).perform
+      end
+      expect(submission.reload.status).to eq('submitted')
+      expect(post).to have_been_requested.once
+    end
+  end
 end

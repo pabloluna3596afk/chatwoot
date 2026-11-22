@@ -5,11 +5,45 @@ import {
   formFromDraft,
   draftRow,
   hasOpaqueComponents,
+  libraryPreview,
 } from '../templateDrafts';
 import en from 'dashboard/i18n/locale/en/whatsappTemplateMgmt.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
 
 describe('Local draft definitions', () => {
+  it.each([en, es])(
+    'keeps the compact local notice aligned with the translated review action',
+    messages => {
+      const drafts = messages.WHATSAPP_TEMPLATE_MGMT.DRAFTS;
+      expect(drafts.LOCAL_SAVE_HELP).toContain(drafts.SUBMIT);
+      expect(drafts.LOCAL_SAVE_HELP).not.toContain('?');
+      expect(drafts.LOCAL_SAVE_HELP).not.toContain('\uFFFD');
+      expect(drafts.LOCAL_DRAFT).not.toBe('');
+    }
+  );
+
+  it('uses the library language for reopening, saving and previewing conflicting form languages', () => {
+    const library = {
+      template_name: 'appointment',
+      language: 'es',
+      preview: { body: 'Tu cita' },
+    };
+    const form = formFromDraft(
+      { language: 'en_US', definition: { library } },
+      []
+    );
+    expect(form.language).toBe('es');
+    form.language = 'en_US';
+    expect(draftFromForm(form, []).language).toBe('es');
+    expect(libraryPreview(form)).toMatchObject({ language: 'es' });
+    expect(libraryPreview(form).components).toContainEqual({
+      type: 'BODY',
+      text: 'Tu cita',
+    });
+    expect(
+      draftRow({ language: 'en_US', definition: { library } }, []).language
+    ).toBe('es');
+  });
   const inboxes = [
     {
       id: 7,
@@ -117,5 +151,49 @@ describe('Local draft definitions', () => {
     expect(formFromDraft(record, []).parameterFormat).toBe('POSITIONAL');
     record.definition.body.text = 'Hello {{nombre}}.';
     expect(formFromDraft(record, []).parameterFormat).toBe('NAMED');
+  });
+  it('round-trips library mode without editable body and renders the saved Meta preview in the table', () => {
+    const library = {
+      template_name: 'appointment',
+      language: 'es',
+      button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }],
+      preview: {
+        body: 'Tu cita {{1}}',
+        buttons: [{ type: 'PHONE_NUMBER', text: 'Llamar' }],
+      },
+    };
+    const record = {
+      id: 31,
+      name: 'my_appointment',
+      language: 'es',
+      category: 'UTILITY',
+      definition: { library },
+      submissions: [],
+    };
+    const form = formFromDraft(record, []);
+    expect(form.body.text).toBe('');
+    expect(draftFromForm(form, []).definition).toEqual({ library });
+    form.library.button_inputs[0].phone_number = '+593999999999';
+    expect(record.definition.library.button_inputs[0].phone_number).toBe('');
+    expect(draftRow(record, []).components).toContainEqual({
+      type: 'BODY',
+      text: 'Tu cita {{1}}',
+    });
+  });
+  it('reopens a library definition with the documented omitted button inputs', () => {
+    const form = formFromDraft(
+      {
+        definition: {
+          library: { template_name: 'appointment', language: 'es' },
+        },
+      },
+      []
+    );
+    expect(form.library.button_inputs).toEqual([]);
+    expect(draftFromForm(form, []).definition.library).toEqual({
+      template_name: 'appointment',
+      language: 'es',
+      button_inputs: [],
+    });
   });
 });

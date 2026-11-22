@@ -229,16 +229,16 @@
     },
     "PRESETS": {
       "TITLE": "Preset templates",
-      "DESCRIPTION": "Pick one, adjust it if you like and send it to Meta for review. Nothing is sent until you save it.",
-      "USE": "Use",
+      "DESCRIPTION": "Choose a preset, customize it and save a local draft. Only “Submit for review” sends it to Meta.",
+      "USE": "Customize and save",
       "GROUPS": {
         "APPOINTMENTS": "Appointments",
         "FOLLOWUP": "Re-engagement and follow-up",
         "CUSTOMER_DATA": "Customer data"
       },
       "CATEGORY_NOTE": {
-        "UTILITY": "Utility: notifies or confirms something the customer already asked for.",
-        "MARKETING": "Marketing: invites the customer back or to continue; Meta charges more per message."
+        "UTILITY": "Confirms a request.",
+        "MARKETING": "Invites customers back; higher cost."
       },
       "DISABLED_FORMS": "Available once you can create WhatsApp forms.",
       "VARIABLES": "Variables: {variables}",
@@ -278,12 +278,12 @@
       },
       "LIBRARY": {
         "TITLE": "Meta library",
-        "DESCRIPTION": "Utility templates already written by Meta. The text is fixed; you only choose the name and the data their buttons ask for.",
+        "DESCRIPTION": "Create a local draft using Meta’s text. Only “Submit for review” sends it to Meta.",
         "SEARCH": "Search the library...",
         "LANGUAGE": "Language",
         "EMPTY": "No library templates for this search or language.",
         "LOAD_MORE": "Load more",
-        "USE": "Use",
+        "USE": "Create draft",
         "ERROR": "The Meta library could not be read. Please try again.",
         "ERROR_DETAIL": "The Meta library could not be read: {message}",
         "LANGUAGE_USED": "Library language: {language}",
@@ -291,17 +291,21 @@
         "CATEGORY": "Category: {category}",
         "DIALOG": {
           "TITLE": "Create from the library",
-          "DESCRIPTION": "It is created with Meta's text and goes to review.",
+          "DESCRIPTION": "Create a local draft using Meta’s text. Only “Submit for review” sends it to Meta.",
           "NAME": "Template name",
           "CHANNEL": "WhatsApp channel",
           "PHONE": "Phone for the call button ({text})",
           "URL": "Link for the \"{text}\" button",
           "URL_SUFFIX": "Example of the variable part of the link",
-          "CREATE": "Create template",
-          "CREATED": "Template sent to Meta.",
-          "CREATED_LANGUAGE": "Template sent to Meta in {language}.",
+          "CREATE": "Create draft",
+          "CREATED": "Draft created locally.",
+          "CREATED_LANGUAGE": "Draft created locally in {language}.",
           "ERROR": "The template could not be created. Please try again."
-        }
+        },
+        "CREATING": "Creating draft…",
+        "LOADING": "Loading library…",
+        "RETRY": "Retry",
+        "NO_INBOXES": "Connect a WhatsApp Cloud inbox to use the library."
       }
     },
     "SYNC_COMPACT": "Sync",
@@ -326,6 +330,7 @@
     },
     "MISSING_VARIABLES": "Missing value for {variables}",
     "DRAFTS": {
+      "LIBRARY_READ_ONLY": "Meta owns this text. You can edit the name, language, category and button values. The text is checked with Meta in the selected language when submitted.",
       "SAVE": "Save draft",
       "EDIT_TITLE": "Edit draft",
       "NEW_VERSION_TITLE": "New version",
@@ -370,9 +375,32 @@
         "SUBMITTED": "Submitted to Meta"
       },
       "REQUEST_ERROR": "Could not complete the action: {message}",
-      "SUBMIT_REQUIREMENTS": "Complete the required fields before submitting for review. You can keep saving your draft.",
+      "SUBMIT_REQUIREMENTS": "To submit: save the draft, choose a WhatsApp account and complete the name, language, message, examples and required buttons.",
       "LAST_EDITED": "Last edited",
-      "DELETED": "Draft deleted."
+      "DELETED": "Draft deleted.",
+      "LOCAL_DRAFT": "Local draft",
+      "LOCAL_SAVE_HELP": "Only “Submit for review” sends it to Meta.",
+      "SAVING": "Saving…",
+      "SENDING": "Submitting…",
+      "UNSAVED": "Unsaved changes",
+      "SAVED_LOCALLY": "Saved locally",
+      "INTERNAL_TITLE_HELP": "Only for organizing your drafts; it does not appear in WhatsApp.",
+      "VIEW_IN_TEMPLATES": "View in Templates",
+      "IDENTITY_CONFLICT": "A draft with this name already exists for this WhatsApp account and language. Change the name or open the existing draft.",
+      "INVALID_DRAFT": "Check the draft details and save again.",
+      "FIELD_ERRORS": {
+        "title": "Use a title of up to 100 characters.",
+        "name": "Check the name: use up to 512 lowercase letters, numbers and underscores.",
+        "inboxId": "Choose an inbox belonging to this WhatsApp account.",
+        "language": "Choose a valid language.",
+        "category": "Choose a valid category.",
+        "body": {
+          "text": "Check the message and its variable values."
+        },
+        "header": {
+          "media": "Check the header file and attach it again."
+        }
+      }
     }
   }
 }

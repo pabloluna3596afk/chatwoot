@@ -46,7 +46,7 @@ const items = computed(() =>
       class="flex flex-col gap-1 p-3 rounded-xl bg-[#efeae2] dark:bg-[#0b141a]"
     >
       <div
-        class="overflow-hidden rounded-lg rounded-tl-none shadow-sm bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef]"
+        class="overflow-hidden rounded-lg rounded-ss-none shadow-sm bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef]"
       >
         <div
           v-if="headerMedia"

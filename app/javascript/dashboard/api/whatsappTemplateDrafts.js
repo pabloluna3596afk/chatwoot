@@ -14,6 +14,17 @@ class WhatsappTemplateDraftsAPI extends ApiClient {
     return axios.post(this.url, { draft });
   }
 
+  fromLibrary(attributes) {
+    return axios.post(`${this.url}/from_library`, attributes);
+  }
+
+  fromBlueprint(blueprintId, channelId = null) {
+    return axios.post(`${this.url}/from_blueprint`, {
+      blueprint_id: blueprintId,
+      channel_id: channelId,
+    });
+  }
+
   update(id, draft) {
     return axios.patch(`${this.url}/${id}`, { draft });
   }

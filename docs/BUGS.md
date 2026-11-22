@@ -1,3 +1,17 @@
+### B-NEW-300 - Segundo pulido de borradores de plantillas (2026-11-21)
+
+- **Archivos:** `settings/templates/TemplateFormDrawer.vue`, `PresetsPanel.vue`, traducciones en/es y specs de ambos paneles.
+- **Arreglo:** un bloque compacto de estado local; requisitos de envío en tooltip; bandeja opcional neutral al guardar/reabrir, validación al intentar enviar; pie móvil sin partir etiquetas y vista previa con nombre accesible; notas de categorías como chips; aviso de navegación de 8 segundos usando el popover compartido.
+- **Cómo probar:** guardar y reabrir sin bandeja, intentar enviar y corregir; comprobar que el intento inválido no llama a Meta; usar Ver en Plantillas y verificar filtros; revisar a 390 px, RTL y oscuro. Specs de paneles y snackbar en UTC y America/Guayaquil. Las medidas reales y la superposición nativa quedan para las fotos del PM, sin navegador ni preview en esta sesión.
+
+### B-NEW-299 - Indicadores y correcci?n de borradores de plantillas (2026-11-21)
+
+- **Archivos:** `settings/templates/{LibraryPanel,PresetsPanel,TemplateFormDrawer,Index}.vue`, `presets.js`, `templateDraftErrors.js`; componentes compartidos `PresetPicker`, `WhatsAppBubble` y `Snackbar`; traducciones en/es y specs correspondientes.
+- **Problema:** guardar y enviar compart?an indicador, los errores mostraban atributos internos, la biblioteca no anunciaba carga ni ofrec?a reintento y el buscador superior no filtraba las predefinidas. El pie m?vil ten?a varias acciones de ancho completo y un borrador guardado pod?a quedar oculto por los filtros.
+- **Cambio:** guardado local expl?cito, progreso de la tarjeta/operaci?n activa y bloqueo de doble clic; errores de identidad y validaci?n traducidos junto al campo con foco; carga/reintento/vac?os distintos; t?tulo interno precargado y b?squeda ?nica de predefinidas; Guardar como ?nica acci?n principal m?vil. Tras guardar, el panel permanece abierto y el aviso ofrece ?Ver en Plantillas?: solo esa acci?n cambia pesta?a/filtros y coloca el borrador al inicio. Esquina l?gica de la burbuja para RTL.
+- **C?mo probar:** Vitest de `settings/templates/specs`, `WhatsAppBubble.spec.js`, `Snackbar.spec.js` y `SnackbarContainer.spec.js` en `TZ=UTC` y `TZ=America/Guayaquil`. Incluye doble clic, red, 422, 409, foco y paridad recursiva en/es. Nueve comprobaciones nuevas fallan sobre el c?digo anterior.
+- **Pendiente visual:** el PM debe ejecutar la app y revisar 390 px, claro/oscuro, RTL y capturas reales. No se us? navegador, escritorio, preview ni Docker. Sin cambios de backend, migraciones, contratos de endpoints ni l?gica de env?o a Meta; sin push ni PR.
+
 ### B-NEW-298 - Pulido de actividades, email, grupos y citas del chat (2026-11-21)
 
 - **Archivos:** `components-next/message/{Message,ReplyPreview,CaptainGenerationDetails}.vue`, `bubbles/{Activity,Base,Email/Index}.vue`, `widgets/conversation/ReplyBox.vue` y sus specs.
@@ -10,6 +24,9 @@
 
 
 ### B-NEW-293 - Borradores locales y revisión de plantillas WhatsApp (2026-11-20)
+
+- **Cierre de biblioteca (2026-11-21):** `templateDrafts.js` toma el idioma de `definition.library` para abrir, guardar y previsualizar; `TemplateFormDrawer.vue` bloquea cambiarlo sin elegir otra plantilla. `TemplateDraftInput` rechaza con `422 invalid_draft` crear/editar con idiomas efectivos contradictorios, incluido un PATCH solo de idioma; permite la equivalencia regional de biblioteca existente. Specs: `templateDrafts.spec.js`, `TemplateFormDrawer.spec.js` y requests `whatsapp_template_drafts_spec.rb` (estos últimos quedan para el PM, sin ejecutar RSpec en este cierre).
+- **Revisión manual del cierre:** las cinco suites Ruby modificadas conservan sus expectativas previas; solo cambia alineación y se agregan dos requests de idioma. Se revisaron copia por cuenta/WABA/ID, ejemplos nombrados, orden de inputs, snapshot inmutable y reconciliación con coincidencia/ausencia/ambigüedad y límite de reintentos. Los controladores/servicios legados de creación directa y blueprints no tienen diff. La ejecución RSpec sigue pendiente del PM: esta revisión no acredita que los ejemplos hayan pasado en esta sesión.
 
 - **Archivos:** modelos `WhatsappTemplateDraft`/`WhatsappTemplateSubmission`, migración `20261120120000`, API `whatsapp_template_drafts`, servicios de validación/copia/envío/reconciliación y sincronización por WABA.
 - **Problema:** guardar una plantilla con el recorrido existente crea inmediatamente el recurso en Meta; no había preparación local durable ni intento inmutable para recuperar un timeout.

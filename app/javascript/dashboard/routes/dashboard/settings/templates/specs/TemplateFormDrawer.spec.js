@@ -10,6 +10,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { draftFromForm } from '../templateDrafts';
 import { emptyForm } from '../templateForm';
 import { useAlert } from 'dashboard/composables';
+import SnackbarContainer from 'dashboard/components/SnackbarContainer.vue';
 import InboxesAPI from 'dashboard/api/inboxes';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 vi.mock('dashboard/api/inboxes', () => ({
@@ -110,10 +111,10 @@ const SidePanelStub = {
 
 beforeEach(mockNativeDialog);
 
-const mountDrawer = async (props = {}, realPanel = false) => {
+const mountDrawer = async (props = {}, realPanel = false, attached = false) => {
   const wrapper = mount(TemplateFormDrawer, {
     props: { inboxes, ...props },
-    attachTo: realPanel ? document.body : undefined,
+    attachTo: realPanel || attached ? document.body : undefined,
     global: {
       mocks: {
         $te: () => true,
@@ -190,6 +191,63 @@ describe('TemplateFormDrawer drafts', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });
+  it('opens library text read-only, saves button values and submits through the common draft API', async () => {
+    const libraryRecord = {
+      ...record,
+      parameter_format: 'POSITIONAL',
+      definition: {
+        library: {
+          template_name: 'appointment',
+          language: 'es',
+          preview: {
+            body: 'Fixed Meta text',
+            buttons: [{ type: 'PHONE_NUMBER', text: 'Call' }],
+          },
+          button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }],
+        },
+      },
+    };
+    DraftsAPI.show.mockResolvedValue({ data: structuredClone(libraryRecord) });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(libraryRecord);
+    await flushPromises();
+    expect(
+      wrapper
+        .findComponent('[data-testid="template-language"]')
+        .props('disabled')
+    ).toBe(true);
+    expect(wrapper.get('[data-testid="library-preview"]').text()).toContain(
+      'Fixed Meta text'
+    );
+    expect(wrapper.find('[data-testid="message-editor"]').exists()).toBe(false);
+    expect(
+      wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
+    ).toBeUndefined();
+    await wrapper
+      .get('[data-testid="library-phone-0"] input')
+      .setValue('+593999999999');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.update).toHaveBeenCalledWith(
+      31,
+      expect.objectContaining({
+        definition: {
+          library: {
+            ...libraryRecord.definition.library,
+            button_inputs: [
+              { type: 'PHONE_NUMBER', phone_number: '+593999999999' },
+            ],
+          },
+        },
+      })
+    );
+    await wrapper.get('[data-testid="submit-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.submit).toHaveBeenCalledWith(31, expect.any(Number));
+    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it('shows the correct title for a new template, an edited draft and a new version', async () => {
     const wrapper = await mountDrawer();
     expect(wrapper.get('h3').text()).toBe(
@@ -214,45 +272,228 @@ describe('TemplateFormDrawer drafts', () => {
     wrapper.unmount();
   });
 
-  it('keeps every footer action label visible in full on mobile', async () => {
+  it('groups local status and Meta help without permanent requirements or duplicate draft labels', async () => {
+    const wrapper = await mountDrawer();
+    const status = wrapper.get('[data-testid="local-save-status"]');
+    expect(status.attributes('role')).toBe('status');
+    expect(status.classes()).toContain('border-solid');
+    expect(status.classes()).toContain('bg-n-alpha-1');
+    expect(status.find('[aria-hidden="true"]').exists()).toBe(true);
+    expect(status.text()).toContain('DRAFTS.LOCAL_SAVE_HELP');
+    expect(status.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(wrapper.text()).not.toContain('DRAFTS.SUBMIT_REQUIREMENTS');
+    DraftsAPI.show.mockResolvedValueOnce({
+      data: { ...record, preferred_channel_id: null, waba_id: null },
+    });
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.find('[data-testid="draft-state"]').exists()).toBe(false);
+    const send = wrapper.get('[data-testid="submit-draft"]');
+    expect(send.attributes('title')).toContain('DRAFTS.SUBMIT_REQUIREMENTS');
+    wrapper.unmount();
+  });
+
+  it('keeps save as the only full-width primary action and the auxiliaries compact', async () => {
     const wrapper = await mountDrawer();
     await wrapper.vm.openDraft(record);
-    const footer = wrapper
-      .findAll('div')
-      .find(element => element.classes().includes('grid-cols-1'));
-    expect(footer.classes()).toContain('sm:flex');
-    expect(footer.get('[data-testid="submit-draft"]').classes()).toContain(
-      'w-full'
+    const footer = wrapper.get('[data-testid="draft-footer"]');
+    expect(footer.classes()).toContain('grid-cols-[auto_auto_minmax(0,1fr)]');
+    expect(footer.get('[data-testid="save-draft"]').classes()).toContain(
+      'col-span-3'
     );
-    expect(footer.get('[data-testid="submit-draft"]').classes()).toContain(
-      'sm:order-last'
+    expect(footer.get('[data-testid="save-draft"]').classes()).toContain(
+      'bg-n-brand'
     );
-    ['save-draft', 'template-preview-open'].forEach(testId => {
+    ['submit-draft', 'template-preview-open'].forEach(testId => {
       const button = footer.get(`[data-testid="${testId}"]`);
-      expect(button.classes()).toContain('w-full');
-    });
-    ['submit-draft', 'save-draft', 'template-preview-open'].forEach(testId => {
-      const button = footer.get(`[data-testid="${testId}"]`);
+      expect(button.classes()).not.toContain('w-full');
+      expect(button.classes()).not.toContain('bg-n-brand');
       expect(button.text()).not.toBe('');
+      expect(button.classes()).toContain('whitespace-nowrap');
+      expect(button.classes()).toContain('min-h-10');
     });
-    footer.findAll('button').forEach(button => {
-      expect(button.html()).not.toMatch(
-        /\b(truncate|text-ellipsis|line-clamp(?:-\d+)?)\b/
-      );
-    });
-    expect(footer.get('button:not([data-testid])').classes()).toContain(
-      'justify-self-end'
+    expect(footer.get('[data-testid="submit-draft"] span').classes()).toContain(
+      'whitespace-nowrap'
     );
     expect(
       footer
-        .findAll('button')
-        .map(button => button.attributes('data-testid') || button.text())
-    ).toEqual([
-      'submit-draft',
-      'save-draft',
-      'template-preview-open',
-      'WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL',
-    ]);
+        .get('[data-testid="template-preview-open"]')
+        .attributes('aria-label')
+    ).toContain('FORM.PREVIEW');
+    expect(
+      footer
+        .get('[data-testid="template-preview-open"] span.sm\\:inline')
+        .classes()
+    ).toContain('hidden');
+    wrapper.unmount();
+  });
+
+  it.each(['save', 'submit'])(
+    'announces only the active %s operation and blocks both actions and double clicks',
+    async operation => {
+      const wrapper = await mountDrawer();
+      await wrapper.vm.openDraft(record);
+      let resolve;
+      const api = operation === 'save' ? DraftsAPI.update : DraftsAPI.submit;
+      api.mockImplementationOnce(
+        () =>
+          new Promise(done => {
+            resolve = done;
+          })
+      );
+      const active = wrapper.get(`[data-testid="${operation}-draft"]`);
+      await active.trigger('click');
+      await active.trigger('click');
+      expect(api).toHaveBeenCalledTimes(1);
+      const label = operation === 'save' ? 'SAVING' : 'SENDING';
+      expect(active.text()).toContain(`DRAFTS.${label}`);
+      expect(active.findComponent({ name: 'Spinner' }).exists()).toBe(true);
+      const other = wrapper.get(
+        `[data-testid="${operation === 'save' ? 'submit' : 'save'}-draft"]`
+      );
+      expect(other.findComponent({ name: 'Spinner' }).exists()).toBe(false);
+      expect(active.attributes('disabled')).toBeDefined();
+      expect(other.attributes('disabled')).toBeDefined();
+      expect(
+        wrapper.get('[data-testid="local-save-status"]').attributes('role')
+      ).toBe('status');
+      expect(wrapper.get('[data-testid="local-save-status"]').text()).toContain(
+        `DRAFTS.${label}`
+      );
+      resolve({
+        data:
+          operation === 'save'
+            ? record
+            : { id: 99, revision: 2, status: 'submitting' },
+      });
+      await flushPromises();
+      wrapper.unmount();
+    }
+  );
+
+  it('keeps the saved drawer open and offers navigation only through the toast action', async () => {
+    const wrapper = await mountDrawer();
+    expect(wrapper.get('[data-testid="local-save-status"]').text()).toContain(
+      'DRAFTS.LOCAL_DRAFT'
+    );
+    expect(wrapper.text()).toContain('DRAFTS.LOCAL_SAVE_HELP');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(SidePanelStub.methods.close).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="local-save-status"]').text()).toContain(
+      'DRAFTS.SAVED_LOCALLY'
+    );
+    const action = useAlert.mock.calls.at(-1)[1];
+    expect(action).toMatchObject({
+      type: 'callback',
+      message: 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.VIEW_IN_TEMPLATES',
+    });
+    expect(wrapper.emitted('viewDraft')).toBeUndefined();
+    action.onClick();
+    expect(wrapper.emitted('viewDraft')[0][0]).toMatchObject({ id: 31 });
+    await wrapper
+      .get('[data-testid="draft-title"] input')
+      .setValue('Changed again');
+    expect(wrapper.get('[data-testid="local-save-status"]').text()).toContain(
+      'DRAFTS.UNSAVED'
+    );
+    wrapper.unmount();
+  });
+
+  it('shows the saved toast above the open panel for eight seconds and navigates through its real action', async () => {
+    const wrapper = await mountDrawer({}, true);
+    const toast = mount(SnackbarContainer, {
+      attachTo: document.body,
+      global: { stubs: { RouterLink: true, TransitionGroup: true } },
+    });
+    const region = toast.get('[popover="manual"]');
+    const showPopover = vi.fn();
+    region.element.showPopover = showPopover;
+    vi.spyOn(region.element, 'matches').mockReturnValue(false);
+    const actual = await vi.importActual('dashboard/composables');
+    useAlert.mockImplementationOnce(actual.useAlert);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      document.querySelector('dialog [data-testid="save-draft"]').click();
+      await flushPromises();
+      expect(useAlert.mock.calls.at(-1)[1].duration).toBe(8000);
+      expect(showPopover).toHaveBeenCalledTimes(1);
+      expect(showPopover.mock.invocationCallOrder[0]).toBeGreaterThan(
+        HTMLDialogElement.prototype.showModal.mock.invocationCallOrder.at(-1)
+      );
+      expect(document.querySelector('dialog[open]')).not.toBeNull();
+      expect(region.classes()).toContain('fixed');
+      expect(region.classes()).toContain('top-4');
+      expect(wrapper.emitted('viewDraft')).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(7999);
+      const action = toast.get('button');
+      expect(action.text()).toContain('DRAFTS.VIEW_IN_TEMPLATES');
+      await action.trigger('click');
+      expect(wrapper.emitted('viewDraft')[0][0]).toMatchObject({ id: 31 });
+      expect(document.querySelector('dialog[open]')).toBeNull();
+      await vi.advanceTimersByTimeAsync(1);
+      await flushPromises();
+      expect(toast.find('button').exists()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+      wrapper.unmount();
+      toast.unmount();
+    }
+  });
+
+  it.each([
+    [
+      422,
+      { error: 'invalid_draft', details: { name: ['has already been taken'] } },
+      'IDENTITY_CONFLICT',
+    ],
+    [409, { error: 'identity_conflict' }, 'IDENTITY_CONFLICT'],
+    [
+      422,
+      {
+        error: 'invalid_draft',
+        details: { title: ['is invalid'], waba_id: ['is invalid'] },
+      },
+      'FIELD_ERRORS.title',
+    ],
+  ])(
+    'associates %s errors with readable field messages and focuses the first invalid field',
+    async (status, data, key) => {
+      const wrapper = await mountDrawer({}, false, true);
+      await wrapper.vm.openDraft(record);
+      DraftsAPI.update.mockRejectedValueOnce({ response: { status, data } });
+      await wrapper.get('[data-testid="save-draft"]').trigger('click');
+      await flushPromises();
+      const field = wrapper.get('input[aria-invalid="true"]');
+      expect(field.element).toBe(document.activeElement);
+      const message = wrapper.get(`#${field.attributes('aria-describedby')}`);
+      expect(message.text()).toContain(`DRAFTS.${key}`);
+      expect(wrapper.get('[data-testid="meta-error"]').text()).not.toContain(
+        'waba_id'
+      );
+      expect(wrapper.get('[data-testid="meta-error"]').text()).not.toContain(
+        'invalid_draft'
+      );
+      wrapper.unmount();
+    }
+  );
+
+  it('preserves input after a network failure and allows saving again', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(record);
+    await wrapper.get('textarea').setValue('Keep this message.');
+    DraftsAPI.update.mockRejectedValueOnce(new Error('Network Error'));
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="meta-error"]').text()).toContain(
+      'FORM.SAVE_ERROR'
+    );
+    expect(wrapper.get('textarea').element.value).toBe('Keep this message.');
+    expect(
+      wrapper.get('[data-testid="save-draft"]').attributes('disabled')
+    ).toBeUndefined();
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="meta-error"]').exists()).toBe(false);
     wrapper.unmount();
   });
   it('hides the generated-name hint when it matches the entered name', async () => {
@@ -565,6 +806,44 @@ describe('TemplateFormDrawer drafts', () => {
     }
   );
 
+  it('keeps an optional inbox neutral when opening and saving, and validates only after a send attempt', async () => {
+    const wrapper = await mountDrawer({ inboxes: [] });
+    const noInbox = { ...record, preferred_channel_id: null, waba_id: null };
+    DraftsAPI.show.mockResolvedValueOnce({ data: noInbox });
+    await wrapper.vm.openDraft(noInbox);
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).not.toBe('true');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).not.toBe('true');
+    expect(wrapper.text()).not.toContain('FORM.ERRORS.CHANNEL_REQUIRED');
+    const send = wrapper.get('[data-testid="submit-draft"]');
+    expect(send.attributes('disabled')).toBeUndefined();
+    await send.trigger('click');
+    await flushPromises();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).toBe('true');
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).toBe('true');
+    wrapper.unmount();
+  });
+
   it('saves an incomplete draft without a channel and never contacts Meta', async () => {
     const wrapper = await mountDrawer({ inboxes: [] });
     expect(wrapper.get('[data-testid="save-draft"]').classes()).toContain(
@@ -591,22 +870,31 @@ describe('TemplateFormDrawer drafts', () => {
     expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
     expect(DraftsAPI.submit).not.toHaveBeenCalled();
     expect(useAlert).toHaveBeenCalledWith(
-      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED'
+      'WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED',
+      expect.objectContaining({ type: 'callback' })
     );
     expect(
       wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
-    ).toBeDefined();
+    ).toBeUndefined();
+    await wrapper.get('[data-testid="submit-draft"]').trigger('click');
+    await flushPromises();
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).toBe('true');
     wrapper.unmount();
   });
 
-  it('shows submit as primary only after saving a valid draft; save stays local', async () => {
+  it('enables secondary submit after saving a valid draft; save stays primary and local', async () => {
     const wrapper = await mountDrawer();
     await wrapper.vm.openDraft(record);
-    expect(wrapper.get('[data-testid="submit-draft"]').classes()).toContain(
+    expect(wrapper.get('[data-testid="submit-draft"]').classes()).not.toContain(
       'bg-n-brand'
     );
     expect(wrapper.get('[data-testid="save-draft"]').classes()).toContain(
-      'bg-n-slate-9/10'
+      'bg-n-brand'
     );
     await wrapper.get('textarea').setValue('Changed content.');
     await wrapper.get('[data-testid="save-draft"]').trigger('click');
@@ -735,7 +1023,17 @@ describe('TemplateFormDrawer drafts', () => {
 
   it('creates a local preset with its exact examples and named variables', async () => {
     const wrapper = await mountDrawer();
-    await wrapper.vm.open(null, presetToForm(PRESETS[0]));
+    await wrapper.vm.open(
+      null,
+      presetToForm({ ...PRESETS[0], title: 'Recordatorio de cita' })
+    );
+    expect(DraftsAPI.create).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="draft-title"] input').element.value).toBe(
+      'Recordatorio de cita'
+    );
+    expect(wrapper.get('[data-testid="draft-title"]').text()).toContain(
+      'DRAFTS.INTERNAL_TITLE_HELP'
+    );
     await wrapper.get('[data-testid="save-draft"]').trigger('click');
     await flushPromises();
     expect(DraftsAPI.create).toHaveBeenCalledWith(
