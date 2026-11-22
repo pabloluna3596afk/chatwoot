@@ -32,7 +32,7 @@ class Whatsapp::TemplateDraftSourceService
                 'invalid_name'
               elsif !attributes.fetch(:language).match?(Api::V1::Accounts::InboxWhatsappTemplatesController::LANGUAGE_FORMAT)
                 'invalid_language'
-              elsif !Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(attributes.fetch(:category))
+              elsif Whatsapp::TemplateComponentsBuilder::CATEGORIES.exclude?(attributes.fetch(:category))
                 'invalid_category'
               end
     raise Whatsapp::TemplateComponentsBuilder::Invalid, invalid if invalid

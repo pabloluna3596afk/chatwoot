@@ -1,13 +1,18 @@
 # Library drafts keep a display-only preview. Submission resolves the authoritative text and buttons from Meta.
 module Whatsapp::TemplateLibraryDefinition
   FIELDS = %w[template_name language button_inputs preview].freeze
+  INPUT_BUTTON_TYPES = %w[PHONE_NUMBER URL].freeze
 
   def self.valid?(value)
     return false unless value.is_a?(Hash) && (value.keys - FIELDS).empty?
-    return false unless %w[template_name language].all? { |key| value[key].is_a?(String) && value[key].length <= (key == 'language' ? 20 : 512) }
+    return false unless identity_valid?(value)
     return false unless inputs_valid?(value.fetch('button_inputs', []))
 
     !value.key?('preview') || preview_valid?(value['preview'])
+  end
+
+  def self.identity_valid?(value)
+    %w[template_name language].all? { |key| value[key].is_a?(String) && value[key].length <= (key == 'language' ? 20 : 512) }
   end
 
   def self.preview_valid?(value)
@@ -27,11 +32,14 @@ module Whatsapp::TemplateLibraryDefinition
     when 'PHONE_NUMBER'
       (input.keys - %w[type phone_number]).empty? && input['phone_number'].is_a?(String) && input['phone_number'].length <= 20
     when 'URL'
-      url = input['url']
-      (input.keys - %w[type url]).empty? && url.is_a?(Hash) && (url.keys - %w[base_url url_suffix_example]).empty? &&
-        url['base_url'].is_a?(String) && url.values.all? { |item| item.is_a?(String) && item.length <= 2000 }
+      (input.keys - %w[type url]).empty? && url_valid?(input['url'])
     else false
     end
+  end
+
+  def self.url_valid?(url)
+    url.is_a?(Hash) && (url.keys - %w[base_url url_suffix_example]).empty? &&
+      url['base_url'].is_a?(String) && url.values.all? { |item| item.is_a?(String) && item.length <= 2000 }
   end
 
   # Keep the same locale mapping as the existing library client.
@@ -40,7 +48,7 @@ module Whatsapp::TemplateLibraryDefinition
   end
 
   def self.validate_inputs!(inputs, buttons)
-    required = buttons.select { |button| %w[PHONE_NUMBER URL].include?(button.fetch('type')) }
+    required = buttons.select { |button| INPUT_BUTTON_TYPES.include?(button.fetch('type')) }
     valid = inputs.size == required.size && inputs.zip(required).all? { |input, button| complete_input?(input, button) }
     raise Whatsapp::TemplateComponentsBuilder::Invalid, 'invalid_buttons' unless valid
   end
@@ -50,6 +58,8 @@ module Whatsapp::TemplateLibraryDefinition
     return input['phone_number'].match?(/\A\+?[1-9]\d{6,14}\z/) if input['type'] == 'PHONE_NUMBER'
 
     input.dig('url', 'base_url').match?(%r{\Ahttps?://\S+\z}) &&
-      (!button.fetch('url', '').include?('{{') || input.dig('url', 'url_suffix_example').present?)
+      (button.fetch('url', '').exclude?('{{') || input.dig('url', 'url_suffix_example').present?)
   end
+
+  private_class_method :identity_valid?, :url_valid?
 end

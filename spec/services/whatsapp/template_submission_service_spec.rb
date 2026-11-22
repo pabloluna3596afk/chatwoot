@@ -190,6 +190,7 @@ RSpec.describe Whatsapp::TemplateSubmissionService do
     described_class.new(submission).perform(refresh: true)
     expect(submission.reload).to have_attributes(status: 'submitted', remote_status: 'NEW_STATE', remote_reason: 'Remote reason')
   end
+
   context 'with a library draft' do
     let(:draft) do
       Whatsapp::TemplateDraftSourceService.new(account, actor, channel).from_library(
@@ -199,7 +200,7 @@ RSpec.describe Whatsapp::TemplateSubmissionService do
     end
     let(:remote) do
       submission.snapshot.fetch('reconciliation_payload').merge('id' => 'meta-library', 'name' => draft.name, 'language' => 'es',
-                                                               'status' => 'PENDING', 'category' => 'UTILITY')
+                                                                'status' => 'PENDING', 'category' => 'UTILITY')
     end
 
     before do
@@ -233,5 +234,4 @@ RSpec.describe Whatsapp::TemplateSubmissionService do
       expect(post).to have_been_requested.once
     end
   end
-
 end

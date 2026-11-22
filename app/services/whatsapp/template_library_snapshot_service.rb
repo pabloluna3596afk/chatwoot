@@ -49,16 +49,20 @@ class Whatsapp::TemplateLibrarySnapshotService
     result << { 'type' => 'BODY', 'text' => template.fetch('body') }
     remaining = inputs.deep_dup
     buttons = template.fetch('buttons', []).map do |button|
-      item = button.slice('type', 'text', 'url', 'phone_number')
-      input = remaining.shift if %w[PHONE_NUMBER URL].include?(button['type'])
-      item['phone_number'] = input.fetch('phone_number') if button['type'] == 'PHONE_NUMBER'
-      if button['type'] == 'URL'
-        item['url'] = input.fetch('url').fetch('base_url')
-        item['url'] += '{{1}}' if button.fetch('url', '').include?('{{')
-      end
-      item
+      input = remaining.shift if Whatsapp::TemplateLibraryDefinition::INPUT_BUTTON_TYPES.include?(button['type'])
+      button_component(button, input)
     end
     result << { 'type' => 'BUTTONS', 'buttons' => buttons } if buttons.any?
     result
+  end
+
+  def button_component(button, input)
+    item = button.slice('type', 'text', 'url', 'phone_number')
+    item['phone_number'] = input.fetch('phone_number') if button['type'] == 'PHONE_NUMBER'
+    if button['type'] == 'URL'
+      item['url'] = input.fetch('url').fetch('base_url')
+      item['url'] += '{{1}}' if button.fetch('url', '').include?('{{')
+    end
+    item
   end
 end

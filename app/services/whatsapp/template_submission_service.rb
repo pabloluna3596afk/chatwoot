@@ -72,8 +72,7 @@ class Whatsapp::TemplateSubmissionService
   def reconcile
     @submission.update!(request_count: @submission.request_count + 1)
     candidates = remote_candidates
-    expected = @submission.snapshot['reconciliation_payload'] || @submission.request_payload
-    if candidates.one? && @submission.request_payload && Whatsapp::TemplateSubmissionMatcher.matches?(expected, candidates.first)
+    if matching_candidate?(candidates)
       complete(candidates.first.symbolize_keys)
     elsif candidates.any?
       @submission.update!(next_retry_at: nil, retry_permitted: false, error_details: { code: 'ambiguous_remote_identity' })
@@ -83,6 +82,11 @@ class Whatsapp::TemplateSubmissionService
     else
       @submission.update!(next_retry_at: nil, retry_permitted: false)
     end
+  end
+
+  def matching_candidate?(candidates)
+    expected = @submission.snapshot['reconciliation_payload'] || @submission.request_payload
+    candidates.one? && @submission.request_payload && Whatsapp::TemplateSubmissionMatcher.matches?(expected, candidates.first)
   end
 
   def refresh_remote

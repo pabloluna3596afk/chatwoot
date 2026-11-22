@@ -164,7 +164,7 @@ RSpec.describe 'WhatsApp template drafts API', type: :request do
 
   it 'creates, reopens and duplicates a library draft without HTTP or an invented body' do
     post "#{path}/from_library", params: { library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY',
-                                          button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }], channel_id: channel.id },
+                                           button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }], channel_id: channel.id },
                                  headers: headers, as: :json
     expect(response).to have_http_status(:created)
     original = response.parsed_body

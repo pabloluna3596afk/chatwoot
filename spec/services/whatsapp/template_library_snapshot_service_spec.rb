@@ -8,7 +8,7 @@ RSpec.describe Whatsapp::TemplateLibrarySnapshotService do
   let(:definition) { { 'library' => { 'template_name' => 'appointment', 'language' => 'es', 'button_inputs' => inputs } } }
   let(:draft) do
     create(:whatsapp_template_draft, account: account, preferred_channel: channel, waba_id: channel.provider_config.fetch('business_account_id'),
-                                      name: 'my_appointment', language: 'es_EC', definition: definition)
+                                     name: 'my_appointment', language: 'es_EC', definition: definition)
   end
   let(:template) do
     { 'name' => 'appointment', 'language' => 'es', 'body' => 'Tu cita', 'buttons' => [{ 'type' => 'PHONE_NUMBER', 'text' => 'Llamar' }] }
@@ -28,8 +28,8 @@ RSpec.describe Whatsapp::TemplateLibrarySnapshotService do
     expect(attempt.language).to eq('es')
     expect(attempt.snapshot.dig('library_definition', 'library', 'preview', 'body')).to eq('Tu cita')
     expect(client).to receive(:create_from_library).with(library_template_name: 'appointment', name: 'my_appointment', language: 'es',
-                                                        category: 'UTILITY', button_inputs: inputs.map(&:deep_symbolize_keys))
-                                                 .once.and_return(id: 'meta-library', status: 'PENDING', category: 'UTILITY')
+                                                         category: 'UTILITY', button_inputs: inputs.map(&:deep_symbolize_keys))
+                                                   .once.and_return(id: 'meta-library', status: 'PENDING', category: 'UTILITY')
     draft.update!(definition: { 'body' => { 'text' => 'Changed after queueing' } })
     Whatsapp::TemplateSubmissionService.new(attempt).perform
     Whatsapp::TemplateSubmissionService.new(again).perform
@@ -41,7 +41,7 @@ RSpec.describe Whatsapp::TemplateLibrarySnapshotService do
     allow(client).to receive(:create_from_library).and_raise(Whatsapp::TemplateManagementService::Error, 'meta_unreachable')
     Whatsapp::TemplateSubmissionService.new(attempt).perform
     remote = attempt.snapshot.fetch('reconciliation_payload').merge('name' => draft.name, 'language' => 'es', 'id' => 'meta-library',
-                                                                   'status' => 'PENDING', 'category' => 'UTILITY')
+                                                                    'status' => 'PENDING', 'category' => 'UTILITY')
     allow(client).to receive(:templates).and_return([remote])
     travel 31.seconds do
       Whatsapp::TemplateSubmissionService.new(attempt).perform

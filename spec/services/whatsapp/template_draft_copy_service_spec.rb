@@ -32,7 +32,7 @@ RSpec.describe Whatsapp::TemplateDraftCopyService do
 
   it 'keeps library mode in a new version from the immutable submitted snapshot, without remote IDs' do
     definition = { 'library' => { 'template_name' => 'appointment', 'language' => 'es', 'button_inputs' => [],
-                                 'preview' => { 'body' => 'Tu cita' } } }
+                                  'preview' => { 'body' => 'Tu cita' } } }
     draft = create(:whatsapp_template_draft, account: account, definition: definition)
     WhatsappTemplateSubmission.create!(whatsapp_template_draft: draft, account: account, remote_id: 'meta-library',
                                        revision: 0, name: draft.name, language: 'es', payload_digest: 'digest',

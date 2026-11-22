@@ -6,11 +6,15 @@ module Whatsapp::TemplateDraftDefinition
   TEXT_LIMITS = { 'header' => 60, 'body' => 1024, 'footer' => 60 }.freeze
 
   def self.valid?(definition)
-    if definition.is_a?(Hash) && definition.key?('library')
-      return definition.keys == ['library'] && Whatsapp::TemplateLibraryDefinition.valid?(definition['library'])
-    end
+    return false unless definition.is_a?(Hash)
 
-    return false unless definition.is_a?(Hash) && (definition.keys - [*SECTIONS.keys, 'buttons', 'preserved']).empty?
+    return definition.keys == ['library'] && Whatsapp::TemplateLibraryDefinition.valid?(definition['library']) if definition.key?('library')
+
+    editable_valid?(definition)
+  end
+
+  def self.editable_valid?(definition)
+    return false unless (definition.keys - [*SECTIONS.keys, 'buttons', 'preserved']).empty?
 
     sections_valid?(definition) && buttons_valid?(definition.fetch('buttons', [])) &&
       (!definition.key?('preserved') || preserved_valid?(definition['preserved']))
@@ -55,4 +59,6 @@ module Whatsapp::TemplateDraftDefinition
 
     entry[item_key].is_a?(Hash) && entry[item_key]['type'].is_a?(String)
   end
+
+  private_class_method :editable_valid?
 end

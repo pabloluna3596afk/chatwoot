@@ -39,7 +39,7 @@ RSpec.describe Whatsapp::TemplateDraftSourceService do
     draft = service.from_library(library_template_name: 'appointment', name: 'appointment', language: 'es', category: 'UTILITY',
                                  button_inputs: [{ type: 'PHONE_NUMBER', phone_number: '' }])
     expect(draft.definition).to eq('library' => { 'template_name' => 'appointment', 'language' => 'es',
-                                                 'button_inputs' => [{ 'type' => 'PHONE_NUMBER', 'phone_number' => '' }] })
+                                                  'button_inputs' => [{ 'type' => 'PHONE_NUMBER', 'phone_number' => '' }] })
     expect(draft.submissions).to be_empty
   end
 end

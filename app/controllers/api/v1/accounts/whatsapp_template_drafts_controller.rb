@@ -66,19 +66,10 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
   end
 
   def from_library
-    return invalid_input unless %i[library_template_name name language category].all? { |key| params[key].is_a?(String) }
-    return invalid_input unless Whatsapp::TemplateDraftInput.optional?(params, :channel_id, Integer)
+    return invalid_input unless library_input_valid?
 
-    attributes = params.permit(:library_template_name, :name, :language, :category).to_h.symbolize_keys
-    return invalid_input if params.key?(:button_inputs) && !params[:button_inputs].is_a?(Array)
-    return invalid_input if params.key?(:preview) && !params[:preview].is_a?(ActionController::Parameters)
-
-    if params.key?(:button_inputs)
-      attributes[:button_inputs] = params[:button_inputs].map { |input| input.is_a?(ActionController::Parameters) ? input.to_unsafe_h : input }
-    end
-    attributes[:preview] = params[:preview].to_unsafe_h if params.key?(:preview)
     service = Whatsapp::TemplateDraftSourceService.new(Current.account, Current.user, source_channel)
-    render_draft(service.from_library(attributes), :created)
+    render_draft(service.from_library(library_attributes), :created)
   end
 
   def update
@@ -151,6 +142,25 @@ class Api::V1::Accounts::WhatsappTemplateDraftsController < Api::V1::Accounts::B
   end
 
   private
+
+  def library_input_valid?
+    %i[library_template_name name language category].all? { |key| params[key].is_a?(String) } &&
+      Whatsapp::TemplateDraftInput.optional?(params, :channel_id, Integer) &&
+      library_optional_input?(:button_inputs, Array) && library_optional_input?(:preview, ActionController::Parameters)
+  end
+
+  def library_optional_input?(key, type)
+    !params.key?(key) || params[key].is_a?(type)
+  end
+
+  def library_attributes
+    attributes = params.permit(:library_template_name, :name, :language, :category).to_h.symbolize_keys
+    if params.key?(:button_inputs)
+      attributes[:button_inputs] = params[:button_inputs].map { |input| input.is_a?(ActionController::Parameters) ? input.to_unsafe_h : input }
+    end
+    attributes[:preview] = params[:preview].to_unsafe_h if params.key?(:preview)
+    attributes
+  end
 
   def source_channel
     return unless params[:channel_id]
