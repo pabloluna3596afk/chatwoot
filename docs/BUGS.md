@@ -1,3 +1,11 @@
+### B-NEW-299 - Indicadores y correcci?n de borradores de plantillas (2026-11-21)
+
+- **Archivos:** `settings/templates/{LibraryPanel,PresetsPanel,TemplateFormDrawer,Index}.vue`, `presets.js`, `templateDraftErrors.js`; componentes compartidos `PresetPicker`, `WhatsAppBubble` y `Snackbar`; traducciones en/es y specs correspondientes.
+- **Problema:** guardar y enviar compart?an indicador, los errores mostraban atributos internos, la biblioteca no anunciaba carga ni ofrec?a reintento y el buscador superior no filtraba las predefinidas. El pie m?vil ten?a varias acciones de ancho completo y un borrador guardado pod?a quedar oculto por los filtros.
+- **Cambio:** guardado local expl?cito, progreso de la tarjeta/operaci?n activa y bloqueo de doble clic; errores de identidad y validaci?n traducidos junto al campo con foco; carga/reintento/vac?os distintos; t?tulo interno precargado y b?squeda ?nica de predefinidas; Guardar como ?nica acci?n principal m?vil. Tras guardar, el panel permanece abierto y el aviso ofrece ?Ver en Plantillas?: solo esa acci?n cambia pesta?a/filtros y coloca el borrador al inicio. Esquina l?gica de la burbuja para RTL.
+- **C?mo probar:** Vitest de `settings/templates/specs`, `WhatsAppBubble.spec.js`, `Snackbar.spec.js` y `SnackbarContainer.spec.js` en `TZ=UTC` y `TZ=America/Guayaquil`. Incluye doble clic, red, 422, 409, foco y paridad recursiva en/es. Nueve comprobaciones nuevas fallan sobre el c?digo anterior.
+- **Pendiente visual:** el PM debe ejecutar la app y revisar 390 px, claro/oscuro, RTL y capturas reales. No se us? navegador, escritorio, preview ni Docker. Sin cambios de backend, migraciones, contratos de endpoints ni l?gica de env?o a Meta; sin push ni PR.
+
 ### B-NEW-298 - Pulido de actividades, email, grupos y citas del chat (2026-11-21)
 
 - **Archivos:** `components-next/message/{Message,ReplyPreview,CaptainGenerationDetails}.vue`, `bubbles/{Activity,Base,Email/Index}.vue`, `widgets/conversation/ReplyBox.vue` y sus specs.
