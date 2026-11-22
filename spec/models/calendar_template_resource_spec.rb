@@ -28,7 +28,7 @@ RSpec.describe CalendarTemplateResource do
       expect(duplicate).not_to be_valid
       expect do
         described_class.transaction(requires_new: true) { duplicate.save!(validate: false) }
-      end.to raise_error { |error| expect(error.class.name).to eq('ActiveRecord::RecordNotUnique') }
+      end.to raise_error(ActiveRecord::RecordNotUnique) { |error| expect(error.class.name).to eq('ActiveRecord::RecordNotUnique') }
     end
   end
 

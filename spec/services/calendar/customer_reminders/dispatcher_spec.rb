@@ -52,8 +52,8 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
       ]
     }
     channel.update!(message_templates: [template])
-    resource = Calendar::TemplateResources.new(account: account, function: :reminder, language: 'es', channel: channel)
-                                         .link!(template_name: template['name'], remote_template_id: template['id'])
+    resources = Calendar::TemplateResources.new(account: account, function: :reminder, language: 'es', channel: channel)
+    resource = resources.link!(template_name: template['name'], remote_template_id: template['id'])
     described_class.new.perform
     expect(outgoing.count).to eq(1)
     expect(outgoing.last.additional_attributes.dig('template_params', 'name')).to eq('recordatorio_v2')

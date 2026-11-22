@@ -1,5 +1,8 @@
 require 'rails_helper'
 
+template_languages = %w[es en].freeze
+template_functions = %w[confirmation cancellation reminder].freeze
+
 RSpec.describe Calendar::TemplateContract do
   let(:template) do
     { 'id' => 'remote', 'name' => 'chosen_version', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
@@ -10,8 +13,8 @@ RSpec.describe Calendar::TemplateContract do
   end
   let(:contract) { described_class.new(function: :confirmation, language: 'es', template: template) }
 
-  %w[es en].each do |language|
-    %w[confirmation cancellation reminder].each do |function|
+  template_languages.each do |language|
+    template_functions.each do |function|
       it "accepts the #{function} contract in #{language} without requiring the default name or copy" do
         definition = Calendar::TemplateDefinitions.definition(function, language)
         template['language'] = language

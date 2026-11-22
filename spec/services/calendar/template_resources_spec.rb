@@ -21,8 +21,10 @@ RSpec.describe Calendar::TemplateResources do
     expect(account.calendar_template_resources).to be_empty
     expect(binding).to have_attributes(status: 'linked', template_name: 'confirmacion_v2', remote_template_id: 'remote-1')
     expect(service.resolve).to eq(template)
-    expect(binding.contract_snapshot).to include('variables' => %w[nombre cita fecha hora],
-                                               'actions' => { 'Confirmar' => 'confirm', 'Reagendar' => 'reschedule', 'Cancelar' => 'cancel' })
+    expect(binding.contract_snapshot).to include(
+      'variables' => %w[nombre cita fecha hora],
+      'actions' => { 'Confirmar' => 'confirm', 'Reagendar' => 'reschedule', 'Cancelar' => 'cancel' }
+    )
   end
 
   it 'keeps repeated preparation idempotent and preserves a previously linked version' do
@@ -88,8 +90,9 @@ RSpec.describe Calendar::TemplateResources do
 
   it 'shares an identity between two numbers of the same WABA, never across WABAs' do
     binding
-    second = create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false,
-                                      provider_config: channel.provider_config, message_templates: [template])
+    second = create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
+                                        validate_provider_config: false, provider_config: channel.provider_config,
+                                        message_templates: [template])
     resolver = described_class.new(account: account, function: :confirmation, language: 'es', channel: second)
     expect(resolver.resolve).to eq(template)
     expect(resolver.resource.id).to eq(binding.id)
@@ -128,9 +131,10 @@ RSpec.describe Calendar::TemplateResources do
     channel.update!(message_templates: [template.merge('name' => 'cita_confirmacion')])
     service.prepare!
     expect(service.resolve['name']).to eq('cita_confirmacion')
-    expect(service.message_snapshot(service.resolve)).to include('resource_id' => nil, 'actions' => {
-      'Confirmar' => 'confirm', 'Reagendar' => 'reschedule', 'Cancelar' => 'cancel'
-    })
+    expect(service.message_snapshot(service.resolve)).to include(
+      'resource_id' => nil,
+      'actions' => { 'Confirmar' => 'confirm', 'Reagendar' => 'reschedule', 'Cancelar' => 'cancel' }
+    )
     expect(service.resource.reload.status).to eq('pending')
   end
 
