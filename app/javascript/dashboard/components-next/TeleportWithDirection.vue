@@ -9,7 +9,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 
 defineProps({
   to: {
-    type: String,
+    type: [String, Object],
     default: 'body',
   },
 });
