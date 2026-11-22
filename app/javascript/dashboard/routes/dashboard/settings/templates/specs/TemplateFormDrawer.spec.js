@@ -271,6 +271,23 @@ describe('TemplateFormDrawer drafts', () => {
     wrapper.unmount();
   });
 
+  it('groups local status and Meta help without permanent requirements or duplicate draft labels', async () => {
+    const wrapper = await mountDrawer();
+    const status = wrapper.get('[data-testid="local-save-status"]');
+    expect(status.attributes('role')).toBe('status');
+    expect(status.classes()).toContain('border-solid');
+    expect(status.classes()).toContain('bg-n-alpha-1');
+    expect(status.find('[aria-hidden="true"]').exists()).toBe(true);
+    expect(status.text()).toContain('DRAFTS.LOCAL_SAVE_HELP');
+    expect(wrapper.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(wrapper.text()).not.toContain('DRAFTS.SUBMIT_REQUIREMENTS');
+    await wrapper.vm.openDraft(record);
+    expect(wrapper.find('[data-testid="draft-state"]').exists()).toBe(false);
+    const send = wrapper.get('[data-testid="submit-draft"]');
+    expect(send.attributes('title')).toContain('DRAFTS.SUBMIT_REQUIREMENTS');
+    wrapper.unmount();
+  });
+
   it('keeps save as the only full-width primary action and the auxiliaries compact', async () => {
     const wrapper = await mountDrawer();
     await wrapper.vm.openDraft(record);
@@ -340,7 +357,7 @@ describe('TemplateFormDrawer drafts', () => {
   it('keeps the saved drawer open and offers navigation only through the toast action', async () => {
     const wrapper = await mountDrawer();
     expect(wrapper.get('[data-testid="local-save-status"]').text()).toContain(
-      'DRAFTS.UNSAVED'
+      'DRAFTS.LOCAL_DRAFT'
     );
     expect(wrapper.text()).toContain('DRAFTS.LOCAL_SAVE_HELP');
     await wrapper.get('[data-testid="save-draft"]').trigger('click');
@@ -738,7 +755,7 @@ describe('TemplateFormDrawer drafts', () => {
       'bg-n-brand'
     );
     expect(wrapper.find('[data-testid="submit-draft"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(wrapper.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
     await wrapper
       .get('[data-testid="draft-title"] input')
       .setValue('Work in progress');
@@ -1164,7 +1181,7 @@ describe('TemplateFormDrawer drafts', () => {
       .findComponent('[data-testid="template-inbox"]')
       .vm.$emit('update:modelValue', '');
     await flushPromises();
-    expect(wrapper.text()).toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(wrapper.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
     await wrapper.get('[data-testid="save-draft"]').trigger('click');
     await flushPromises();
     expect(DraftsAPI.update).toHaveBeenCalledWith(

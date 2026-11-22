@@ -165,6 +165,8 @@ const localSaveStatus = computed(() => {
     return t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVING');
   if (activeOperation.value === 'submit')
     return t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SENDING');
+  if (!draft.value && localSnapshot() === savedSnapshot.value)
+    return t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.LOCAL_DRAFT');
   return hasUnsavedChanges.value
     ? t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.UNSAVED')
     : t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED_LOCALLY');
@@ -943,22 +945,21 @@ const buttonChoices = computed(() =>
         />
       </div>
       <div v-if="!isRemote" class="grid gap-2 text-sm text-n-slate-11">
-        <p v-if="!localReadOnly" role="status" data-testid="local-save-status">
-          {{ localSaveStatus }}
-        </p>
-        <p>{{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.LOCAL_SAVE_HELP') }}</p>
-        <p
-          v-if="
-            !localReadOnly &&
-            (!draft || !canSubmit) &&
-            !hasOpaqueComponents(form)
-          "
+        <div
+          v-if="!localReadOnly"
+          role="status"
+          class="rounded-lg border border-solid border-n-weak bg-n-alpha-1 px-2 py-1.5 text-xs leading-5 text-n-slate-11"
+          data-testid="local-save-status"
         >
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT_REQUIREMENTS') }}
-        </p>
-        <p v-if="!form.inboxId">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NO_DESTINATION_HELP') }}
-        </p>
+          <span
+            class="i-lucide-info inline-block size-3 align-middle"
+            aria-hidden="true"
+          />
+          <span class="rounded bg-n-alpha-2 px-1 font-medium text-n-slate-12">{{
+            localSaveStatus
+          }}</span>
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.LOCAL_SAVE_HELP') }}
+        </div>
         <p v-if="sharedChannels.length > 1">
           {{
             $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SHARED', {
@@ -974,7 +975,11 @@ const buttonChoices = computed(() =>
           {{ $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.OPAQUE') }}
         </p>
         <template v-if="draft">
-          <p role="status" data-testid="draft-state">
+          <p
+            v-if="localReadOnly || draft.status !== 'draft'"
+            role="status"
+            data-testid="draft-state"
+          >
             {{
               $t(
                 'WHATSAPP_TEMPLATE_MGMT.DRAFTS.STATUS.' +
@@ -1818,6 +1823,11 @@ const buttonChoices = computed(() =>
           class="!h-auto min-h-8 py-1 sm:order-4"
           :disabled="!canSubmit || isSaving || isUploading || isLoading"
           :is-loading="activeOperation === 'submit'"
+          :title="
+            !canSubmit
+              ? $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SUBMIT_REQUIREMENTS')
+              : undefined
+          "
           data-testid="submit-draft"
           @click="submitForReview"
         >
