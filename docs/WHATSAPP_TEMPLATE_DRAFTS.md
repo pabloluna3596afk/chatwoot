@@ -142,6 +142,51 @@ Los endpoints legados de creación directa permanecen disponibles sin cambios.
 Las rutas nuevas siguientes son exclusivas de administradores y devuelven `201`
 con el mismo detalle de borrador; guardar no escribe ni consulta Meta.
 
+Ambas rutas aceptan JSON plano (sin envolverlo en `draft`). Una respuesta de
+`/from_library`, por ejemplo, contiene estos campos del detalle común:
+
+```json
+{
+  "id": 31,
+  "title": "",
+  "name": "mi_recordatorio",
+  "language": "es",
+  "category": "UTILITY",
+  "parameter_format": "POSITIONAL",
+  "preferred_channel_id": 12,
+  "waba_id": "123",
+  "definition": {
+    "library": {
+      "template_name": "appointment_reminder",
+      "language": "es",
+      "button_inputs": []
+    }
+  },
+  "lock_version": 0,
+  "status": "draft",
+  "submissions": []
+}
+```
+
+Es un extracto: la respuesta también incluye los demás campos del serializador
+común, como autores, fechas y media. `/from_blueprint` devuelve la misma estructura
+con `definition.body` (texto y ejemplos) y `definition.buttons` de respuesta rápida,
+en lugar de `definition.library`.
+
+Errores de estas dos rutas:
+
+- `422 invalid_draft`: tipos JSON incorrectos, definición inválida o conflicto
+  detectado por validación local. La respuesta contiene `error` y `message` o
+  `details`, según la validación.
+- `422 unknown_blueprint`: `blueprint_id` no existe; `422 cloud_channel_required`:
+  el canal propio no es WhatsApp Cloud.
+- `/from_library` también devuelve `422 library_name_required`, `invalid_name`,
+  `invalid_language` o `invalid_category` para identidades inválidas.
+- Permisos (`403`): **estas rutas no emiten `403` actualmente**. El guard compartido
+  `check_admin_authorization?` y `RequestExceptionHandler` responden `401` con
+  `{ "error": "You are not authorized to do this action" }` para un agente.
+  Se conserva este contrato existente; un canal ajeno o inexistente devuelve `404`.
+
 | Ruta POST relativa | Entrada JSON |
 | --- | --- |
 | `/from_blueprint` | `{ "blueprint_id": "palu_cita_confirmacion", "channel_id": 12 }` |
@@ -195,7 +240,13 @@ mismas reglas de identidad del endpoint legado (`library_name_required`,
 se rechaza por la validación existente; el administrador puede elegir otro nombre.
 
 PATCH conserva el formato de revisión existente y permite completar identidad e
-inputs. Al enviar se valida el catálogo de idiomas y el destino y se consulta la
+inputs. Para biblioteca, el editor toma el idioma de `definition.library.language`
+y no permite cambiarlo conservando la vista previa anterior. Crear o editar por
+API con un idioma efectivo distinto devuelve `422 invalid_draft`, incluso si el
+PATCH solo contiene `language`. La comparación respeta la normalización regional
+existente (`es_EC` equivale a `es`; `en_US` se conserva). Para elegir otro idioma
+hay que elegir una definición de biblioteca y vista previa correspondientes.
+Al enviar se valida el catálogo de idiomas y el destino y se consulta la
 biblioteca mediante el cliente común, con paginación. El texto y los botones se
 resuelven en el idioma solicitado; un fallback distinto no se envía silenciosamente.
 Se exige un input por botón URL/PHONE_NUMBER, tipo y orden correctos, teléfono
