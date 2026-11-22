@@ -275,14 +275,18 @@ const errors = computed(() => {
     result['body.text'] = 'VARIABLE_NAME_INVALID';
   return result;
 });
-const canSubmit = computed(
+const canAttemptSubmit = computed(
   () =>
     draft.value &&
     !isRemote.value &&
     !localReadOnly.value &&
     !conflict.value &&
     !loadFailed.value &&
-    !hasOpaqueComponents(form) &&
+    !hasOpaqueComponents(form)
+);
+const canSubmit = computed(
+  () =>
+    canAttemptSubmit.value &&
     draftVariableNamesValid(form) &&
     !Object.keys(errors.value).length
 );
@@ -483,7 +487,6 @@ const applyDraft = async record => {
   Object.assign(form, formFromDraft(record, props.inboxes));
   languageTouched.value = true;
   variableMode.value = form.parameterFormat;
-  showErrors.value = true;
   await nextTick();
   isApplyingDraft.value = false;
   savedSnapshot.value = localSnapshot();
@@ -704,7 +707,6 @@ const save = async () => {
       panelRef.value?.close();
     } else if (!localReadOnly.value) {
       const record = await persistDraft();
-      showErrors.value = true;
       useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.SAVED'), {
         type: 'callback',
         message: t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.VIEW_IN_TEMPLATES'),
@@ -725,13 +727,17 @@ const save = async () => {
 };
 const submitForReview = async () => {
   if (
-    !canSubmit.value ||
+    !canAttemptSubmit.value ||
     isSaving.value ||
     isUploading.value ||
     isLoading.value
   )
     return;
   showErrors.value = true;
+  if (!canSubmit.value) {
+    await focusFirstInvalid();
+    return;
+  }
   isSaving.value = true;
   activeOperation.value = 'submit';
   serverFieldErrors.value = {};
@@ -1150,7 +1156,12 @@ const buttonChoices = computed(() =>
               :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
               :disabled="isEdit"
               :has-error="Boolean(fieldError('inboxId'))"
-              :message="fieldError('inboxId')"
+              :message="
+                fieldError('inboxId') ||
+                (!isRemote && !form.inboxId
+                  ? $t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.NO_DESTINATION_HELP')
+                  : '')
+              "
               teleport
               data-testid="template-inbox"
               @update:model-value="chooseInbox"
@@ -1821,7 +1832,7 @@ const buttonChoices = computed(() =>
           intent="secondary"
           size="sm"
           class="!h-auto min-h-8 py-1 sm:order-4"
-          :disabled="!canSubmit || isSaving || isUploading || isLoading"
+          :disabled="!canAttemptSubmit || isSaving || isUploading || isLoading"
           :is-loading="activeOperation === 'submit'"
           :title="
             !canSubmit

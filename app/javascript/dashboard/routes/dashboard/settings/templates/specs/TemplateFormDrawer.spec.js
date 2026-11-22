@@ -221,7 +221,7 @@ describe('TemplateFormDrawer drafts', () => {
     expect(wrapper.find('[data-testid="message-editor"]').exists()).toBe(false);
     expect(
       wrapper.get('[data-testid="submit-draft"]').attributes('disabled')
-    ).toBeDefined();
+    ).toBeUndefined();
     await wrapper
       .get('[data-testid="library-phone-0"] input')
       .setValue('+593999999999');
@@ -279,8 +279,11 @@ describe('TemplateFormDrawer drafts', () => {
     expect(status.classes()).toContain('bg-n-alpha-1');
     expect(status.find('[aria-hidden="true"]').exists()).toBe(true);
     expect(status.text()).toContain('DRAFTS.LOCAL_SAVE_HELP');
-    expect(wrapper.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(status.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
     expect(wrapper.text()).not.toContain('DRAFTS.SUBMIT_REQUIREMENTS');
+    DraftsAPI.show.mockResolvedValueOnce({
+      data: { ...record, preferred_channel_id: null, waba_id: null },
+    });
     await wrapper.vm.openDraft(record);
     expect(wrapper.find('[data-testid="draft-state"]').exists()).toBe(false);
     const send = wrapper.get('[data-testid="submit-draft"]');
@@ -749,13 +752,51 @@ describe('TemplateFormDrawer drafts', () => {
     }
   );
 
+  it('keeps an optional inbox neutral when opening and saving, and validates only after a send attempt', async () => {
+    const wrapper = await mountDrawer({ inboxes: [] });
+    const noInbox = { ...record, preferred_channel_id: null, waba_id: null };
+    DraftsAPI.show.mockResolvedValueOnce({ data: noInbox });
+    await wrapper.vm.openDraft(noInbox);
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).not.toBe('true');
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).not.toBe('true');
+    expect(wrapper.text()).not.toContain('FORM.ERRORS.CHANNEL_REQUIRED');
+    const send = wrapper.get('[data-testid="submit-draft"]');
+    expect(send.attributes('disabled')).toBeUndefined();
+    await send.trigger('click');
+    await flushPromises();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).toBe('true');
+    expect(DraftsAPI.submit).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="save-draft"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper
+        .get('[data-testid="template-inbox"] button')
+        .attributes('aria-invalid')
+    ).toBe('true');
+    wrapper.unmount();
+  });
+
   it('saves an incomplete draft without a channel and never contacts Meta', async () => {
     const wrapper = await mountDrawer({ inboxes: [] });
     expect(wrapper.get('[data-testid="save-draft"]').classes()).toContain(
       'bg-n-brand'
     );
     expect(wrapper.find('[data-testid="submit-draft"]').exists()).toBe(false);
-    expect(wrapper.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(wrapper.text()).toContain('DRAFTS.NO_DESTINATION_HELP');
     await wrapper
       .get('[data-testid="draft-title"] input')
       .setValue('Work in progress');
@@ -1181,7 +1222,7 @@ describe('TemplateFormDrawer drafts', () => {
       .findComponent('[data-testid="template-inbox"]')
       .vm.$emit('update:modelValue', '');
     await flushPromises();
-    expect(wrapper.text()).not.toContain('DRAFTS.NO_DESTINATION_HELP');
+    expect(wrapper.text()).toContain('DRAFTS.NO_DESTINATION_HELP');
     await wrapper.get('[data-testid="save-draft"]').trigger('click');
     await flushPromises();
     expect(DraftsAPI.update).toHaveBeenCalledWith(
