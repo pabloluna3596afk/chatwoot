@@ -54,14 +54,32 @@ const presets = computed(() =>
       <h2 class="text-heading-2 text-n-slate-12">
         {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.TITLE') }}
       </h2>
-      <p class="mt-1 text-body-main text-n-slate-11">
+      <p class="mb-0 mt-1 text-body-main text-n-slate-11">
         {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DESCRIPTION') }}
       </p>
-    </div>
-
-    <div class="grid gap-1 text-xs text-n-slate-11" data-testid="category-help">
-      <p>{{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.UTILITY') }}</p>
-      <p>{{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.MARKETING') }}</p>
+      <div
+        class="mt-1 flex flex-wrap gap-1.5 text-xs text-n-slate-11"
+        data-testid="category-help"
+      >
+        <span
+          class="inline-flex max-w-full items-center gap-1 rounded-md bg-n-alpha-1 px-1 py-0.5"
+          data-testid="category-chip"
+        >
+          <span class="shrink-0 rounded bg-n-teal-3 px-1 text-n-teal-11">{{
+            $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.UTILITY.LABEL')
+          }}</span>
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.UTILITY') }}
+        </span>
+        <span
+          class="inline-flex max-w-full items-center gap-1 rounded-md bg-n-alpha-1 px-1 py-0.5"
+          data-testid="category-chip"
+        >
+          <span class="shrink-0 rounded bg-n-amber-3 px-1 text-n-amber-11">{{
+            $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.MARKETING.LABEL')
+          }}</span>
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.MARKETING') }}
+        </span>
+      </div>
     </div>
     <PresetPicker
       :items="presets"

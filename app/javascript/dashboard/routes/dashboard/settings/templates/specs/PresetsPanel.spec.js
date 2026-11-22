@@ -50,6 +50,20 @@ describe('PresetsPanel', () => {
     wrapper.unmount();
   });
 
+  it('keeps category chips directly under the subtitle with wrapping and theme tokens', () => {
+    const wrapper = mountPanel();
+    const help = wrapper.get('[data-testid="category-help"]');
+    expect(help.element.previousElementSibling.textContent).toContain(
+      'PRESETS.DESCRIPTION'
+    );
+    expect(help.classes()).toContain('flex-wrap');
+    expect(help.findAll('p')).toHaveLength(0);
+    expect(help.findAll('[data-testid="category-chip"]')).toHaveLength(2);
+    expect(help.find('.bg-n-teal-3.text-n-teal-11').exists()).toBe(true);
+    expect(help.find('.bg-n-amber-3.text-n-amber-11').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
   it('opens the form with the preset the admin picked', async () => {
     const wrapper = mountPanel();
 

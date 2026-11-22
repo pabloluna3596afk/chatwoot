@@ -237,8 +237,8 @@
         "CUSTOMER_DATA": "Customer data"
       },
       "CATEGORY_NOTE": {
-        "UTILITY": "Utility: notifies or confirms something the customer already asked for.",
-        "MARKETING": "Marketing: invites the customer back or to continue; Meta charges more per message."
+        "UTILITY": "Confirms a request.",
+        "MARKETING": "Invites customers back; higher cost."
       },
       "DISABLED_FORMS": "Available once you can create WhatsApp forms.",
       "VARIABLES": "Variables: {variables}",
