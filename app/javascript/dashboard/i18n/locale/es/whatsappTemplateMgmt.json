@@ -229,8 +229,8 @@
     },
     "PRESETS": {
       "TITLE": "Plantillas predefinidas",
-      "DESCRIPTION": "Elige una, ajústala si quieres y envíala a Meta para revisión. No se envía nada hasta que la guardes.",
-      "USE": "Usar",
+      "DESCRIPTION": "Elige una predefinida, personalízala y guarda un borrador local. Solo «Enviar a revisión» lo envía a Meta.",
+      "USE": "Personaliza y guarda",
       "GROUPS": {
         "APPOINTMENTS": "Citas",
         "FOLLOWUP": "Reenganche y seguimiento",
@@ -278,12 +278,12 @@
       },
       "LIBRARY": {
         "TITLE": "Biblioteca de Meta",
-        "DESCRIPTION": "Plantillas de utilidad ya escritas por Meta. El texto es fijo; solo eliges el nombre y los datos que piden sus botones.",
+        "DESCRIPTION": "Crea un borrador local con el texto de Meta. Solo «Enviar a revisión» lo envía a Meta.",
         "SEARCH": "Buscar en la biblioteca...",
         "LANGUAGE": "Idioma",
         "EMPTY": "No hay plantillas de la biblioteca para esta búsqueda o idioma.",
         "LOAD_MORE": "Ver más",
-        "USE": "Usar",
+        "USE": "Crear borrador",
         "ERROR": "No se pudo consultar la biblioteca de Meta. Inténtalo de nuevo.",
         "ERROR_DETAIL": "No se pudo consultar la biblioteca de Meta: {message}",
         "LANGUAGE_USED": "Idioma de la biblioteca: {language}",
@@ -291,17 +291,21 @@
         "CATEGORY": "Categoría: {category}",
         "DIALOG": {
           "TITLE": "Crear desde la biblioteca",
-          "DESCRIPTION": "Se crea con el texto de Meta y pasa a revisión.",
+          "DESCRIPTION": "Crea un borrador local con el texto de Meta. Solo «Enviar a revisión» lo envía a Meta.",
           "NAME": "Nombre de la plantilla",
           "CHANNEL": "Canal de WhatsApp",
           "PHONE": "Teléfono para el botón de llamada ({text})",
           "URL": "Enlace para el botón \"{text}\"",
           "URL_SUFFIX": "Ejemplo de la parte variable del enlace",
-          "CREATE": "Crear plantilla",
-          "CREATED": "Plantilla enviada a Meta.",
-          "CREATED_LANGUAGE": "Plantilla enviada a Meta en {language}.",
+          "CREATE": "Crear borrador",
+          "CREATED": "Borrador creado localmente.",
+          "CREATED_LANGUAGE": "Borrador creado localmente en {language}.",
           "ERROR": "No se pudo crear la plantilla. Inténtalo de nuevo."
-        }
+        },
+        "CREATING": "Creando borrador…",
+        "LOADING": "Cargando biblioteca…",
+        "RETRY": "Reintentar",
+        "NO_INBOXES": "Conecta una bandeja de WhatsApp Cloud para usar la biblioteca."
       }
     },
     "SYNC_COMPACT": "Sincronizar",
@@ -371,9 +375,31 @@
         "SUBMITTED": "Enviada a Meta"
       },
       "REQUEST_ERROR": "No se pudo completar la acción: {message}",
-      "SUBMIT_REQUIREMENTS": "Completa los campos requeridos antes de enviar a revisión. Puedes seguir guardando el borrador.",
+      "SUBMIT_REQUIREMENTS": "Para enviar: guarda el borrador, elige una cuenta de WhatsApp y completa nombre, idioma, mensaje, ejemplos y botones requeridos.",
       "LAST_EDITED": "Última edición",
-      "DELETED": "Borrador eliminado."
+      "DELETED": "Borrador eliminado.",
+      "LOCAL_SAVE_HELP": "Guardar crea un borrador local. Solo «Enviar a revisión» lo envía a Meta.",
+      "SAVING": "Guardando…",
+      "SENDING": "Enviando…",
+      "UNSAVED": "Cambios sin guardar",
+      "SAVED_LOCALLY": "Guardado localmente",
+      "INTERNAL_TITLE_HELP": "Solo para organizar tus borradores; no aparece en WhatsApp.",
+      "VIEW_IN_TEMPLATES": "Ver en Plantillas",
+      "IDENTITY_CONFLICT": "Ya existe un borrador con este nombre para esta cuenta de WhatsApp e idioma. Cambia el nombre o abre el borrador existente.",
+      "INVALID_DRAFT": "Revisa los datos del borrador y vuelve a guardar.",
+      "FIELD_ERRORS": {
+        "title": "Usa un título de hasta 100 caracteres.",
+        "name": "Revisa el nombre: usa hasta 512 letras minúsculas, números y guiones bajos.",
+        "inboxId": "Elige una bandeja de esta cuenta de WhatsApp.",
+        "language": "Elige un idioma válido.",
+        "category": "Elige una categoría válida.",
+        "body": {
+          "text": "Revisa el mensaje y los datos de sus variables."
+        },
+        "header": {
+          "media": "Revisa el archivo del encabezado y vuelve a adjuntarlo."
+        }
+      }
     }
   }
 }

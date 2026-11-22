@@ -13,6 +13,7 @@ defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
   inboxes: { type: Array, default: () => [] },
   templates: { type: Array, default: () => [] },
+  search: { type: String, default: '' },
 });
 
 const emit = defineEmits(['use', 'created']);
@@ -58,8 +59,13 @@ const presets = computed(() =>
       </p>
     </div>
 
+    <div class="grid gap-1 text-xs text-n-slate-11" data-testid="category-help">
+      <p>{{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.UTILITY') }}</p>
+      <p>{{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.MARKETING') }}</p>
+    </div>
     <PresetPicker
       :items="presets"
+      :search-query="search"
       :groups="groups"
       :columns="2"
       @apply="preset => emit('use', preset)"
@@ -88,13 +94,6 @@ const presets = computed(() =>
                 })
               }}
             </p>
-            <p class="mt-2 text-xs text-n-slate-10">
-              {{
-                $t(
-                  `WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.${item.category}`
-                )
-              }}
-            </p>
             <p v-if="item.disabled" class="mt-2 text-xs text-n-amber-11">
               {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DISABLED_FORMS') }}
             </p>
@@ -102,6 +101,7 @@ const presets = computed(() =>
           <template #actions>
             <Button
               :label="item.actionLabel"
+              :aria-label="`${item.actionLabel}: ${item.title}`"
               :icon="item.actionIcon"
               size="sm"
               intent="primary"

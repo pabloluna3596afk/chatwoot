@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import PresetsPanel from '../PresetsPanel.vue';
-import { PRESETS } from '../presets';
+import { PRESETS, presetToForm } from '../presets';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false }),
@@ -27,6 +27,27 @@ describe('PresetsPanel', () => {
     expect(wrapper.text()).toContain(
       '{{nombre}}'.replace(/[{}]/g, '') || 'nombre'
     );
+  });
+
+  it('uses one external search and one category help, retaining accessible action names and internal title', async () => {
+    const wrapper = mountPanel();
+    await wrapper.setProps({ search: 'ITEMS.recordatorio_cita.TITLE' });
+    expect(wrapper.findAll('[data-testid^="preset-"]')).toHaveLength(1);
+    expect(wrapper.find('input').exists()).toBe(false);
+    expect(wrapper.text().split('PRESETS.CATEGORY_NOTE.UTILITY')).toHaveLength(
+      2
+    );
+    const button = wrapper.get('[data-testid="use-recordatorio_cita"]');
+    expect(button.attributes('aria-label')).toContain(
+      'ITEMS.recordatorio_cita.TITLE'
+    );
+    await button.trigger('click');
+    const preset = wrapper.emitted('use')[0][0];
+    expect(presetToForm(preset).title).toBe(preset.title);
+    await wrapper.setProps({ search: 'no-matching-preset' });
+    expect(wrapper.findAll('[data-testid^="preset-"]')).toHaveLength(0);
+    expect(wrapper.get('[role="status"]').text()).not.toBe('');
+    wrapper.unmount();
   });
 
   it('opens the form with the preset the admin picked', async () => {

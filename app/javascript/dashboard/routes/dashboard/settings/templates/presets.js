@@ -92,6 +92,7 @@ export const PRESETS = [
 export const presetToForm = (preset, inboxId = null) => {
   const form = emptyForm();
   form.inboxId = inboxId;
+  form.title = preset.title || '';
   form.name = preset.id;
   form.category = preset.category;
   form.body = { text: preset.body, examples: [...preset.examples] };

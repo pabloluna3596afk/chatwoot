@@ -10,6 +10,8 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
 import Input from 'dashboard/components-next/input/Input.vue';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import { templateDraftError } from './templateDraftErrors';
 import { toSnakeCase } from './templateForm';
 import {
   defaultLanguage,
@@ -26,7 +28,7 @@ const props = defineProps({
 
 const emit = defineEmits(['created']);
 
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const { currentAccount } = useAccount();
 
 const PAGE_SIZE = 12;
@@ -46,7 +48,9 @@ const languageUsed = computed(() => {
   const languages = [...new Set(Object.values(inboxLanguages.value))];
   return languages.length === 1 ? languages[0] : null;
 });
-const isCreating = ref(false);
+const creatingTemplate = ref(null);
+const isCreating = computed(() => Boolean(creatingTemplate.value));
+const isCreatingTemplate = template => creatingTemplate.value === template;
 
 const applyDefaultLanguage = () => {
   if (languageTouched.value) return;
@@ -106,7 +110,11 @@ const load = async () => {
     }
   } catch (error) {
     failed.value = true;
-    errorMessage.value = error?.response?.data?.message || '';
+    errorMessage.value = error?.response?.data?.message
+      ? t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR_DETAIL', {
+          message: templateDraftError(error, t, te).message,
+        })
+      : t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR');
   }
 };
 watch(() => props.inboxes, load, { immediate: true });
@@ -153,7 +161,7 @@ const languageFilterOptions = computed(() => [
 
 const use = async template => {
   if (isCreating.value) return;
-  isCreating.value = true;
+  creatingTemplate.value = template;
   try {
     const inbox = props.inboxes.find(item => item.id === template.inboxId);
     const { data } = await DraftsAPI.fromLibrary({
@@ -185,12 +193,9 @@ const use = async template => {
     });
     emit('created', data);
   } catch (error) {
-    useAlert(
-      error?.response?.data?.message ||
-        t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.ERROR')
-    );
+    useAlert(templateDraftError(error, t, te).message);
   } finally {
-    isCreating.value = false;
+    creatingTemplate.value = null;
   }
 };
 
@@ -252,22 +257,43 @@ const inboxOptions = computed(() => [
       />
     </div>
 
-    <p v-if="failed" class="text-sm text-n-ruby-11" data-testid="library-error">
-      {{
-        errorMessage
-          ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR_DETAIL', {
-              message: errorMessage,
-            })
-          : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR')
-      }}
-    </p>
-
+    <div
+      v-if="isLoading"
+      role="status"
+      class="flex items-center gap-2 text-n-slate-11"
+      data-testid="library-loading"
+    >
+      <Spinner />
+      {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LOADING') }}
+    </div>
+    <div v-else-if="failed" class="grid gap-2">
+      <p
+        role="alert"
+        class="text-sm text-n-ruby-11"
+        data-testid="library-error"
+      >
+        {{ errorMessage }}
+      </p>
+      <Button
+        intent="secondary"
+        size="sm"
+        class="justify-self-start"
+        :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.RETRY')"
+        data-testid="library-retry"
+        @click="load"
+      />
+    </div>
     <p
-      v-else-if="!isLoading && !items.length"
+      v-else-if="!items.length"
       class="text-sm text-n-slate-11"
+      role="status"
       data-testid="library-empty"
     >
-      {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.EMPTY') }}
+      {{
+        inboxes.length
+          ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.EMPTY')
+          : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.NO_INBOXES')
+      }}
     </p>
     <p
       v-if="!failed && !isLoading"
@@ -287,7 +313,8 @@ const inboxOptions = computed(() => [
       <article
         v-for="template in items"
         :key="`${template.inboxId}-${template.name}-${template.language}`"
-        class="flex flex-col gap-2 p-4 border rounded-xl border-n-weak"
+        class="flex flex-col gap-2 p-4 border border-solid rounded-xl border-n-weak"
+        :aria-busy="isCreatingTemplate(template)"
         data-testid="library-item"
       >
         <h4 class="text-heading-3 text-n-slate-12">
@@ -311,7 +338,12 @@ const inboxOptions = computed(() => [
         </p>
         <div class="mt-auto">
           <Button
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.USE')"
+            :label="
+              isCreatingTemplate(template)
+                ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.CREATING')
+                : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.USE')
+            "
+            :is-loading="isCreatingTemplate(template)"
             icon="i-lucide-library"
             size="sm"
             intent="primary"

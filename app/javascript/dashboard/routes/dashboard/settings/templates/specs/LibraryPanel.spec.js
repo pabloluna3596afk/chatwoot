@@ -71,6 +71,122 @@ describe('LibraryPanel', () => {
     });
   });
 
+  it('announces initial loading and offers a working retry after a network error', async () => {
+    let reject;
+    WhatsappTemplatesAPI.library.mockImplementationOnce(
+      () =>
+        new Promise((_, fail) => {
+          reject = fail;
+        })
+    );
+    const wrapper = await mountPanel();
+    expect(
+      wrapper.get('[data-testid="library-loading"]').attributes('role')
+    ).toBe('status');
+    expect(wrapper.get('[data-testid="library-loading"]').text()).toBe(
+      'Cargando biblioteca…'
+    );
+    reject(new Error('Network Error'));
+    await flushPromises();
+    expect(wrapper.find('[data-testid="library-loading"]').exists()).toBe(
+      false
+    );
+    await wrapper.get('[data-testid="library-retry"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="library-error"]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(1);
+  });
+
+  it('distinguishes no WhatsApp inboxes from no filter matches', async () => {
+    const wrapper = await mountPanel({ inboxes: [] });
+    expect(wrapper.get('[data-testid="library-empty"]').text()).toContain(
+      'Conecta una bandeja'
+    );
+    expect(WhatsappTemplatesAPI.library).not.toHaveBeenCalled();
+    await wrapper.setProps({
+      inboxes: [{ id: 5, channel_id: 50, name: 'Soporte' }],
+    });
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="library-search"] input')
+      .setValue('no matches');
+    expect(wrapper.get('[data-testid="library-empty"]').text()).toBe(
+      translate('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.EMPTY')
+    );
+  });
+
+  it('shows progress only on the active card, blocks other cards and allows retry on failure', async () => {
+    WhatsappTemplatesAPI.library.mockResolvedValueOnce({
+      data: {
+        templates: [...entries, { ...entries[0], name: 'second' }],
+        next: null,
+      },
+    });
+    let reject;
+    DraftsAPI.fromLibrary.mockImplementationOnce(
+      () =>
+        new Promise((_, fail) => {
+          reject = fail;
+        })
+    );
+    const wrapper = await mountPanel();
+    const buttons = wrapper.findAll('[data-testid="library-use"]');
+    await buttons[0].trigger('click');
+    await buttons[0].trigger('click');
+    await buttons[1].trigger('click');
+    expect(DraftsAPI.fromLibrary).toHaveBeenCalledTimes(1);
+    expect(buttons[0].text()).toBe('Creando borrador…');
+    expect(buttons[0].findComponent({ name: 'Spinner' }).exists()).toBe(true);
+    expect(buttons[1].findComponent({ name: 'Spinner' }).exists()).toBe(false);
+    expect(
+      wrapper.findAll('[data-testid="library-item"]')[0].attributes('aria-busy')
+    ).toBe('true');
+    expect(
+      wrapper.findAll('[data-testid="library-item"]')[1].attributes('aria-busy')
+    ).toBe('false');
+    expect(
+      buttons.every(button => button.attributes('disabled') !== undefined)
+    ).toBe(true);
+    reject(new Error('Network Error'));
+    await flushPromises();
+    expect(buttons[0].text()).toBe('Crear borrador');
+    expect(
+      buttons.every(button => button.attributes('disabled') === undefined)
+    ).toBe(true);
+    await buttons[1].trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('created')).toHaveLength(1);
+  });
+
+  it.each([
+    [
+      422,
+      { error: 'invalid_draft', details: { name: ['has already been taken'] } },
+      'IDENTITY_CONFLICT',
+    ],
+    [409, { error: 'identity_conflict' }, 'IDENTITY_CONFLICT'],
+    [
+      422,
+      { error: 'invalid_draft', details: { waba_id: ['is invalid'] } },
+      'FIELD_ERRORS.inboxId',
+    ],
+  ])(
+    'reads the %s details without exposing technical attribute names',
+    async (status, data, key) => {
+      DraftsAPI.fromLibrary.mockRejectedValueOnce({
+        response: { status, data },
+      });
+      const wrapper = await mountPanel();
+      await wrapper.get('[data-testid="library-use"]').trigger('click');
+      await flushPromises();
+      expect(useAlert).toHaveBeenCalledWith(
+        translate(`WHATSAPP_TEMPLATE_MGMT.DRAFTS.${key}`)
+      );
+      expect(useAlert.mock.calls.at(-1)[0]).not.toContain('waba_id');
+      expect(wrapper.emitted('created')).toBeUndefined();
+    }
+  );
+
   it('loads all pages before counting and paginates only the visible rows', async () => {
     WhatsappTemplatesAPI.library
       .mockResolvedValueOnce({
