@@ -224,18 +224,12 @@ const download = async () => {
     </div>
     <div
       v-else-if="single"
-      class="absolute top-2 end-2 flex gap-1 rounded-lg bg-n-solid-1 p-0.5 shadow-sm [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+      class="absolute top-2 end-2 flex rounded-lg bg-n-solid-3 p-0.5 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100"
     >
       <Button
         size="xs"
-        intent="secondary"
-        icon="i-lucide-expand"
-        :aria-label="t('COMPONENTS.MEDIA.EXPAND')"
-        @click="emit('open', attachment)"
-      />
-      <Button
-        size="xs"
         intent="tertiary"
+        class="!size-6 !p-0 !rounded-md flex items-center justify-center"
         icon="i-lucide-download"
         :aria-label="t('CONVERSATION.DOWNLOAD')"
         :is-loading="isDownloading"

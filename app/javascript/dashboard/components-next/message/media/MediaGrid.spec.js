@@ -138,6 +138,22 @@ describe('attachment media grid', () => {
     expect(tiny.get('figure').classes()).toContain('p-3');
   });
 
+  it('has no separate expand button: the image opens on click and only download remains', async () => {
+    const wrapper = mount(MediaGrid, {
+      ...options(),
+      props: { items: [{ ...image, id: 1 }] },
+    });
+    const labels = wrapper
+      .findAll('button')
+      .map(button => button.attributes('aria-label') || '');
+    expect(labels.some(label => /expand/i.test(label))).toBe(false);
+    expect(labels.filter(label => /download/i.test(label))).toHaveLength(1);
+    await wrapper.get('figure button').trigger('click');
+    expect(
+      wrapper.getComponent({ name: 'GalleryView' }).props('attachment').id
+    ).toBe(1);
+  });
+
   it.each([2, 3, 4, 7])(
     'renders %s attachments using thumbnails and opens the selected attachment',
     async count => {
