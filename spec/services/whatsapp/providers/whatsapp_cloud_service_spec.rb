@@ -504,13 +504,49 @@ describe Whatsapp::Providers::WhatsappCloudService do
         expect(whatsapp_channel.reload.message_templates_last_updated).not_to eq(timstamp)
       end
 
-      it 'does not bump the inbox cache key when no templates are returned' do
+      it 'does not bump the inbox cache key when the stored and returned lists are both empty' do
+        whatsapp_channel.update_columns(message_templates: []) # rubocop:disable Rails/SkipsModelValidations
         stub_request(:get, 'https://graph.facebook.com/v14.0/123456789/message_templates')
           .with(headers: { 'Authorization' => 'Bearer test_key' })
           .to_return(status: 200, headers: response_headers, body: { data: [] }.to_json)
 
         expect(whatsapp_channel.account).not_to receive(:update_cache_key)
         subject.sync_templates
+      end
+
+      context 'when templates are already stored' do
+        let(:stored) { [{ 'id' => '1', 'name' => 'old_template' }] }
+        let(:templates_url) { 'https://graph.facebook.com/v14.0/123456789/message_templates' }
+        let(:auth) { { headers: { 'Authorization' => 'Bearer test_key' } } }
+
+        before { whatsapp_channel.update_columns(message_templates: stored) } # rubocop:disable Rails/SkipsModelValidations
+
+        it 'clears them when Meta returns an empty list' do
+          stub_request(:get, templates_url).with(**auth)
+                                           .to_return(status: 200, headers: response_headers, body: { data: [] }.to_json)
+
+          expect(whatsapp_channel.account).to receive(:update_cache_key).with('inbox').and_call_original
+          subject.sync_templates
+          expect(whatsapp_channel.reload.message_templates).to eq([])
+        end
+
+        it 'keeps them when the request fails' do
+          stub_request(:get, templates_url).with(**auth).to_return(status: 500)
+
+          subject.sync_templates
+          expect(whatsapp_channel.reload.message_templates).to eq(stored)
+        end
+
+        it 'keeps them when a later page fails' do
+          stub_request(:get, templates_url).with(**auth).to_return(
+            status: 200, headers: response_headers,
+            body: { data: [{ id: '2', name: 'page_one' }], paging: { cursors: { after: 'cursor-1' } } }.to_json
+          )
+          stub_request(:get, "#{templates_url}?after=cursor-1").with(**auth).to_return(status: 500)
+
+          subject.sync_templates
+          expect(whatsapp_channel.reload.message_templates).to eq(stored)
+        end
       end
 
       it 'updates message_templates_last_updated even when template request fails' do

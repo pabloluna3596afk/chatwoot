@@ -35,10 +35,11 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
   def sync_templates
     # ensuring that channels with wrong provider config wouldn't keep trying to sync templates
     whatsapp_channel.mark_message_templates_updated
-    return if (templates = fetch_whatsapp_templates).blank?
+    # nil means the request failed; an empty list is valid (every template was deleted in Meta)
+    return if (templates = fetch_whatsapp_templates).nil?
 
     # update_columns skips touch, so bump the cache key ourselves; only if templates changed
-    whatsapp_channel.account.update_cache_key('inbox') if templates != whatsapp_channel.message_templates
+    whatsapp_channel.account.update_cache_key('inbox') if templates != Array(whatsapp_channel.message_templates)
     # rubocop:disable Rails/SkipsModelValidations
     whatsapp_channel.update_columns(message_templates: templates, message_templates_last_updated: Time.current)
     # rubocop:enable Rails/SkipsModelValidations
@@ -51,14 +52,18 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     unless response.success?
       Rails.logger.warn "[WHATSAPP] Template sync failed for account #{whatsapp_channel.account_id} " \
                         "inbox #{whatsapp_channel.inbox&.id}: #{response.code} #{error_message(response)}"
-      return []
+      return nil
     end
 
+    data = response['data']
+    return nil unless data.is_a?(Array)
+
     next_cursor = response.dig('paging', 'cursors', 'after')
+    return data if next_cursor.blank?
 
-    return response['data'] + fetch_whatsapp_templates(after: next_cursor) if next_cursor.present?
-
-    response['data']
+    next_page = fetch_whatsapp_templates(after: next_cursor)
+    # a failed later page must not replace the stored list with a partial one
+    next_page.nil? ? nil : data + next_page
   end
 
   def validate_provider_config?
