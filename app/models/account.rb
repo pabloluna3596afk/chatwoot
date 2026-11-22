@@ -114,6 +114,7 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
   has_many :tiktok_channels, dependent: :destroy_async, class_name: '::Channel::Tiktok'
   has_many :hooks, dependent: :destroy_async, class_name: 'Integrations::Hook'
   has_many :calendar_connections, dependent: :destroy_async
+  has_many :calendar_template_resources, dependent: :destroy_async
   has_many :calendar_events, dependent: :destroy_async
   has_many :inboxes, dependent: :destroy_async
   has_many :labels, dependent: :destroy_async
