@@ -14,6 +14,7 @@ import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vu
 import { fillExamples } from './calendarTemplatePreview';
 
 const props = defineProps({ connected: { type: Boolean, default: false } });
+const emit = defineEmits(['updated']);
 const FUNCTIONS = [
   { key: 'confirmation', template: 'template', label: 'CONFIRMATION' },
   { key: 'cancellation', template: 'cancel_template', label: 'CANCELLATION' },
@@ -39,6 +40,9 @@ const router = useRouter();
 const results = ref({});
 const language = ref(null);
 const kit = ref(null);
+const languageState = ref({});
+const linking = ref('');
+const linkErrors = ref({});
 const loading = ref(true);
 const loadFailed = ref(false);
 const preparing = ref(false);
@@ -68,17 +72,56 @@ const rows = computed(() =>
     };
   })
 );
-const canEnableReminder = computed(() => {
-  const reminder = results.value.reminder;
-  return (
+const reminderDestinations = computed(
+  () => results.value.reminder?.destinations || []
+);
+const canEnableReminder = computed(
+  () =>
     props.connected &&
-    reminder?.approved &&
-    reminder?.linked &&
-    reminder?.draft_exists &&
-    !reminder?.archived &&
-    reminder?.status !== 'conflict'
-  );
-});
+    reminderDestinations.value.some(
+      destination => destination.state === 'usable'
+    )
+);
+const partialReminder = computed(
+  () =>
+    canEnableReminder.value &&
+    reminderDestinations.value.some(
+      destination => destination.state !== 'usable'
+    )
+);
+const apply = data => {
+  results.value = data.results;
+  language.value = data.language;
+  languageState.value = data;
+};
+const publish = () =>
+  emit('updated', { drafts: languageState.value, kit: kit.value });
+const destinationKey = (row, destination) =>
+  `${row.key}:${destination.waba_id}`;
+const link = async (row, destination) => {
+  const key = destinationKey(row, destination);
+  linking.value = key;
+  linkErrors.value[key] = '';
+  try {
+    const { data } = await CalendarAPI.linkTemplateDraft({
+      function: row.key,
+      draft_id: row.result.draft_id,
+      channel_id: destination.channels[0].id,
+    });
+    apply(data);
+    publish();
+  } catch (error) {
+    const reason = error.response?.data?.error;
+    const translation = `CITAS_PANEL.LINK_REASONS.${reason}`;
+    linkErrors.value[key] = te(translation)
+      ? t(translation)
+      : t('CITAS_PANEL.LINK_ERROR', {
+          reason: reason || t('CITAS_PANEL.SECTION_ERROR'),
+        });
+  } finally {
+    linking.value = '';
+  }
+};
 const reasonLabel = result => {
   const key = `CALENDAR_TEMPLATES.REASONS.${result.reason}`;
   return te(key) ? t(key) : t('CALENDAR_TEMPLATES.REASONS.incompatible');
@@ -95,9 +138,9 @@ const load = async () => {
       CalendarAPI.getTemplateDrafts(),
       CalendarAPI.getActivationKit(),
     ]);
-    results.value = drafts.data.results;
-    language.value = drafts.data.language;
+    apply(drafts.data);
     kit.value = activation.data;
+    publish();
   } catch {
     loadFailed.value = true;
   } finally {
@@ -107,9 +150,11 @@ const load = async () => {
 const prepare = async () => {
   preparing.value = true;
   try {
-    const { data } = await CalendarAPI.prepareTemplateDrafts();
-    results.value = data.results;
-    language.value = data.language;
+    const { data } = await CalendarAPI.prepareTemplateDrafts(
+      languageState.value.effective_language
+    );
+    apply(data);
+    publish();
   } catch {
     useAlert(t('CALENDAR_TEMPLATES.PREPARE_ERROR'));
   } finally {
@@ -135,6 +180,7 @@ const saveReminder = async enabled => {
   try {
     const { data } = await CalendarAPI.updateReminderEnabled(enabled);
     kit.value.reminder_enabled = data.reminder_enabled;
+    publish();
     useAlert(t('CALENDAR_ACTIVATION_KIT.REMINDER_SAVED'));
   } catch {
     useAlert(t('CALENDAR_ACTIVATION_KIT.REMINDER_SAVE_ERROR'));
@@ -187,6 +233,31 @@ onMounted(load);
       >
         {{ $t('CALENDAR_TEMPLATES.NOT_PREPARED') }}
       </p>
+      <p
+        v-if="languageState.effective_language"
+        class="text-body-main text-n-slate-11"
+      >
+        {{
+          $t('CITAS_PANEL.LANGUAGES', {
+            prepared:
+              languageState.prepared_language ||
+              $t('CALENDAR_TEMPLATES.NOT_SENT'),
+            effective: languageState.effective_language,
+          })
+        }}
+      </p>
+      <Button
+        v-if="languageState.language_changed"
+        intent="secondary"
+        :label="
+          $t('CITAS_PANEL.PREPARE_LANGUAGE', {
+            language: languageState.effective_language,
+          })
+        "
+        :disabled="!connected || preparing"
+        data-testid="prepare-language"
+        @click="prepare"
+      />
       <div
         v-for="row in rows"
         :key="row.key"
@@ -243,6 +314,62 @@ onMounted(load);
               )
             }}
           </p>
+          <div
+            v-for="destination in row.result.destinations || []"
+            :key="destination.waba_id"
+            class="flex w-full min-w-0 flex-col gap-2 border-t border-n-weak pt-3"
+            :data-testid="`destination-${row.key}-${destination.waba_id}`"
+          >
+            <p class="text-body-main text-n-slate-12 break-words">
+              {{ destination.channels.map(channel => channel.name).join(', ') }}
+            </p>
+            <p class="text-xs text-n-slate-11 break-all">
+              {{ $t('CITAS_PANEL.WABA', { id: destination.waba_id }) }}
+            </p>
+            <Label
+              :label="
+                $t(
+                  destination.reason === 'explicit_link_required'
+                    ? 'CITAS_PANEL.UNLINKED'
+                    : `CITAS_PANEL.DESTINATION_STATES.${destination.state}`
+                )
+              "
+              :color="destination.state === 'usable' ? 'teal' : 'amber'"
+              compact
+              role="status"
+            />
+            <p
+              v-if="destination.via && destination.via !== 'none'"
+              class="text-body-main text-n-slate-11"
+            >
+              {{ $t(`CITAS_PANEL.VIA.${destination.via}`) }}
+            </p>
+            <Button
+              v-if="
+                destination.state !== 'usable' &&
+                row.result.draft_exists &&
+                destination.channels.length
+              "
+              intent="secondary"
+              :label="$t('CITAS_PANEL.LINK')"
+              :disabled="Boolean(linking) || !connected"
+              :is-loading="linking === destinationKey(row, destination)"
+              @click="link(row, destination)"
+            />
+            <p
+              v-if="linkErrors[destinationKey(row, destination)]"
+              role="alert"
+              class="text-body-main text-n-ruby-11"
+            >
+              {{ linkErrors[destinationKey(row, destination)] }}
+            </p>
+          </div>
+          <p
+            v-if="!row.result.destinations?.length"
+            class="text-body-main text-n-slate-11"
+          >
+            {{ $t('CITAS_PANEL.NO_DESTINATIONS') }}
+          </p>
           <div v-if="row.key === 'reminder'" class="flex items-start gap-2">
             <Switch
               :model-value="kit?.reminder_enabled || false"
@@ -267,6 +394,9 @@ onMounted(load);
                 class="m-0 text-body-main text-n-slate-11"
               >
                 {{ $t('CALENDAR_TEMPLATES.REMINDER_LOCKED') }}
+              </p>
+              <p v-if="partialReminder" class="text-body-main text-n-amber-11">
+                {{ $t('CITAS_PANEL.PARTIAL') }}
               </p>
               <p class="mt-1 text-body-main text-n-slate-11">
                 {{ $t('CALENDAR_ACTIVATION_KIT.REMINDER_COST') }}

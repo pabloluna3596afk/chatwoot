@@ -31,6 +31,7 @@ vi.mock('dashboard/composables/useAdmin', async () => {
 vi.mock('dashboard/api/integrations/calendar', () => ({
   default: {
     getTemplateDrafts: vi.fn(),
+    linkTemplateDraft: vi.fn(),
     prepareTemplateDrafts: vi.fn(),
     getActivationKit: vi.fn(),
     updateReminderEnabled: vi.fn(),
@@ -276,6 +277,9 @@ describe('CalendarTemplates', () => {
         approved: true,
         linked: true,
         remote_status: 'APPROVED',
+        destinations: [
+          { state: 'usable', via: 'linked', waba_id: 'a', channels: [] },
+        ],
       },
     });
     expect(wrapper.findComponent(Switch).props('modelValue')).toBe(false);
@@ -334,7 +338,17 @@ describe('CalendarTemplates', () => {
   });
   it('reports preparation and save errors without changing the switch', async () => {
     const wrapper = await render({
-      reminder: { ...draft, approved: true, linked: true },
+      reminder: {
+        ...draft,
+        destinations: [
+          {
+            state: 'usable',
+            via: 'legacy_by_name',
+            waba_id: 'a',
+            channels: [],
+          },
+        ],
+      },
     });
     CalendarAPI.prepareTemplateDrafts.mockRejectedValue(new Error('offline'));
     await wrapper.get('[data-testid="prepare-templates"]').trigger('click');
@@ -346,6 +360,118 @@ describe('CalendarTemplates', () => {
     expect(wrapper.findComponent(Switch).props('modelValue')).toBe(false);
     expect(useAlert).toHaveBeenCalledWith(
       en.CALENDAR_ACTIVATION_KIT.REMINDER_SAVE_ERROR
+    );
+  });
+  it.each(['linked', 'legacy_by_name'])(
+    'enables partial reminders via %s',
+    async via => {
+      const wrapper = await render({
+        reminder: {
+          destinations: [
+            {
+              waba_id: 'a',
+              channels: [{ id: 10, name: 'Sales' }],
+              state: 'usable',
+              via,
+            },
+            {
+              waba_id: 'b',
+              channels: [{ id: 20, name: 'Support' }],
+              state: 'pending_approval',
+              via: 'none',
+            },
+          ],
+        },
+      });
+      expect(wrapper.text()).toContain('Sales');
+      expect(wrapper.text()).toContain('Support');
+      expect(wrapper.text()).toContain('Partial availability');
+      expect(
+        wrapper.get('[role="switch"]').attributes('disabled')
+      ).toBeUndefined();
+    }
+  );
+  it('does not use obsolete aggregates to enable reminders', async () => {
+    const wrapper = await render({
+      reminder: { ...draft, approved: true, linked: true, destinations: [] },
+    });
+    expect(wrapper.get('[role="switch"]').attributes('disabled')).toBeDefined();
+  });
+  it('links the selected destination and displays a 422 reason on failure', async () => {
+    const destination = {
+      waba_id: 'a',
+      channels: [{ id: 10, name: 'Sales' }],
+      state: 'incompatible',
+      reason: 'explicit_link_required',
+      via: 'none',
+    };
+    const wrapper = await render({
+      confirmation: { ...draft, destinations: [destination] },
+    });
+    const row = wrapper.get('[data-testid="destination-confirmation-a"]');
+    expect(row.text()).toContain('Approved, awaiting link');
+    CalendarAPI.linkTemplateDraft.mockRejectedValueOnce({
+      response: { status: 422, data: { error: 'variables' } },
+    });
+    await row.get('button').trigger('click');
+    await flushPromises();
+    expect(CalendarAPI.linkTemplateDraft).toHaveBeenCalledWith({
+      function: 'confirmation',
+      draft_id: 31,
+      channel_id: 10,
+    });
+    expect(row.get('[role="alert"]').text()).toContain('variables');
+    CalendarAPI.linkTemplateDraft.mockResolvedValueOnce({
+      data: {
+        language: 'en',
+        results: {
+          confirmation: {
+            ...draft,
+            destinations: [
+              { ...destination, state: 'usable', reason: null, via: 'linked' },
+            ],
+          },
+        },
+      },
+    });
+    await row.get('button').trigger('click');
+    await flushPromises();
+    expect(row.text()).toContain('Ready to use');
+    expect(row.find('button').exists()).toBe(false);
+  });
+  it('offers explicit preparation in the effective language after a language change', async () => {
+    const wrapper = await render();
+    CalendarAPI.getTemplateDrafts.mockResolvedValueOnce({
+      data: {
+        language: 'es',
+        prepared_language: 'es',
+        effective_language: 'en',
+        language_changed: true,
+        results: {},
+      },
+    });
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'Refresh status')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain(
+      'Prepared language: es. Account language: en.'
+    );
+    CalendarAPI.prepareTemplateDrafts.mockResolvedValueOnce({
+      data: {
+        language: 'en',
+        prepared_language: 'en',
+        effective_language: 'en',
+        language_changed: false,
+        results: {},
+      },
+    });
+    await wrapper.get('[data-testid="prepare-language"]').trigger('click');
+    await flushPromises();
+    expect(CalendarAPI.prepareTemplateDrafts).toHaveBeenCalledWith('en');
+    expect(wrapper.find('[data-testid="prepare-language"]').exists()).toBe(
+      false
     );
   });
 });
