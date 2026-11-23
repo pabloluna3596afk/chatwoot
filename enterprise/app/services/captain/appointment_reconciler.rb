@@ -32,6 +32,8 @@ class Captain::AppointmentReconciler
   end
 
   def reconcile(event)
+    return unless Calendar::ConnectionStatus.active?(event, context: 'captain_appointment_reconciliation')
+
     confirm(event)
     return unless upcoming?(event)
 

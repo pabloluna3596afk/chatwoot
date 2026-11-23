@@ -140,6 +140,8 @@ class Integrations::GoogleCalendar::EventService
   def self.refresh_upcoming_invitations(account, scope, user: nil)
     scope.kept.where(start_at: Time.current..).where(invitation_status: [nil, 'needs_action', 'tentative'])
          .includes(:calendar_connection).order(:start_at).limit(INVITATION_REFRESH_LIMIT).each do |record|
+      next unless record.calendar_connection.is_active?
+
       key = "calendar_invitation_refresh:#{record.id}"
       next if Rails.cache.exist?(key)
 
@@ -292,7 +294,7 @@ class Integrations::GoogleCalendar::EventService
 
   def update(event_id, params, enforce_hours: true, require_local: false)
     calendar_id = params[:calendar_id]
-    ensure_calendar_enabled!(calendar_id)
+    ensure_calendar_accessible!(calendar_id)
     record = local_owner(event_id, calendar_id, required: require_local)
     people = authorized_people!(params, record: record)
     raise EventCancelled if record&.discarded? && params[:appointment_status] != 'cancelled'
@@ -313,7 +315,7 @@ class Integrations::GoogleCalendar::EventService
 
   def destroy(event_id, params)
     calendar_id = params[:calendar_id]
-    ensure_calendar_enabled!(calendar_id)
+    ensure_calendar_accessible!(calendar_id)
     record = local_owner(event_id, calendar_id, required: params[:require_local])
     authorized_people!(params, record: record)
     ensure_lock!(event_id)
@@ -442,7 +444,11 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def ensure_calendar_enabled!(calendar_id)
-    raise CalendarNotEnabled unless connection.calendar_enabled?(calendar_id)
+    raise CalendarNotEnabled unless connection.is_active? && connection.calendar_enabled?(calendar_id)
+  end
+
+  def ensure_calendar_accessible!(calendar_id)
+    raise CalendarNotEnabled unless connection.is_active? && connection.connection_calendars.exists?(external_id: calendar_id)
   end
 
   def ensure_lock!(event_id)
