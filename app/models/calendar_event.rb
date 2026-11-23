@@ -73,6 +73,16 @@ class CalendarEvent < ApplicationRecord
     booking_source == 'ai'
   end
 
+  def booking_actor_for(actor)
+    return {} unless actor.is_a?(User)
+
+    { type: 'user', id: actor.id, name: actor.name, thumbnail: actor.avatar_url }
+  end
+
+  def capture_booking_actor(actor, creating:)
+    self.booking_actor = booking_actor_for(actor) if creating && new_record?
+  end
+
   private
 
   def reset_customer_reminder

@@ -126,6 +126,28 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     it 'A3 marks an active connection verified even when its calendar is closed to new bookings' do
       expect(described_class.payload_from_record(local_event)).to include(verified: true, deleted: false)
     end
+
+    it 'rejects maintenance while disconnected without changing the appointment or calling Google' do
+      record = local_event(contact: contact)
+      connection.update!(is_active: false)
+
+      expect do
+        service.destroy(record.google_event_id, calendar_id: 'cal-1', note: 'Customer request', require_local: true)
+      end.to raise_error(described_class::CalendarNotEnabled)
+      expect(record.reload.discarded?).to be(false)
+      expect(client).not_to have_received(:delete_event)
+    end
+  end
+
+  it 'persists the human booking actor and preserves it when another person edits the appointment' do
+    service.create(create_params)
+    record = connection.calendar_events.find_by!(google_event_id: 'g-1')
+    expect(record.booking_actor).to include('type' => 'user', 'id' => user.id, 'name' => user.name)
+    editor = create(:user, account: account, role: :administrator)
+    described_class.new(account: account, user: editor, connection: connection).update('g-1', create_params(summary: 'Updated'))
+
+    expect(record.reload.booking_actor).to include('id' => user.id, 'name' => user.name)
+    expect(record.updated_by).to eq(editor)
   end
 
   describe 'association authorization without controller context' do

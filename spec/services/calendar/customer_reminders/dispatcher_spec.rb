@@ -38,11 +38,13 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
 
   it 'A2 pauses disconnected appointments and resumes once without consuming an attempt' do
     event.calendar_connection.update!(is_active: false)
+    allow(Rails.logger).to receive(:info)
 
     2.times { described_class.new.perform }
 
     expect(outgoing).to be_empty
     expect(event.reload).to have_attributes(customer_reminder_status: nil, customer_reminder_sent_at: nil)
+    expect(Rails.logger).to have_received(:info).with(include('connection_disconnected')).twice
     event.calendar_connection.update!(is_active: true)
     2.times { described_class.new.perform }
     expect(outgoing.count).to eq(1)

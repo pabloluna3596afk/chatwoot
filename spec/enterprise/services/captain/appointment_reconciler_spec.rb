@@ -111,6 +111,16 @@ RSpec.describe Captain::AppointmentReconciler do
       expect(event.appointment_reminders.count).to eq(2)
     end
 
+    it 'does not transfer historical reminders when their original assistant no longer exists' do
+      event = booking('g-1', booking_actor: { 'type' => 'captain', 'id' => -1, 'name' => 'Deleted assistant' })
+
+      result = reconcile(apply: true)
+
+      expect(result.failed).to be_empty
+      expect(result.reminders).to be_empty
+      expect(event.appointment_reminders).to be_empty
+    end
+
     it 'reports a failure and goes on with the next appointment' do
       first = booking('g-1')
       second = booking('g-2')

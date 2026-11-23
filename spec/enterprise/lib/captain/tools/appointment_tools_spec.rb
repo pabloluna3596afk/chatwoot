@@ -131,6 +131,20 @@ end
         expect(other.reload.discarded?).to be(false)
         expect(client).not_to have_received(:delete_event)
       end
+
+      it 'uses the original connection even after configuring a different Google connection' do
+        replacement = create(:calendar_connection, account: account)
+        replacement.connection_calendars.create!(account: account, external_id: 'new-calendar', summary: 'New', is_enabled: true)
+        assistant.update!(config: { 'appointments' => appointments_config.merge(
+          'calendar_connection_id' => replacement.id, 'calendar_id' => 'new-calendar'
+        ) })
+
+        tool.perform(tool_context, event_id: own.google_event_id, customer_confirmed: true)
+
+        expect(own.reload.discarded?).to be(true)
+        expect(replacement.calendar_events).to be_empty
+        expect(client).to have_received(:delete_event).with(calendar_id: 'cal-1', event_id: 'own-1', etag: nil)
+      end
     else
       it 'moves the previous appointment on its original calendar and keeps its identity' do
         tool.perform(tool_context, event_id: own.google_event_id, new_start: '2030-01-15T11:00:00-05:00', customer_confirmed: true)

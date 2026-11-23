@@ -65,7 +65,14 @@ class Captain::AppointmentReminders::Sender
   end
 
   def active?
-    settings.reminder_enabled?(reminder.kind) && assistant.appointments_active_in?(conversation.inbox)
+    settings.reminder_enabled?(reminder.kind) && appointments_enabled?
+  end
+
+  def appointments_enabled?
+    return assistant.appointments_active_in?(conversation.inbox) if event.booking_actor.blank?
+
+    settings.enabled? && event.booking_actor['type'] == 'captain' && event.booking_actor['id'] == assistant.id &&
+      conversation.inbox.captain_inbox&.appointments_enabled?
   end
 
   def human_conversation?

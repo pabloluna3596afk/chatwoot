@@ -55,7 +55,7 @@ class Integrations::GoogleCalendar::EventService
       record = locals[event['id']]
       record&.with_lock { sync_google_drift!(event, record) }
     end
-    live = google_events.map { |event| serialize(event, locals[event['id']], calendar_id) }
+    live = google_events.map { |event| visibility.call(serialize(event, locals[event['id']], calendar_id), locals[event['id']]) }
     live + discarded_in_range(calendar_id, time_min, time_max, google_ids)
   end
 
@@ -158,7 +158,8 @@ class Integrations::GoogleCalendar::EventService
                 .map { |record| payload_from_record(record) }
   end
 
-  def self.contact_payloads(account, contact_id, calendar_id: nil, connection_id: nil, time_min: nil, time_max: nil) # rubocop:disable Metrics/ParameterLists
+  # rubocop:disable Metrics/ParameterLists
+  def self.contact_payloads(account, contact_id, calendar_id: nil, connection_id: nil, time_min: nil, time_max: nil, user: nil)
     scope = account.calendar_events
                    .kept
                    .where(contact_id: contact_id)
@@ -168,8 +169,10 @@ class Integrations::GoogleCalendar::EventService
     if time_min.present? && time_max.present?
       scope = scope.where('start_at < ? AND end_at > ?', Time.iso8601(time_max), Time.iso8601(time_min))
     end
-    scope.order(start_at: :asc).map { |record| payload_from_record(record) }
+    visibility = Calendar::EventVisibility.new(account: account, user: user)
+    scope.order(start_at: :asc).map { |record| visibility.call(payload_from_record(record), record) }
   end
+  # rubocop:enable Metrics/ParameterLists
 
   def list_for_contact(contact_id:, calendar_id: nil, time_min: nil, time_max: nil)
     self.class.contact_payloads(
@@ -177,7 +180,8 @@ class Integrations::GoogleCalendar::EventService
       contact_id,
       calendar_id: calendar_id,
       time_min: time_min,
-      time_max: time_max
+      time_max: time_max,
+      user: user
     )
   end
   alias list_by_contact list_for_contact
@@ -185,6 +189,7 @@ class Integrations::GoogleCalendar::EventService
   def self.payload_from_record(record)
     {
       id: record.google_event_id,
+      verified: record.calendar_connection.is_active?,
       summary: record.summary.presence || I18n.t('integration_apps.calendars.untitled'),
       start: record.start_at&.iso8601,
       end: record.end_at&.iso8601,
@@ -239,6 +244,7 @@ class Integrations::GoogleCalendar::EventService
   # the person otherwise.
   def self.creator_payload(record)
     return if record.blank?
+    return record.booking_actor.symbolize_keys if record.booking_actor.present?
 
     record.ai_booked? ? captain_creator_payload(record) : user_creator_payload(record.created_by)
   end
@@ -333,6 +339,10 @@ class Integrations::GoogleCalendar::EventService
   private
 
   attr_reader :account, :user, :connection
+
+  def visibility
+    @visibility ||= Calendar::EventVisibility.new(account: account, user: user)
+  end
 
   def import_event_for_cancellation(calendar_id, event_id)
     event = client.get_event(calendar_id: calendar_id, event_id: event_id)
@@ -704,6 +714,7 @@ class Integrations::GoogleCalendar::EventService
     # reused here so a booking's AI origin is derived from the same signal that
     # already governs created_by, instead of trusting a client-supplied flag.
     attrs[:booking_source] = actor_user ? 'manual' : 'ai' if creating || was_new
+    record.capture_booking_actor(user, creating: creating)
     record.assign_attributes(attrs)
     record.created_by ||= actor_user if actor_user && (creating || was_new)
     record.save!
@@ -785,15 +796,15 @@ class Integrations::GoogleCalendar::EventService
                       .where('deleted_at IS NOT NULL OR appointment_status = ?', 'cancelled')
                       .where(external_calendar_id: calendar_id)
                       .where(start_at: Time.iso8601(time_min)...Time.iso8601(time_max))
-                      .includes(:created_by, :updated_by, :deleted_by, :contact, :conversation, activities: :user)
+                      .includes(:created_by, :updated_by, :deleted_by, :contact, :conversation, :calendar_connection, activities: :user)
     scope = scope.where.not(google_event_id: google_ids) if google_ids.any?
-    scope.map { |record| self.class.payload_from_record(record) }
+    scope.map { |record| visibility.call(self.class.payload_from_record(record), record) }
   end
 
   def local_records_by_google_id(ids)
     connection.calendar_events
               .where(google_event_id: ids)
-              .includes(:created_by, :updated_by, :deleted_by, :contact, :conversation, activities: :user)
+              .includes(:created_by, :updated_by, :deleted_by, :contact, :conversation, :calendar_connection, activities: :user)
               .index_by(&:google_event_id)
   end
 
@@ -897,6 +908,7 @@ class Integrations::GoogleCalendar::EventService
     end_at = event.dig('end', 'dateTime').presence || event.dig('end', 'date')
     {
       id: event['id'],
+      verified: connection.is_active?,
       summary: event['summary'].presence || I18n.t('integration_apps.calendars.untitled'),
       start: start_at,
       end: end_at,

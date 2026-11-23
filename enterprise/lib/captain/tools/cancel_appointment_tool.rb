@@ -7,7 +7,7 @@ class Captain::Tools::CancelAppointmentTool < Captain::Tools::BaseAppointmentToo
   parameter :customer_confirmed, type: 'boolean', description: 'true only if the customer explicitly confirmed the cancellation', required: false
 
   def perform(tool_context, event_id:, customer_confirmed: false)
-    conversation, error = conversation_for(tool_context)
+    conversation, error = conversation_for(tool_context, maintenance: true)
     return error if error
 
     event_ref = resolve_event_id(conversation, event_id)
@@ -15,7 +15,8 @@ class Captain::Tools::CancelAppointmentTool < Captain::Tools::BaseAppointmentToo
     return translate('not_found') if event.blank?
     return translate('confirm_required') unless customer_confirmed?(customer_confirmed)
 
-    event_service.destroy(event[:id], calendar_id: calendar_id, note: translate('cancel_note', assistant: @assistant.name), require_local: true)
+    event_service_for(event).destroy(event[:id], calendar_id: event.fetch(:calendar_id),
+                                    note: translate('cancel_note', assistant: @assistant.name), require_local: true)
     log_tool_usage('cancel_appointment', conversation_id: conversation.id, event_id: event[:id])
     translate('cancelled', time: format_time(Time.iso8601(event[:start])))
   rescue StandardError => e
