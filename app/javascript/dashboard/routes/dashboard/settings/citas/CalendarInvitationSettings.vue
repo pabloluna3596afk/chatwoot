@@ -1,7 +1,7 @@
 <script setup>
 // The text of the invitation of an appointment, written once for the account (Settings > Integrations > Calendars): what
 // the customer reads in the Google Calendar event, for the appointments of the agents and of Captain alike.
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
@@ -15,6 +15,8 @@ import {
   sampleValues,
   unknownTokens,
 } from 'dashboard/helper/invitationText';
+
+const emit = defineEmits(['dirty']);
 
 const { t, locale } = useI18n();
 
@@ -43,6 +45,7 @@ const dirty = computed(
     template.value !== saved.value.template ||
     location.value !== saved.value.location
 );
+watch(dirty, value => emit('dirty', value));
 const canSave = computed(
   () => dirty.value && !unknown.value.length && !isSaving.value
 );
@@ -205,11 +208,12 @@ const save = async () => {
         <span class="text-sm font-medium text-n-slate-12">
           {{ $t('CALENDAR_INVITATION.PREVIEW') }}
         </span>
-        <pre
-          class="p-3 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12"
+        <div
+          class="p-3 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12 break-words"
           data-testid="invitation-preview"
-          >{{ preview }}</pre
         >
+          {{ preview }}
+        </div>
         <span class="text-xs text-n-slate-11">
           {{ $t('CALENDAR_INVITATION.PREVIEW_NOTE') }}
         </span>

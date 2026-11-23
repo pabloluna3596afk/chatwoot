@@ -41,7 +41,7 @@
     "OPEN": "Open in Templates",
     "RETRY": "Retry preparation",
     "REMINDER_TOGGLE": "Send reminder to the customer",
-    "REMINDER_LOCKED": "An approved, linked template is required to enable reminders.",
+    "REMINDER_LOCKED": "At least one destination needs a usable reminder template.",
     "LOAD_ERROR": "Appointment templates could not be loaded.",
     "PREPARE_ERROR": "Templates could not be prepared. Try again.",
     "REASONS": {
@@ -51,6 +51,77 @@
       "missing_destination": "The draft destination is no longer available. Open Templates to select a destination, then retry preparation.",
       "existing_resource": "An appointment resource already exists. Open Templates to review its selected version.",
       "incompatible": "The existing draft is incompatible with appointments. Open Templates to review its content, variables and buttons, then retry preparation."
+    }
+  },
+  "CITAS_PANEL": {
+    "TABS": {
+      "resumen": "Overview",
+      "calendarios": "Calendars",
+      "mensajes": "Messages",
+      "invitacion": "Invitation",
+      "atributos": "Contact attributes"
+    },
+    "START": "Start time",
+    "END": "End time",
+    "OPEN": "Open",
+    "CLOSED": "Closed to new bookings",
+    "BOOKINGS": "New bookings",
+    "BOOKINGS_READ_ONLY": "Read only. Manage calendar availability in Integrations. Closing new bookings does not cancel existing appointments.",
+    "USED_BY": "Assistants using this calendar",
+    "CONFIGURE_ASSISTANT": "Configure assistant",
+    "HUMAN_ONLY": "Human team only",
+    "WITHOUT_CALENDAR": "Assistants without an available calendar",
+    "CHOOSE_CALENDAR": "Choose calendar",
+    "NO_ASSISTANTS": "No assistants. You can still book appointments with your human team.",
+    "NO_CALENDARS": "No enabled calendars. Enable a calendar in Integrations.",
+    "ASSISTANTS": "Assistants with appointments",
+    "CALENDAR_COUNT": "{count} enabled calendars",
+    "ASSISTANT_COUNT": "{count} with a calendar; {missing} without an available calendar",
+    "TEMPLATE_COUNTS": "{ready} ready; {unlinked} approved, awaiting link; {review} in review; {pending} pending",
+    "CONNECTED": "Google connected",
+    "DISCONNECTED": "Connection disconnected: notices are paused; your appointments are preserved.",
+    "RECONNECT": "Reconnect",
+    "UNSAVED": "You have unsaved changes. Save your changes before leaving this section.",
+    "SECTION_ERROR": "This section could not be loaded. Retry to see its current status.",
+    "VIEW": "View {section}",
+    "REMINDER_ON": "Enabled.",
+    "REMINDER_OFF": "Disabled.",
+    "REMINDER_READY": "A template is available. Reminders only apply to eligible appointments booked by a person.",
+    "LANGUAGES": "Prepared language: {prepared}. Account language: {effective}.",
+    "PREPARE_LANGUAGE": "Prepare in {language}",
+    "WABA": "WABA: {id}",
+    "UNLINKED": "Approved, awaiting link",
+    "LINK": "Link",
+    "LINK_ERROR": "Could not link template: {reason}",
+    "NO_DESTINATIONS": "No WhatsApp Cloud destinations configured.",
+    "PARTIAL": "Partial availability: only some destinations have a usable reminder template.",
+    "DESTINATION_STATES": {
+      "usable": "Ready to use",
+      "pending_approval": "In review",
+      "not_submitted": "Not submitted",
+      "incompatible": "Incompatible",
+      "missing": "Missing"
+    },
+    "VIA": {
+      "linked": "Explicitly linked",
+      "legacy_by_name": "Available by its existing name"
+    },
+    "LINK_REASONS": {
+      "invalid_input": "The selection is invalid.",
+      "invalid_channel": "The channel is unavailable.",
+      "cloud_channel_required": "Select a WhatsApp Cloud channel.",
+      "missing_waba": "This channel has no WABA configured.",
+      "invalid_draft": "This draft is unavailable.",
+      "destination_mismatch": "The draft belongs to another destination.",
+      "language": "The template language does not match the account.",
+      "missing_submission": "Submit and approve this draft in Templates first.",
+      "missing_template": "The remote template is unavailable.",
+      "category": "An approved utility template is required.",
+      "status": "The template is not approved.",
+      "parameter_format": "The template parameter format is incompatible.",
+      "components": "The template components are incompatible.",
+      "variables": "The appointment variables are missing or incompatible.",
+      "buttons": "The template buttons are incompatible."
     }
   }
 }

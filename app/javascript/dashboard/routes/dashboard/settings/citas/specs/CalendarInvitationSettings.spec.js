@@ -89,9 +89,11 @@ describe('CalendarInvitationSettings', () => {
     const wrapper = await mountSettings();
 
     await textarea(wrapper).setValue('Nuevo texto');
+    expect(wrapper.emitted('dirty').at(-1)).toEqual([true]);
     await wrapper.get('[data-testid="invitation-save"]').trigger('click');
     await flushPromises();
 
+    expect(wrapper.emitted('dirty').at(-1)).toEqual([false]);
     expect(CalendarAPI.updateInvitation).toHaveBeenCalledWith({
       template: 'Nuevo texto',
       location: '',

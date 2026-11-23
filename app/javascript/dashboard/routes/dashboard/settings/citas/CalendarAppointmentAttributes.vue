@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
@@ -8,6 +8,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 
+const emit = defineEmits(['dirty']);
 const ATTRIBUTES = [
   { key: 'ultima_cita', type: 'datetime' },
   { key: 'proxima_cita', type: 'datetime' },
@@ -29,6 +30,11 @@ const dirty = computed(
 const hasConflicts = computed(() =>
   Object.values(results.value).some(result => result.status === 'conflict')
 );
+const initialSelection = ref('');
+const edited = computed(
+  () => !loading.value && selected.value.join() !== initialSelection.value
+);
+watch(edited, value => emit('dirty', value));
 const canSave = computed(
   () =>
     !loading.value &&
@@ -40,6 +46,7 @@ const apply = data => {
   selected.value = data.keys ?? ATTRIBUTES.map(attribute => attribute.key);
   saved.value = data.keys === null ? null : [...data.keys];
   results.value = data.results;
+  initialSelection.value = selected.value.join();
 };
 const toggle = (key, checked) => {
   const keys = checked

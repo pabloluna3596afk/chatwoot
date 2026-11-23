@@ -1,32 +1,30 @@
-import { flushPromises, shallowMount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import { createRouter, createMemoryHistory, RouterView } from 'vue-router';
+import { createI18n } from 'vue-i18n';
 import { ref } from 'vue';
 import Index from '../Index.vue';
-import routes from '../citas.routes';
+import CalendarResources from '../CalendarResources.vue';
 import CalendarTemplates from '../CalendarTemplates.vue';
-import CalendarAppointmentAttributes from '../CalendarAppointmentAttributes.vue';
-import CalendarInvitationSettings from '../CalendarInvitationSettings.vue';
-import BaseSettingsHeader from '../../components/BaseSettingsHeader.vue';
-import SettingsLayout from '../../SettingsLayout.vue';
+import CalendarSummary from '../CalendarSummary.vue';
 import calendarConnections from 'dashboard/store/modules/calendarConnections';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
-import Button from 'dashboard/components-next/button/Button.vue';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import AssistantAPI from 'dashboard/api/captain/assistant';
 import en from 'dashboard/i18n/locale/en/calendarActivationKit.json';
 import es from 'dashboard/i18n/locale/es/calendarActivationKit.json';
 
-const { admin } = vi.hoisted(() => ({ admin: { value: true } }));
-vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
-vi.mock('../../components/BaseSettingsHeader.vue', () => ({
-  default: {
-    props: ['title', 'description'],
-    template: '<header>{{ title }}</header>',
-  },
+const { admin, captainEnabled } = vi.hoisted(() => ({
+  admin: { value: true },
+  captainEnabled: { value: true },
 }));
 vi.mock('dashboard/composables/useAccount', () => ({
   useAccount: () => ({
     accountId: ref(7),
-    accountScopedRoute: name => ({ name, params: { accountId: 7 } }),
+    isCloudFeatureEnabled: () => captainEnabled.value,
+    accountScopedRoute: (name, params) => ({
+      name,
+      params: { accountId: 7, ...params },
+    }),
   }),
 }));
 vi.mock('dashboard/composables/useAdmin', async () => {
@@ -34,121 +32,242 @@ vi.mock('dashboard/composables/useAdmin', async () => {
   return { useAdmin: () => ({ isAdmin: computed(() => admin.value) }) };
 });
 vi.mock('dashboard/api/integrations/calendar', () => ({
-  default: { getConnections: vi.fn() },
+  default: {
+    getConnections: vi.fn(),
+    getCalendars: vi.fn(),
+    getTemplateDrafts: vi.fn(),
+    getActivationKit: vi.fn(),
+  },
 }));
-
-beforeEach(() => {
-  admin.value = true;
-});
-
-describe('Citas settings page', () => {
-  it.each([true, false])(
-    'composes cards only with an active Google connection: %s',
-    async connected => {
-      CalendarAPI.getConnections.mockResolvedValue({
-        data: { payload: connected ? [{ id: 1, provider: 'google' }] : [] },
-      });
-      const store = createStore({ modules: { calendarConnections } });
-      const wrapper = shallowMount(Index, {
-        global: {
-          plugins: [store],
-          mocks: { $t: key => key },
-          stubs: {
-            SettingsLayout: false,
-            RouterLink: {
-              props: ['to'],
-              template: '<a :data-route="to.name"><slot /></a>',
-            },
-          },
+vi.mock('dashboard/api/captain/assistant', () => ({
+  default: { get: vi.fn() },
+}));
+vi.mock('../../components/BaseSettingsHeader.vue', () => ({
+  default: { props: ['title'], template: '<header>{{ title }}</header>' },
+}));
+const calendar = {
+  id: 'sales',
+  summary: 'Sales',
+  enabled: true,
+  connection: { id: 1, provider: 'google', email: 'owner@example.com' },
+};
+const assistant = {
+  id: 11,
+  name: 'Aurora',
+  config: {
+    appointments: {
+      enabled: true,
+      calendar_connection_id: 1,
+      calendar_id: 'sales',
+    },
+  },
+};
+const render = async (query = {}) => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: Index },
+      {
+        path: '/integrations',
+        name: 'settings_integrations_calendars',
+        component: { template: '<div />' },
+      },
+      {
+        path: '/assistant/:assistantId',
+        name: 'captain_assistants_settings_appointments_index',
+        component: { template: '<div />' },
+      },
+    ],
+  });
+  await router.push({ path: '/', query });
+  await router.isReady();
+  const wrapper = mount(RouterView, {
+    global: {
+      plugins: [
+        router,
+        createStore({ modules: { calendarConnections } }),
+        createI18n({ legacy: false, locale: 'en', messages: { en } }),
+      ],
+      stubs: {
+        CalendarHours: true,
+        CalendarTemplates: {
+          emits: ['updated'],
+          template: '<div data-testid="messages" />',
         },
-      });
+        CalendarInvitationSettings: {
+          emits: ['dirty'],
+          template:
+            '<div><button data-testid="edit-invitation" @click="$emit(\'dirty\', true)">Edit</button><button data-testid="save-invitation" @click="$emit(\'dirty\', false)">Save</button></div>',
+        },
+        CalendarAppointmentAttributes: {
+          emits: ['dirty'],
+          template:
+            '<button data-testid="edit-attributes" @click="$emit(\'dirty\', true)">Edit</button>',
+        },
+      },
+    },
+  });
+  await flushPromises();
+  return { wrapper, router };
+};
+beforeEach(() => {
+  vi.clearAllMocks();
+  admin.value = true;
+  captainEnabled.value = true;
+  CalendarAPI.getConnections.mockResolvedValue({
+    data: { payload: [calendar.connection] },
+  });
+  CalendarAPI.getCalendars.mockResolvedValue({ data: { payload: [calendar] } });
+  CalendarAPI.getTemplateDrafts.mockResolvedValue({
+    data: { results: {}, prepared_language: null },
+  });
+  CalendarAPI.getActivationKit.mockResolvedValue({
+    data: { reminder_enabled: false },
+  });
+  AssistantAPI.get.mockResolvedValue({ data: { payload: [assistant] } });
+});
+describe('Citas panel', () => {
+  it('defaults to Overview, loads all summary data and navigates with a query', async () => {
+    const { wrapper, router } = await render();
+    expect(wrapper.get('button[aria-current="page"]').text()).toBe('Overview');
+    expect(wrapper.text()).toContain(
+      '1 with a calendar; 0 without an available calendar'
+    );
+    expect(wrapper.text()).toContain('not been prepared');
+    expect(wrapper.find('[data-testid="messages"]').exists()).toBe(false);
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'Calendars')
+      .trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.query.tab).toBe('calendarios');
+    expect(wrapper.findComponent(CalendarResources).isVisible()).toBe(true);
+    expect(wrapper.text()).toContain('Aurora');
+  });
+  it.each(['invitacion', 'atributos'])(
+    'protects unsaved %s edits including URL navigation',
+    async tab => {
+      const { wrapper, router } = await render({ tab });
+      await wrapper
+        .get(
+          `[data-testid="edit-${tab === 'invitacion' ? 'invitation' : 'attributes'}"]`
+        )
+        .trigger('click');
+      await wrapper
+        .findAll('button')
+        .find(button => button.text() === 'Overview')
+        .trigger('click');
       await flushPromises();
-      expect(wrapper.getComponent(BaseSettingsHeader).props('title')).toBe(
-        'SIDEBAR.CITAS'
-      );
-      expect(wrapper.getComponent(SettingsLayout).props('isLoading')).toBe(
-        false
-      );
-      expect(wrapper.findComponent(CalendarTemplates).exists()).toBe(connected);
-      expect(
-        wrapper.findComponent(CalendarAppointmentAttributes).exists()
-      ).toBe(connected);
-      expect(wrapper.findComponent(CalendarInvitationSettings).exists()).toBe(
-        connected
-      );
-      if (connected) {
-        expect(wrapper.getComponent(CalendarTemplates).props('connected')).toBe(
-          true
-        );
-        expect(wrapper.html().indexOf('calendar-templates-stub')).toBeLessThan(
-          wrapper.html().indexOf('calendar-appointment-attributes-stub')
-        );
-        expect(
-          wrapper.html().indexOf('calendar-appointment-attributes-stub')
-        ).toBeLessThan(
-          wrapper.html().indexOf('calendar-invitation-settings-stub')
-        );
-      } else {
-        expect(wrapper.text()).toContain('CALENDAR_TEMPLATES.CONNECT_GOOGLE');
+      expect(router.currentRoute.value.query.tab).toBe(tab);
+      expect(wrapper.get('[role="alert"]').text()).toContain('unsaved');
+      await router.push({ query: { tab: 'mensajes' } });
+      expect(router.currentRoute.value.query.tab).toBe(tab);
+      if (tab === 'invitacion') {
+        await wrapper.get('[data-testid="save-invitation"]').trigger('click');
+        await router.push({ query: { tab: 'mensajes' } });
+        await flushPromises();
+        expect(wrapper.get('[data-testid="messages"]').isVisible()).toBe(true);
       }
-      expect(wrapper.get('a').attributes('data-route')).toBe(
-        'settings_integrations_calendars'
-      );
-      wrapper.unmount();
     }
   );
-
-  it('does not load or mount editable settings for an agent', async () => {
-    admin.value = false;
-    const store = createStore({ modules: { calendarConnections } });
-    const wrapper = shallowMount(Index, {
-      global: {
-        plugins: [store],
-        mocks: { $t: key => key },
-        stubs: { SettingsLayout: false },
-      },
-    });
-    await flushPromises();
-    expect(CalendarAPI.getConnections).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain('CALENDAR_TEMPLATES.ADMIN_ONLY');
-    expect(wrapper.findComponent(CalendarTemplates).exists()).toBe(false);
-    wrapper.unmount();
+  it('shows the disconnected continuity notice for prior configuration', async () => {
+    CalendarAPI.getConnections.mockResolvedValue({ data: { payload: [] } });
+    const { wrapper } = await render();
+    expect(wrapper.text()).toContain('notices are paused');
+    expect(wrapper.text()).toContain('Reconnect');
+    expect(wrapper.text()).toContain('No enabled calendars');
   });
-
-  it('offers recovery after a connection load failure', async () => {
-    CalendarAPI.getConnections.mockRejectedValueOnce(new Error('offline'));
-    const store = createStore({ modules: { calendarConnections } });
-    const wrapper = shallowMount(Index, {
-      global: {
-        plugins: [store],
-        mocks: { $t: key => key },
-        stubs: { SettingsLayout: false },
-      },
-    });
-    await flushPromises();
-    expect(wrapper.get('[role="alert"]').text()).toContain('LOAD_ERROR');
-    CalendarAPI.getConnections.mockResolvedValue({
-      data: { payload: [{ id: 1, provider: 'google' }] },
-    });
-    wrapper.getComponent(Button).vm.$emit('click');
-    await flushPromises();
-    expect(wrapper.findComponent(CalendarTemplates).exists()).toBe(true);
-    wrapper.unmount();
-  });
-
-  it('registers its own admin route and matching translations', () => {
-    expect(routes.routes[0].path).toContain(
-      'accounts/:accountId/settings/citas'
+  it('reports failed sections instead of reporting zero assistants', async () => {
+    AssistantAPI.get.mockRejectedValueOnce(new Error('denied'));
+    const { wrapper } = await render({ tab: 'calendarios' });
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'could not be loaded'
     );
-    expect(routes.routes[0].children[0]).toMatchObject({
-      name: 'settings_citas',
-      meta: {
-        permissions: ['administrator'],
-        featureFlag: FEATURE_FLAGS.CALENDAR,
+    expect(wrapper.text()).not.toContain('Human team only');
+    expect(wrapper.text()).not.toContain('No assistants.');
+  });
+  it('does not fetch Captain when the feature is disabled', async () => {
+    captainEnabled.value = false;
+    const { wrapper } = await render();
+    expect(AssistantAPI.get).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('No assistants.');
+  });
+  it('does not load settings for agents', async () => {
+    admin.value = false;
+    const { wrapper } = await render();
+    expect(CalendarAPI.getConnections).not.toHaveBeenCalled();
+    expect(AssistantAPI.get).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('administrator');
+  });
+  it('updates Overview after message changes without reloading assistants', async () => {
+    const { wrapper, router } = await render({ tab: 'mensajes' });
+    wrapper.findComponent(CalendarTemplates).vm.$emit('updated', {
+      drafts: {
+        results: { reminder: { destinations: [{ state: 'usable' }] } },
+      },
+      kit: { reminder_enabled: true },
+    });
+    await router.push({ query: { tab: 'resumen' } });
+    await flushPromises();
+    expect(wrapper.getComponent(CalendarSummary).text()).toContain('Enabled.');
+    expect(AssistantAPI.get).toHaveBeenCalledOnce();
+  });
+  it('keeps English and Spanish panel keys in parity', () => {
+    expect(Object.keys(en.CITAS_PANEL)).toEqual(Object.keys(es.CITAS_PANEL));
+    expect(Object.keys(en.CITAS_PANEL.LINK_REASONS)).toEqual(
+      Object.keys(es.CITAS_PANEL.LINK_REASONS)
+    );
+  });
+  it.each(
+    [
+      [],
+      [assistant],
+      [assistant, { ...assistant, id: 12, name: 'Mateo' }],
+      [
+        {
+          ...assistant,
+          config: {
+            appointments: { calendar_connection_id: 2, calendar_id: 'sales' },
+          },
+        },
+      ],
+    ].map(items => [items])
+  )('maps calendars by both IDs: %j', async assistants => {
+    AssistantAPI.get.mockResolvedValue({ data: { payload: assistants } });
+    const { wrapper } = await render({ tab: 'calendarios' });
+    const resources = wrapper.getComponent(CalendarResources);
+    const assigned = assistants.filter(
+      item => item.config.appointments.calendar_connection_id === 1
+    );
+    expect(
+      resources
+        .findAll('a')
+        .filter(link => link.text() === 'Configure assistant')
+    ).toHaveLength(assigned.length);
+    expect(resources.text().includes('Human team only')).toBe(!assigned.length);
+    expect(
+      resources.findAll('a').filter(link => link.text() === 'Choose calendar')
+    ).toHaveLength(assistants.length - assigned.length);
+    expect(resources.find('select').exists()).toBe(false);
+  });
+  it('summarizes destination states without treating pending destinations as ready', async () => {
+    CalendarAPI.getTemplateDrafts.mockResolvedValue({
+      data: {
+        results: {
+          reminder: {
+            destinations: [
+              { state: 'usable' },
+              { state: 'pending_approval' },
+              { state: 'incompatible', reason: 'explicit_link_required' },
+              { state: 'missing' },
+            ],
+          },
+        },
       },
     });
-    expect(Object.keys(en.CITAS_SETTINGS)).toEqual(
-      Object.keys(es.CITAS_SETTINGS)
+    const { wrapper } = await render();
+    expect(wrapper.getComponent(CalendarSummary).text()).toContain(
+      '1 ready; 1 approved, awaiting link; 1 in review; 1 pending'
     );
   });
 });

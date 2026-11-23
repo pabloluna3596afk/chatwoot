@@ -41,7 +41,7 @@
     "OPEN": "Abrir en Plantillas",
     "RETRY": "Reintentar preparación",
     "REMINDER_TOGGLE": "Enviar recordatorio al cliente",
-    "REMINDER_LOCKED": "Para activar los recordatorios, la plantilla debe estar aprobada y vinculada.",
+    "REMINDER_LOCKED": "Al menos un destino necesita una plantilla de recordatorio lista para usar.",
     "LOAD_ERROR": "No se pudieron cargar las plantillas de Citas.",
     "PREPARE_ERROR": "No se pudieron preparar las plantillas. Inténtalo de nuevo.",
     "REASONS": {
@@ -51,6 +51,77 @@
       "missing_destination": "El destino del borrador ya no está disponible. Elige uno en Plantillas y reintenta la preparación.",
       "existing_resource": "Ya existe un recurso de Citas. Abre Plantillas para revisar la versión seleccionada.",
       "incompatible": "El borrador existente no es compatible con Citas. Revisa su contenido, variables y botones en Plantillas y reintenta la preparación."
+    }
+  },
+  "CITAS_PANEL": {
+    "TABS": {
+      "resumen": "Resumen",
+      "calendarios": "Calendarios",
+      "mensajes": "Mensajes",
+      "invitacion": "Invitación",
+      "atributos": "Atributos de contacto"
+    },
+    "START": "Hora de inicio",
+    "END": "Hora de fin",
+    "OPEN": "Abiertas",
+    "CLOSED": "Cerradas a reservas nuevas",
+    "BOOKINGS": "Reservas nuevas",
+    "BOOKINGS_READ_ONLY": "Solo lectura. Gestiona la disponibilidad del calendario en Integraciones. Cerrar reservas nuevas no cancela las citas existentes.",
+    "USED_BY": "Asistentes que lo usan",
+    "CONFIGURE_ASSISTANT": "Configurar asistente",
+    "HUMAN_ONLY": "Solo equipo humano",
+    "WITHOUT_CALENDAR": "Asistentes sin calendario disponible",
+    "CHOOSE_CALENDAR": "Elegir calendario",
+    "NO_ASSISTANTS": "Sin asistentes. Puedes seguir reservando citas con tu equipo humano.",
+    "NO_CALENDARS": "No hay calendarios habilitados. Habilita un calendario en Integraciones.",
+    "ASSISTANTS": "Asistentes con agenda",
+    "CALENDAR_COUNT": "{count} calendarios habilitados",
+    "ASSISTANT_COUNT": "{count} con calendario; {missing} sin calendario disponible",
+    "TEMPLATE_COUNTS": "{ready} listas; {unlinked} aprobadas sin vincular; {review} en revisión; {pending} pendientes",
+    "CONNECTED": "Google conectado",
+    "DISCONNECTED": "Conexión desconectada: avisos en pausa, tus citas se conservan.",
+    "RECONNECT": "Reconectar",
+    "UNSAVED": "Tienes cambios sin guardar. Guarda los cambios antes de salir de esta sección.",
+    "SECTION_ERROR": "No se pudo cargar esta sección. Vuelve a intentarlo para ver su estado actual.",
+    "VIEW": "Ver {section}",
+    "REMINDER_ON": "Encendido.",
+    "REMINDER_OFF": "Apagado.",
+    "REMINDER_READY": "Hay una plantilla disponible. Los recordatorios solo se aplican a citas elegibles reservadas por una persona.",
+    "LANGUAGES": "Idioma preparado: {prepared}. Idioma de la cuenta: {effective}.",
+    "PREPARE_LANGUAGE": "Preparar en {language}",
+    "WABA": "WABA: {id}",
+    "UNLINKED": "Aprobada sin vincular",
+    "LINK": "Vincular",
+    "LINK_ERROR": "No se pudo vincular la plantilla: {reason}",
+    "NO_DESTINATIONS": "No hay destinos de WhatsApp Cloud configurados.",
+    "PARTIAL": "Disponibilidad parcial: solo algunos destinos tienen una plantilla de recordatorio lista.",
+    "DESTINATION_STATES": {
+      "usable": "Lista para usar",
+      "pending_approval": "En revisión",
+      "not_submitted": "Sin enviar",
+      "incompatible": "Incompatible",
+      "missing": "Faltante"
+    },
+    "VIA": {
+      "linked": "Vinculada explícitamente",
+      "legacy_by_name": "Disponible por su nombre existente"
+    },
+    "LINK_REASONS": {
+      "invalid_input": "La selección no es válida.",
+      "invalid_channel": "El canal no está disponible.",
+      "cloud_channel_required": "Selecciona un canal de WhatsApp Cloud.",
+      "missing_waba": "El canal no tiene una WABA configurada.",
+      "invalid_draft": "El borrador no está disponible.",
+      "destination_mismatch": "El borrador pertenece a otro destino.",
+      "language": "El idioma de la plantilla no coincide con el de la cuenta.",
+      "missing_submission": "Envía el borrador a revisión y apruébalo primero en Plantillas.",
+      "missing_template": "La plantilla remota no está disponible.",
+      "category": "Se necesita una plantilla de utilidad aprobada.",
+      "status": "La plantilla no está aprobada.",
+      "parameter_format": "El formato de parámetros no es compatible.",
+      "components": "Los componentes no son compatibles.",
+      "variables": "Faltan variables de cita o no son compatibles.",
+      "buttons": "Los botones no son compatibles."
     }
   }
 }

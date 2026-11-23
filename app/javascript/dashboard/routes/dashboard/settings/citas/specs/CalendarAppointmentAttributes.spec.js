@@ -66,6 +66,11 @@ describe('CalendarAppointmentAttributes', () => {
     );
     expect(saveButton(wrapper).attributes('disabled')).toBeUndefined();
     expect(saveButton(wrapper).text()).toBe('Actualizar');
+    expect(wrapper.emitted('dirty')).toBeUndefined();
+    await checkbox(wrapper, 'ultima_cita').setValue(false);
+    expect(wrapper.emitted('dirty').at(-1)).toEqual([true]);
+    await checkbox(wrapper, 'ultima_cita').setValue(true);
+    expect(wrapper.emitted('dirty').at(-1)).toEqual([false]);
     expect(wrapper.text()).toContain('Atributos de cita');
     expect(wrapper.find('select').exists()).toBe(false);
   });

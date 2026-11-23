@@ -41,7 +41,20 @@ describe('Calendars integration connection settings', () => {
             : [],
         },
       });
-      CalendarAPI.getCalendars.mockResolvedValue({ data: { payload: [] } });
+      CalendarAPI.getCalendars.mockResolvedValue({
+        data: {
+          payload: [
+            {
+              id: 'sales',
+              summary: 'Sales',
+              enabled: true,
+              hour_start: 9,
+              hour_end: 18,
+              working_days: [1, 2, 3, 4, 5],
+            },
+          ],
+        },
+      });
       const store = createStore({
         modules: {
           calendarConnections,
@@ -74,6 +87,10 @@ describe('Calendars integration connection settings', () => {
         connected
       );
       expect(wrapper.find('calendar-templates-stub').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="calendar-day-1"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('select-input-stub').exists()).toBe(false);
       expect(
         wrapper.find('calendar-appointment-attributes-stub').exists()
       ).toBe(false);
