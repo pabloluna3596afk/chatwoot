@@ -32,7 +32,6 @@ const route = useRoute();
 const headers = computed(() => [
   t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.CONTACT'),
   t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.STATUS'),
-  t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.MESSAGE'),
   t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.REASON'),
 ]);
 
@@ -44,10 +43,6 @@ const errorCode = delivery =>
   String(delivery.error_code) !== String(errorReason(delivery))
     ? delivery.error_code
     : '';
-
-const messageContent = delivery =>
-  delivery.message_content ||
-  t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.MESSAGE_NOT_GENERATED');
 
 const contactDetailsRoute = contactId => ({
   name: 'contacts_edit',
@@ -119,18 +114,6 @@ const isEmpty = computed(() => props.deliveries.length === 0);
             </BaseTableCell>
             <BaseTableCell>
               <DeliveryStatusBadge :status="delivery.status" />
-            </BaseTableCell>
-            <BaseTableCell>
-              <span
-                class="block max-w-48 lg:max-w-md whitespace-pre-line line-clamp-2 text-body-main"
-                :class="
-                  delivery.message_content
-                    ? 'text-n-slate-11'
-                    : 'italic text-n-slate-10'
-                "
-              >
-                {{ messageContent(delivery) }}
-              </span>
             </BaseTableCell>
             <BaseTableCell>
               <div
