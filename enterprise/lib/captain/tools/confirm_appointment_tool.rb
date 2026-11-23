@@ -25,7 +25,7 @@ class Captain::Tools::ConfirmAppointmentTool < Captain::Tools::BaseAppointmentTo
   # Only the local status changes: the event in Google Calendar is the same, so nothing is sent to it.
   def confirm(event)
     record = @assistant.account.calendar_events.kept.find_by!(calendar_connection_id: event.fetch(:connection_id),
-                                                            external_calendar_id: event.fetch(:calendar_id), google_event_id: event[:id])
+                                                              external_calendar_id: event.fetch(:calendar_id), google_event_id: event[:id])
     record.update!(appointment_status: 'confirmed')
   end
 end

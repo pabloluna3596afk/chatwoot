@@ -68,7 +68,7 @@ RSpec.shared_context 'with an appointments conversation' do
   end
 end
 
-RSpec.describe Captain::Tools::BookAppointmentTool, 'A5 historical creator' do
+RSpec.describe Captain::Tools::BookAppointmentTool, '#perform with a historical creator' do
   include_context 'with an appointments conversation'
 
   it 'keeps the booking assistant after the inbox is assigned to another assistant' do

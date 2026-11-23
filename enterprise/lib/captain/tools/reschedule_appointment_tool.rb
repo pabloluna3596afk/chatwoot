@@ -32,7 +32,7 @@ class Captain::Tools::RescheduleAppointmentTool < Captain::Tools::BaseAppointmen
 
     end_at = start_at + (Time.iso8601(event[:end]) - Time.iso8601(event[:start]))
     booked = event_service_for(event).update(event[:id], update_params(conversation, event, start_at, end_at),
-                                            enforce_hours: true, require_local: true)
+                                             enforce_hours: true, require_local: true)
     log_tool_usage('reschedule_appointment', conversation_id: conversation.id, event_id: event[:id])
     translate('rescheduled', time: format_time(Time.iso8601(booked.fetch(:start))))
   end
