@@ -40,7 +40,7 @@ RSpec.describe 'Calendar template linking API', type: :request do
     post path, headers: admin.create_new_auth_token, params: input.except(:template_name, :remote_template_id).merge(draft_id: draft.id), as: :json
     expect(response).to have_http_status(:ok)
     expect(account.calendar_template_resources.sole).to have_attributes(status: 'linked', whatsapp_template_draft_id: draft.id,
-                                                                       template_name: template['name'])
+                                                                        template_name: template['name'])
   end
 
   { 'category' => 'MARKETING', 'status' => 'PENDING', 'parameter_format' => 'POSITIONAL' }.each do |field, value|

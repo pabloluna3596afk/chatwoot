@@ -21,7 +21,7 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
     raise Whatsapp::TemplateComponentsBuilder::Invalid, 'invalid_input' unless valid_link_input?
 
     render json: Calendar::TemplateDrafts::Linker.new(account: Current.account, function: params[:function], channel_id: params[:channel_id])
-                                                .perform(**params.permit(:draft_id, :template_name, :remote_template_id).to_h.symbolize_keys)
+                                                 .perform(**params.permit(:draft_id, :template_name, :remote_template_id).to_h.symbolize_keys)
   end
 
   private

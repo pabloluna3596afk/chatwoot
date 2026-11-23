@@ -45,7 +45,7 @@ class Calendar::TemplateDrafts::Status
     saved.reverse_merge('status' => 'pending', 'draft_id' => nil).merge(
       'draft_exists' => draft.present?, 'archived' => draft&.archived_at.present?
     ).merge(targets).merge(language_status(saved.fetch('prepared_language', preparation['language'])))
-       .merge(resource_status(saved, draft)).merge(submission_status(draft))
+         .merge(resource_status(saved, draft)).merge(submission_status(draft))
   end
 
   def resource_status(saved, draft)

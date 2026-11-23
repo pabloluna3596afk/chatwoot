@@ -49,5 +49,4 @@ RSpec.describe 'Calendar template preparation API', type: :request do
     post path, headers: admin.create_new_auth_token, params: { language: ['en'] }, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
   end
-
 end

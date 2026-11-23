@@ -24,7 +24,7 @@ class Calendar::TemplateDrafts::DestinationStatus
       resolver = Calendar::TemplateResources.new(account: @account, function: @function, language: @language, channel: channel)
       template = resolver.resolve
       @resource = resolver.resource
-      return unless template
+      break unless template
     end
     template
   end
@@ -40,9 +40,13 @@ class Calendar::TemplateDrafts::DestinationStatus
   def draft
     return @draft if defined?(@draft)
 
-    @draft = @resource&.whatsapp_template_draft || @account.whatsapp_template_drafts.active
-                                                       .where(name: Calendar::TemplateDefinitions::FUNCTIONS.fetch(@function), language: @language)
-                                                       .where(waba_id: [waba_id, nil]).order(waba_id: :asc, id: :asc).first
+    @draft = @resource&.whatsapp_template_draft || matching_draft
+  end
+
+  def matching_draft
+    name = Calendar::TemplateDefinitions::FUNCTIONS.fetch(@function)
+    @account.whatsapp_template_drafts.active.where(name: name, language: @language)
+            .where(waba_id: [waba_id, nil]).order(waba_id: :asc, id: :asc).first
   end
 
   def unavailable
@@ -52,25 +56,25 @@ class Calendar::TemplateDrafts::DestinationStatus
     submission = draft.submissions.where(waba_id: waba_id, language: @language).order(revision: :desc).first
     return submission_state(submission) if submission
 
-    ['not_submitted', 'draft_not_submitted']
+    %w[not_submitted draft_not_submitted]
   end
 
   def remote_state
     template = Array(@channel.message_templates).find do |item|
       item['name'] == Calendar::TemplateDefinitions::FUNCTIONS.fetch(@function) && item['language'] == @language
     end
-    return ['missing', 'missing_template'] unless template
-    return ['incompatible', 'category'] unless template['category'].to_s.casecmp?('UTILITY')
-    return ['pending_approval', 'awaiting_approval'] if template['status'].to_s.casecmp?('PENDING')
+    return %w[missing missing_template] unless template
+    return %w[incompatible category] unless template['category'].to_s.casecmp?('UTILITY')
+    return %w[pending_approval awaiting_approval] if template['status'].to_s.casecmp?('PENDING')
 
-    ['incompatible', 'status']
+    %w[incompatible status]
   end
 
   def submission_state(submission)
-    return ['incompatible', 'explicit_link_required'] if submission.remote_status == 'APPROVED'
+    return %w[incompatible explicit_link_required] if submission.remote_status == 'APPROVED'
     return ['incompatible', submission.remote_status.downcase] if %w[REJECTED PAUSED DISABLED].include?(submission.remote_status)
-    return ['not_submitted', 'submission_failed'] if submission.status == 'failed'
+    return %w[not_submitted submission_failed] if submission.status == 'failed'
 
-    ['pending_approval', 'awaiting_approval']
+    %w[pending_approval awaiting_approval]
   end
 end

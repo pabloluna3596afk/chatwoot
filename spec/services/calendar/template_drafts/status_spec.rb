@@ -35,8 +35,9 @@ RSpec.describe Calendar::TemplateDrafts::Status do
     row = service.perform['results']['confirmation']
     expect(row).to include('ready_destinations' => 1, 'total_destinations' => 2)
     expect(row['destinations'].first['channels']).to eq([
-      { 'id' => channel.id, 'name' => channel.inbox.name }, { 'id' => second.id, 'name' => second.inbox.name }
-    ])
+                                                          { 'id' => channel.id,
+                                                            'name' => channel.inbox.name }, { 'id' => second.id, 'name' => second.inbox.name }
+                                                        ])
     expect(row['destinations'].last).to include('waba_id' => 'other-waba', 'state' => 'missing', 'via' => 'none')
   end
 
@@ -67,6 +68,7 @@ RSpec.describe Calendar::TemplateDrafts::Status do
     channel.update!(message_templates: [template.merge('category' => 'MARKETING')])
     expect(service.perform['results']['confirmation']['destinations'].sole).to include('state' => 'incompatible', 'reason' => 'category')
   end
+
   it 'uses the latest destination submission and never equates approval with an explicit custom link' do
     channel.update!(message_templates: [])
     draft = create(:whatsapp_template_draft, account: account, name: 'cita_confirmacion', waba_id: channel.provider_config['business_account_id'])
@@ -104,5 +106,4 @@ RSpec.describe Calendar::TemplateDrafts::Status do
                               validate_provider_config: false, message_templates: [])
     expect(service.perform['results']['confirmation']).to include('ready_destinations' => 0, 'total_destinations' => 1)
   end
-
 end
