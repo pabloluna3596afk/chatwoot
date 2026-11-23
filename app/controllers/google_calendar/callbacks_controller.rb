@@ -9,6 +9,7 @@ class GoogleCalendar::CallbacksController < ApplicationController
     tokens = Integrations::GoogleCalendar::Oauth.exchange_code(params[:code])
     persist_connection(tokens)
     provision_appointment_attributes
+    provision_template_drafts
     redirect_to calendars_redirect_uri
   rescue GoogleCalendar::IntegrationHelper::InvalidState, ActiveRecord::RecordNotFound
     render plain: I18n.t('google_calendar.oauth.invalid_state'), status: :unprocessable_entity
@@ -67,5 +68,13 @@ class GoogleCalendar::CallbacksController < ApplicationController
 
   def calendars_redirect_uri
     "#{ENV.fetch('FRONTEND_URL', nil)}/app/accounts/#{account.id}/settings/integrations/calendars?setup=#{@connection.id}"
+  end
+
+  def provision_template_drafts
+    return if account.calendar_template_preparation.present?
+
+    Calendar::TemplateDrafts::Provisioner.new(account: account).perform
+  rescue StandardError => e
+    Rails.logger.error("Google Calendar template provisioning failed: #{e.class}")
   end
 end

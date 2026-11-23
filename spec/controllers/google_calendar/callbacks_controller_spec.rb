@@ -35,6 +35,41 @@ RSpec.describe 'Google Calendar OAuth callback', :real_redis, type: :request do
     expect(account.calendar_connections.count).to eq(1)
   end
 
+  it 'prepares local appointment drafts with the first connection' do
+    get '/google_calendar/callback', params: { state: state, code: 'valid-code' }
+
+    expect(response).to have_http_status(:redirect)
+    expect(account.reload.calendar_template_preparation['results'].values.pluck('status')).to eq(%w[created created created])
+    expect(account.whatsapp_template_drafts.count).to eq(3)
+  end
+
+  it 'does not invoke preparation on reconnection or a second Google calendar' do
+    Calendar::TemplateDrafts::Provisioner.new(account: account).perform
+    expect(Calendar::TemplateDrafts::Provisioner).not_to receive(:new)
+    get '/google_calendar/callback', params: { state: state, code: 'valid-code' }
+    expect(response).to have_http_status(:redirect)
+
+    allow(oauth).to receive(:fetch_profile).and_return(email: 'second@example.com', name: 'Second')
+    get "/api/v1/accounts/#{account.id}/integrations/calendar_connections/oauth", headers: admin.create_new_auth_token
+    next_state = Rack::Utils.parse_query(URI.parse(response.parsed_body['url']).query).fetch('state')
+    get '/google_calendar/callback', params: { state: next_state, code: 'valid-code' }
+    expect(response).to have_http_status(:redirect)
+    expect(account.calendar_connections.count).to eq(2)
+    expect(account.whatsapp_template_drafts.count).to eq(3)
+  end
+
+  it 'redirects successfully after a provisioning failure and logs only the exception class' do
+    provisioner = instance_double(Calendar::TemplateDrafts::Provisioner)
+    allow(Calendar::TemplateDrafts::Provisioner).to receive(:new).with(account: account).and_return(provisioner)
+    allow(provisioner).to receive(:perform).and_raise(StandardError, 'sensitive provider details')
+    allow(Rails.logger).to receive(:error)
+    get '/google_calendar/callback', params: { state: state, code: 'valid-code' }
+    expect(response).to have_http_status(:redirect)
+    expect(account.calendar_connections.count).to eq(1)
+    expect(Rails.logger).to have_received(:error).with('Google Calendar template provisioning failed: StandardError')
+    expect(account.reload.calendar_template_preparation).to be_nil
+  end
+
   it 'creates the contact attributes of appointments with the first connection' do
     allow(Calendar::AppointmentAttributes::BackfillJob).to receive(:perform_later)
 
