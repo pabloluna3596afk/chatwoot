@@ -340,3 +340,52 @@ no entrega de Meta. El payload de bandeja expone
 `calendar_confirmation_template: { name, language, available }` para que el
 frontend use la selección vigente; el nombre fijo queda como compatibilidad para
 payloads anteriores.
+
+## Preparación automática de Citas
+
+Después de una conexión Google válida, el callback prepara los tres borradores
+`cita_confirmacion`, `cita_cancelacion` y `cita_recordatorio` si la cuenta todavía
+no tiene `settings.calendar_template_preparation`. Usa el modelo del CRUD y el
+contenido de `Calendar::TemplateDefinitions`: UTILITY, NAMED, un idioma es/en
+elegido por cuenta. No contacta a Meta ni activa recordatorios. No añade textos
+de producto: los motivos de conflicto son códigos para la futura UI traducida.
+
+Los borradores nuevos y sus recursos pendientes quedan siempre con WABA nula y
+sin canal preferido, incluso con una sola WABA. Así no se elige un destino por
+el administrador y no se generan copias por número. El bloqueo de cuenta cubre
+la identidad sin WABA que el índice parcial de borradores no protege. Una WABA
+compartida o varias WABAs no cambian la cantidad inicial: tres borradores locales.
+
+Un único borrador homónimo exacto (nombre e idioma, dentro de la cuenta) se
+reutiliza sin editarlo si su contenido satisface el contrato de Citas. La
+proyección usada para validar contenido local no constituye aprobación remota.
+Un borrador archivado, incompatible, ambiguo o sin su destino válido queda en
+conflicto. Un homónimo remoto en la caché Cloud queda `remote_template_exists`:
+se conserva y requiere selección explícita; no se adopta ni se crea otro borrador.
+Un recurso previo queda `existing_resource` con su ID, conservando su selección.
+Los nombres parecidos y los idiomas distintos no son la misma identidad.
+
+La preparación guarda idioma y resultados por función bajo `account.with_lock`.
+`created` y `reused` son marcas duraderas de «ya preparado»: aunque se archive o
+elimine el borrador o recurso después, ni OAuth ni el reintento lo restauran.
+La primera preparación es transaccional; un error revierte sus escrituras y no
+impide el redirect OAuth. Las reconexiones con resultado previo, incluso con
+conflictos, no vuelven a invocar el servicio. No hay backfill para cuentas conectadas.
+
+Rutas admin bajo
+`/api/v1/accounts/:account_id/integrations/calendar_connections/template_drafts`:
+
+| Método | Resultado |
+| --- | --- |
+| GET | Solo lectura; `language` y `results` por confirmation/cancellation/reminder; sin preparación devuelve `pending` |
+| POST | Preparación explícita o reintento de funciones pendientes/en conflicto; conserva las ya creadas/reutilizadas y el idioma inicial |
+
+Cada resultado expone `status` (`pending/created/reused/conflict`), `reason` si
+corresponde, `draft_id`, `draft_exists`, `archived`, `resource_id`, `resources`
+(id/WABA/estado local) y `linked`. Incluye los recursos asociados al borrador
+después de elegir destino, además del recurso original sin WABA. `linked` señala
+un vínculo local registrado; esta lectura no revalida ni contacta a Meta.
+`submission_status`, `remote_status`, `submitted` y `approved` describen el último
+intento por revisión del borrador, según la caché de submissions; no son prueba
+de entrega ni activan consumidores. La selección y la revisión/envío siguen
+siendo acciones explícitas de Plantillas. Todas las lecturas se acotan a la cuenta.

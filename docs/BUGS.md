@@ -1,3 +1,11 @@
+### B-NEW-302 - Preparación local de plantillas al conectar Google (2026-11-22)
+
+- **Archivos:** `Calendar::TemplateDrafts::{Provisioner,Status}`, `Account`, callback Google, controlador/rutas de integraciones y specs de servicio, concurrencia, callback y API.
+- **Problema:** conectar Google preparaba los atributos de contacto, pero no los borradores locales de las tres funciones de Citas.
+- **Cambio:** preparación transaccional bajo bloqueo de cuenta, contenido canónico es/en, destino pendiente, preservación de homónimos/selecciones y marcas duraderas en settings; estado admin GET y reintento POST. No restaura borradores archivados/eliminados ni envía a Meta; no activa recordatorios.
+- **Cómo probar:** ejecutar `spec/services/calendar`, `spec/lib/integrations/google_calendar`, `spec/controllers/google_calendar`, `spec/models/whatsapp_template_draft_spec.rb` y requests de borradores/preparación; los specs concurrentes usan PostgreSQL real y los del callback Redis real.
+- **Pendiente:** RSpec de las suites indicadas y RuboCop exacto con el PM. Sin migraciones nuevas, UI, Docker, navegador, Meta, push, PR ni despliegue en esta sesión. Detalles en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Preparación automática de Citas.
+
 ### B-NEW-301 - Identidad y contrato de recursos de Citas (2026-11-22)
 
 - **Archivos:** `CalendarTemplateResource`, `Calendar::Template{Definitions,Contract,Resources}`, migración `20261122120000`, CustomerNotice, EventService, recordatorios, botones y disponibilidad de bandejas.
