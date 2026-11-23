@@ -68,35 +68,6 @@ RSpec.shared_context 'with an appointments conversation' do
   end
 end
 
-RSpec.describe Captain::Tools::BookAppointmentTool, '#perform with a historical creator' do
-  include_context 'with an appointments conversation'
-
-  it 'keeps the booking assistant after the inbox is assigned to another assistant' do
-    tool.perform(tool_context, start: '2030-01-15T11:00:00-05:00', customer_confirmed: true)
-    record = connection.calendar_events.find_by!(google_event_id: 'g-1')
-    replacement = create(:captain_assistant, account: account, name: 'Replacement', config: { 'appointments' => appointments_config })
-    captain_inbox.update!(captain_assistant: replacement)
-
-    payload = Integrations::GoogleCalendar::EventService.payload_from_record(record.reload)
-
-    expect(payload[:creator]).to include(type: 'captain', name: assistant.name)
-  end
-
-  it 'reconstructs missing reminders with the original assistant rather than the new inbox assistant' do
-    allow(Captain::AppointmentReminders::Scheduler).to receive(:schedule)
-    tool.perform(tool_context, start: '2030-01-15T11:00:00-05:00', customer_confirmed: true)
-    record = connection.calendar_events.find_by!(google_event_id: 'g-1')
-    expect(record.appointment_reminders).to be_empty
-    replacement = create(:captain_assistant, account: account, name: 'Replacement', config: { 'appointments' => appointments_config })
-    captain_inbox.update!(captain_assistant: replacement)
-    allow(Captain::AppointmentReminders::Scheduler).to receive(:schedule).and_call_original
-
-    2.times { Captain::AppointmentReconciler.new(account, apply: true).perform }
-
-    expect(record.appointment_reminders.pluck(:captain_assistant_id)).to contain_exactly(assistant.id, assistant.id)
-  end
-end
-
 [Captain::Tools::AppointmentListTool, Captain::Tools::CancelAppointmentTool, Captain::Tools::RescheduleAppointmentTool].each do |tool_class|
   RSpec.describe tool_class, 'A4 previous calendar continuity' do
     include_context 'with an appointments conversation'
@@ -366,7 +337,7 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
   let(:start) { '2030-01-15T10:00:00-05:00' }
 
   def call(**params)
-    tool.perform(tool_context, **{ start: start, customer_confirmed: true }.merge(params))
+    tool.perform(tool_context, start: start, customer_confirmed: true, **params)
   end
 
   it_behaves_like 'an appointment tool that needs the channel enabled'
@@ -706,6 +677,33 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
 
     expect(client).to have_received(:create_event).twice
   end
+
+  describe '#perform with a historical creator' do
+    it 'keeps the booking assistant after the inbox is assigned to another assistant' do
+      tool.perform(tool_context, start: '2030-01-15T11:00:00-05:00', customer_confirmed: true)
+      record = connection.calendar_events.find_by!(google_event_id: 'g-1')
+      replacement = create(:captain_assistant, account: account, name: 'Replacement', config: { 'appointments' => appointments_config })
+      captain_inbox.update!(captain_assistant: replacement)
+
+      payload = Integrations::GoogleCalendar::EventService.payload_from_record(record.reload)
+
+      expect(payload[:creator]).to include(type: 'captain', name: assistant.name)
+    end
+
+    it 'reconstructs missing reminders with the original assistant rather than the new inbox assistant' do
+      allow(Captain::AppointmentReminders::Scheduler).to receive(:schedule)
+      tool.perform(tool_context, start: '2030-01-15T11:00:00-05:00', customer_confirmed: true)
+      record = connection.calendar_events.find_by!(google_event_id: 'g-1')
+      expect(record.appointment_reminders).to be_empty
+      replacement = create(:captain_assistant, account: account, name: 'Replacement', config: { 'appointments' => appointments_config })
+      captain_inbox.update!(captain_assistant: replacement)
+      allow(Captain::AppointmentReminders::Scheduler).to receive(:schedule).and_call_original
+
+      2.times { Captain::AppointmentReconciler.new(account, apply: true).perform }
+
+      expect(record.appointment_reminders.pluck(:captain_assistant_id)).to contain_exactly(assistant.id, assistant.id)
+    end
+  end
 end
 
 [Captain::Tools::ConfirmAppointmentTool, Captain::Tools::CancelAppointmentTool, Captain::Tools::RescheduleAppointmentTool].each do |tool_class|
@@ -817,7 +815,7 @@ RSpec.describe Captain::Tools::RescheduleAppointmentTool do
   let(:new_start) { '2030-01-16T15:00:00-05:00' }
 
   def call(**params)
-    tool.perform(tool_context, **{ event_id: 'own-1', new_start: new_start, customer_confirmed: true }.merge(params))
+    tool.perform(tool_context, event_id: 'own-1', new_start: new_start, customer_confirmed: true, **params)
   end
 
   it_behaves_like 'an appointment tool that needs the channel enabled'
@@ -870,7 +868,7 @@ RSpec.describe Captain::Tools::CancelAppointmentTool do
   let!(:own_event) { local_event(google_event_id: 'own-1', summary: 'Cita con Ana Pérez', contact: contact) }
 
   def call(**params)
-    tool.perform(tool_context, **{ event_id: 'own-1', customer_confirmed: true }.merge(params))
+    tool.perform(tool_context, event_id: 'own-1', customer_confirmed: true, **params)
   end
 
   it_behaves_like 'an appointment tool that needs the channel enabled'
@@ -911,7 +909,7 @@ RSpec.describe Captain::Tools::ProposeAppointmentTool do
   let(:start) { '2030-01-15T10:00:00-05:00' }
 
   def call(**params)
-    tool.perform(tool_context, **{ start: start }.merge(params))
+    tool.perform(tool_context, start: start, **params)
   end
 
   it_behaves_like 'an appointment tool that needs the channel enabled'
@@ -1214,7 +1212,7 @@ RSpec.describe Captain::Tools::ConfirmAppointmentTool do
   let!(:own) { local_event(google_event_id: 'own-1', contact: contact, appointment_status: 'pending_confirmation') }
 
   def call(**params)
-    tool.perform(tool_context, **{ event_id: 'own-1' }.merge(params))
+    tool.perform(tool_context, event_id: 'own-1', **params)
   end
 
   it_behaves_like 'an appointment tool that needs the channel enabled'
