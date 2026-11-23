@@ -41,7 +41,14 @@ class Integrations::GoogleCalendar::ActivityMessageService
       inbox_id: conversation.inbox_id,
       message_type: :activity,
       content: content,
-      content_attributes: ActivityMessageNames.attributes(content, names)
+      content_attributes: ActivityMessageNames.attributes(content, names).merge(template_settings)
     }
+  end
+
+  def template_settings
+    return {} unless %w[notice_not_sent cancellation_notice_not_sent].include?(action_type.to_s)
+
+    { 'calendar_template_settings' => { 'reason' => 'template_unavailable',
+                                        'path' => "/app/accounts/#{conversation.account_id}/settings/templates" } }
   end
 end

@@ -100,7 +100,9 @@ class Calendar::CustomerReminders::Dispatcher
     content = I18n.t('conversations.activity.calendar.reminder_notice_not_sent', locale: event.account.locale, event_title: event.summary)
     event.conversation.messages.create!(
       account_id: event.account_id, inbox_id: event.conversation.inbox_id, message_type: :activity,
-      additional_attributes: { 'calendar_reminder_missing' => event.id },
+      additional_attributes: { 'calendar_reminder_missing' => event.id, 'calendar_template_settings' => {
+        'reason' => 'template_unavailable', 'path' => "/app/accounts/#{event.account_id}/settings/templates"
+      } },
       content: content,
       content_attributes: ActivityMessageNames.attributes(content, event.summary)
     )

@@ -8,6 +8,7 @@ class WhatsappTemplateDraft < ApplicationRecord
   belongs_to :updated_by, class_name: 'User', optional: true
   belongs_to :source_draft, class_name: 'WhatsappTemplateDraft', optional: true
   has_many :submissions, class_name: 'WhatsappTemplateSubmission', dependent: :restrict_with_error
+  has_many :calendar_template_resources, dependent: :nullify
   has_one_attached :media
 
   scope :active, -> { where(archived_at: nil) }

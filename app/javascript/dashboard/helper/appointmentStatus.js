@@ -26,10 +26,15 @@ export const hasApprovedAppointmentConfirmation = (inbox, accountLocale) => {
   const locale = ['es', 'en'].includes(accountLanguage)
     ? accountLanguage
     : 'es';
+  const confirmation = inbox?.calendar_confirmation_template;
+  if (confirmation) {
+    return confirmation.available === true && confirmation.language === locale;
+  }
   return (inbox?.message_templates || inbox?.messageTemplates || []).some(
     template =>
       template.name === APPOINTMENT_CONFIRMATION_TEMPLATE &&
       String(template.status || '').toUpperCase() === 'APPROVED' &&
+      String(template.category || '').toUpperCase() === 'UTILITY' &&
       template.language === locale
   );
 };

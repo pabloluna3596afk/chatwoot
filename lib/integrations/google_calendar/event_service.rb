@@ -404,8 +404,9 @@ class Integrations::GoogleCalendar::EventService
     @booking_lock.assert_owned!
     notify_conversation!(record.conversation, "event_#{event_name}".to_sym, record)
     @booking_lock.assert_owned!
-    notify_contact_or_bot!(params, record.conversation, record, google_event, event_name)
-    serialize(google_event, record, record.external_calendar_id)
+    notice_result = notify_contact_or_bot!(params, record.conversation, record, google_event, event_name)
+    payload = serialize(google_event, record, record.external_calendar_id)
+    notice_result.is_a?(Hash) ? payload.merge(customer_notice: notice_result) : payload
   end
 
   def google_event_attributes(params, range, people, summary:, invitation:)
@@ -957,7 +958,7 @@ class Integrations::GoogleCalendar::EventService
     if record.bot_followup_enabled?
       Calendar::NotifyPanelAiFollowupJob.perform_later(record.id, event_name)
     elsif whatsapp_notice?(params, conversation, record, event_name)
-      send_whatsapp_notice!(params, conversation, record, google_event)
+      send_whatsapp_notice!(conversation, record)
     elsif send_to_contact?(params, conversation)
       send_to_contact!(conversation, record, google_event)
     end
@@ -974,15 +975,22 @@ class Integrations::GoogleCalendar::EventService
     Integrations::GoogleCalendar::CustomerNotice.new(conversation: conversation, record: record, timezone: account_timezone, sender: user)
   end
 
-  # The approved template goes out on its own; without it the person is told in the conversation and the free text is
-  # only sent when they asked for it. Nothing here may undo an appointment that already exists.
-  def send_whatsapp_notice!(params, conversation, record, google_event)
-    return if customer_notice(conversation, record).deliver!
+  # Missing or reclassified templates never fall back to free text. The appointment
+  # remains booked and both its activity and the API explain where to fix the notice.
+  def send_whatsapp_notice!(conversation, record)
+    return { status: 'queued' } if customer_notice(conversation, record).deliver!
 
-    notify_conversation!(conversation, :notice_not_sent, record)
-    send_to_contact!(conversation, record, google_event) if send_to_contact?(params, conversation)
+    record_notice_not_sent!(record, :notice_not_sent)
   rescue StandardError => e
     Rails.logger.error("Calendar WhatsApp notice failed: #{e.class}")
+    { status: 'not_sent', reason: 'delivery_failed' }
+  end
+
+  def record_notice_not_sent!(record, action_type)
+    notify_conversation!(record.conversation, action_type, record)
+    result = { status: 'not_sent', reason: 'template_unavailable', templates_path: "/app/accounts/#{account.id}/settings/templates" }
+    record.activities.create!(account_id: account.id, user: user, action: 'updated', details: { 'customer_notice' => result })
+    result
   end
 
   # Only a person cancelling an upcoming appointment of a conversation tells the customer. The customer (template button),
@@ -1001,7 +1009,7 @@ class Integrations::GoogleCalendar::EventService
     return unless notice.whatsapp_cloud?
     return if notice.deliver!
 
-    notify_conversation!(record.conversation, :cancellation_notice_not_sent, record)
+    record_notice_not_sent!(record, :cancellation_notice_not_sent)
   rescue StandardError => e
     Rails.logger.error("Calendar WhatsApp cancellation notice failed: #{e.class}")
   end

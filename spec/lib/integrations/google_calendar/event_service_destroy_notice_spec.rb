@@ -142,6 +142,9 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#destroy' do
         conversation, hash_including(content: a_string_including('falta la plantilla de cancelación aprobada'))
       )
       expect(appointment.reload).to be_discarded
+      expect(appointment.activities.last.details['customer_notice']).to include(
+        'status' => 'not_sent', 'templates_path' => "/app/accounts/#{account.id}/settings/templates"
+      )
     end
   end
 

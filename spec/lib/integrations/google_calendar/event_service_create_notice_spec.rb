@@ -129,11 +129,40 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
       expect(result[:id]).to eq('g-1')
     end
 
-    it 'keeps the free text when the person asked for the notice only' do
-      service.create(params.merge(send_to_contact: true))
+    it 'books without free text and returns the missing-template action' do
+      result = service.create(params.merge(send_to_contact: true))
 
-      expect(sent_messages.last.content).to include('Consulta')
-      expect(sent_messages.last.additional_attributes['template_params']).to be_blank
+      expect(sent_messages).to be_empty
+      expect(result[:id]).to eq('g-1')
+      expect(result[:customer_notice]).to include(
+        status: 'not_sent', reason: 'template_unavailable',
+        templates_path: "/app/accounts/#{account.id}/settings/templates"
+      )
+      expect(connection.calendar_events.last.activities.last.details['customer_notice']).to include('status' => 'not_sent')
+    end
+  end
+
+  context 'with a linked confirmation version' do
+    let(:templates) do
+      [{ 'id' => 'confirm-v2', 'name' => 'confirmacion_v2', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+         'parameter_format' => 'NAMED', 'components' => [
+           { 'type' => 'BODY', 'text' => body },
+           { 'type' => 'BUTTONS', 'buttons' => %w[Confirmar Reagendar Cancelar].map { |label| { 'type' => 'QUICK_REPLY', 'text' => label } } }
+         ] }]
+    end
+
+    it 'creates the appointment and queues its selected version with immutable reply actions' do
+      channel.update!(provider_config: channel.provider_config.merge('business_account_id' => 'waba'))
+      resources = Calendar::TemplateResources.new(account: account, function: :confirmation, language: 'es', channel: channel)
+      resource = resources.link!(template_name: 'confirmacion_v2', remote_template_id: 'confirm-v2')
+      result = service.create(params.merge(send_to_contact: true))
+      expect(result[:customer_notice]).to eq(status: 'queued')
+      expect(sent_messages.count).to eq(1)
+      expect(sent_messages.last.additional_attributes.dig('template_params', 'name')).to eq('confirmacion_v2')
+      expect(sent_messages.last.content_attributes['calendar_template_resource']).to include(
+        'resource_id' => resource.id, 'version' => resource.contract_snapshot['version'],
+        'actions' => { 'Confirmar' => 'confirm', 'Reagendar' => 'reschedule', 'Cancelar' => 'cancel' }
+      )
     end
   end
 
@@ -148,6 +177,30 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
       I18n.with_locale(:es) { service.create(params.merge(send_to_contact: false)) }
 
       expect(sent_messages.count).to eq(0)
+    end
+  end
+
+  context 'when Meta has changed the category to MARKETING' do
+    let(:templates) do
+      [{ 'name' => 'cita_confirmacion', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'MARKETING' }]
+    end
+
+    it 'keeps the booking, reports the missing notice and links its activity to Templates' do
+      result = service.create(params.merge(send_to_contact: true))
+      expect(result[:customer_notice][:status]).to eq('not_sent')
+      expect(sent_messages).to be_empty
+      expect(connection.calendar_events.count).to eq(1)
+      expect(Conversations::ActivityMessageJob).to have_been_enqueued.with(
+        conversation,
+        hash_including(
+          content_attributes: hash_including(
+            'calendar_template_settings' => {
+              'reason' => 'template_unavailable',
+              'path' => "/app/accounts/#{account.id}/settings/templates"
+            }
+          )
+        )
+      )
     end
   end
 

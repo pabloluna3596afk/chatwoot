@@ -269,3 +269,74 @@ recupera el modo desde el snapshot de su intento, por cuenta/WABA/ID remoto;
 conserva `source_remote_id` solo como trazabilidad. Las versiones de plantillas
 sin snapshot de biblioteca conservan el recorrido previo desde el espejo remoto.
 No hay migración nueva, backfill ni cambios de campañas, chat o Citas.
+
+## Recursos de Citas
+
+La migración aditiva y reversible `20261122120000` incorpora
+`calendar_template_resources`. Aplicarla antes de servir consumidores de Citas
+y bandejas. No requiere backfill. Regenerar el schema desde la base de pruebas
+migrada, según `docs/TESTING.md`; no editarlo a mano.
+
+Cada identidad es cuenta + función (`confirmation`, `cancellation`, `reminder`)
+e idioma (`es`/`en`) + WABA. Un índice parcial adicional protege la identidad
+sin WABA. Dos números de una misma WABA comparten el recurso; otra WABA tiene
+su propia selección. `Calendar::TemplateDefinitions` contiene nombres, textos,
+variables y botones; `ActivationKit` conserva sus constantes públicas y su
+transporte legado. Este cambio no prepara borradores al conectar Google ni
+enciende recordatorios, crea plantillas remotas o modifica `palu_*`.
+
+API interna: `Calendar::TemplateResources.new(account:, function:, language:,
+channel: nil)`. `prepare!` crea una identidad pendiente una sola vez, incluso
+sin canal, y conserva cualquier selección existente. `link!(template_name:,
+remote_template_id:, draft: nil)` requiere un canal Cloud propio con WABA y
+una selección explícita de nombre **e ID remoto** desde su espejo sincronizado.
+El borrador es opcional y debe pertenecer a esa cuenta y destino. No hay
+endpoint ni adopción automática por nombre en este PR.
+
+Vincular requiere `APPROVED`, categoría `UTILITY`, idioma exacto, formato `NAMED`,
+las cuatro variables del cuerpo (`nombre`, `cita`, `fecha`, `hora`) y botones
+`QUICK_REPLY` Confirmar/Reagendar/Cancelar (o sus etiquetas inglesas) en ese orden.
+Cancelación no lleva botones. Se permiten cambios de texto, encabezado de texto
+y pie estáticos; se rechazan variables adicionales, media y acciones desconocidas.
+Un contrato inválido queda `incompatible` con `incompatibility_reason`.
+
+`resolve` devuelve la plantilla del recurso vinculado o `nil`. Comprueba el
+contrato actual y el digest SHA-256 del contenido remoto elegido; cambios de
+categoría, estado, identidad o contenido invalidan el vínculo. Restaurar el
+contenido requiere vinculación explícita; no cambia de versión silenciosamente.
+El snapshot incluye variables, mapa etiqueta→acción y versión. La revisión local
+opcional `draft_revision_at_link` es trazabilidad del borrador al vincular, no
+prueba de que esa revisión local fue enviada o aprobada.
+
+Preparación y vinculación bloquean primero la cuenta y después la fila del recurso.
+La cuenta serializa también la primera creación sin WABA; los índices únicos
+protegen escritores concurrentes. `RecordNotUnique` se recupera fuera del savepoint
+fallido, con otro bloqueo y lectura de la fila ganadora. Resolver bloquea la fila
+al comprobar/inutilizar una versión. No se hacen llamadas a Meta.
+
+Si no hay versión vinculada (recurso ausente o solo pendiente de preparación), la compatibilidad busca los nombres
+fijos `cita_confirmacion`, `cita_cancelacion`, `cita_recordatorio` ya instalados,
+también exigiendo `UTILITY` + `APPROVED` e idioma exacto. No exige retrospectivamente
+un snapshot ni reconstruye el contrato de estas instalaciones antiguas. Un recurso
+incompatible bloquea ese fallback en su destino: una selección explícita fallida no
+se sustituye silenciosamente por otra plantilla.
+
+CustomerNotice y recordatorios resuelven por función. El mensaje conserva
+`calendar_event_id`, `template_params` y valores resueltos; añade
+`content_attributes.calendar_template_resource` con recurso (nullable en legado),
+versión, WABA, ID/nombre remotos, variables y acciones. Los botones usan el snapshot
+enviado aunque el recurso se sustituya o elimine. Los mensajes sin snapshot siguen
+reconociéndose por nombres y etiquetas fijos antiguos. La entrega de recordatorios
+revalida la plantilla tras esperar en cola; si ya no corresponde, cancela ese
+mensaje sin consumir un intento y deja al dispatcher registrar la falta de plantilla.
+
+Sin confirmación válida, la cita se conserva y **no se envía texto libre**. La
+respuesta de creación incluye `customer_notice.status = not_sent`, motivo y
+`templates_path`; la actividad de la cita y la conversación conservan la clave o
+ruta de Plantillas. Cancelación conserva también la actividad de la cita cuando
+falta plantilla. Los errores de creación del mensaje no revierten la cita y se
+reflejan como `delivery_failed`; `queued` solo acredita creación local del mensaje,
+no entrega de Meta. El payload de bandeja expone
+`calendar_confirmation_template: { name, language, available }` para que el
+frontend use la selección vigente; el nombre fijo queda como compatibilidad para
+payloads anteriores.

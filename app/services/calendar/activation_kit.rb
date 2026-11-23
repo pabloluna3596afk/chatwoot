@@ -6,49 +6,15 @@
 # The templates use named variables the catalog already fills by name ({{nombre}}, {{cita}}, {{fecha}}, {{hora}}), so
 # no choices have to be stored for it. Its status comes from the templates Meta syncs into the channel.
 class Calendar::ActivationKit
-  TEMPLATE_NAME = 'cita_confirmacion'.freeze
-  CATEGORY = 'UTILITY'.freeze
-  TEMPLATES = {
-    'es' => {
-      body: 'Hola {{nombre}}, tu cita "{{cita}}" quedó agendada para el {{fecha}} a las {{hora}}. ¿Confirmas tu asistencia?',
-      examples: %w[María Consulta 23/08/2026 10:00],
-      buttons: %w[Confirmar Reagendar Cancelar]
-    },
-    'en' => {
-      body: 'Hi {{nombre}}, your appointment "{{cita}}" is booked for {{fecha}} at {{hora}}. Can you confirm you will attend?',
-      examples: %w[Maria Consultation 08/23/2026 10:00],
-      buttons: %w[Confirm Reschedule Cancel]
-    }
-  }.freeze
-  CANCEL_TEMPLATE_NAME = 'cita_cancelacion'.freeze
-  CANCEL_TEMPLATES = {
-    'es' => {
-      body: 'Hola {{nombre}}, tu cita "{{cita}}" del {{fecha}} a las {{hora}} fue cancelada. ' \
-            'Si quieres agendar otra, respóndenos por aquí.',
-      examples: %w[María Consulta 23/08/2026 10:00],
-      buttons: []
-    },
-    'en' => {
-      body: 'Hi {{nombre}}, your appointment "{{cita}}" on {{fecha}} at {{hora}} was cancelled. ' \
-            'If you want to book another one, reply here.',
-      examples: %w[Maria Consultation 08/23/2026 10:00],
-      buttons: []
-    }
-  }.freeze
-  REMINDER_TEMPLATE_NAME = 'cita_recordatorio'.freeze
-  REMINDER_TEMPLATES = {
-    'es' => {
-      body: 'Hola {{nombre}}, te recordamos tu cita "{{cita}}" para el {{fecha}} a las {{hora}}. ¿Sigues pudiendo asistir?',
-      examples: TEMPLATES['es'][:examples], buttons: TEMPLATES['es'][:buttons]
-    },
-    'en' => {
-      body: 'Hi {{nombre}}, this is a reminder of your appointment "{{cita}}" on {{fecha}} at {{hora}}. Can you still attend?',
-      examples: TEMPLATES['en'][:examples], buttons: TEMPLATES['en'][:buttons]
-    }
-  }.freeze
-  DEFINITIONS = { TEMPLATE_NAME => TEMPLATES, CANCEL_TEMPLATE_NAME => CANCEL_TEMPLATES,
-                  REMINDER_TEMPLATE_NAME => REMINDER_TEMPLATES }.freeze
-  REPLY_TEMPLATE_NAMES = [TEMPLATE_NAME, REMINDER_TEMPLATE_NAME].freeze
+  TEMPLATE_NAME = Calendar::TemplateDefinitions::TEMPLATE_NAME
+  CATEGORY = Calendar::TemplateDefinitions::CATEGORY
+  TEMPLATES = Calendar::TemplateDefinitions::TEMPLATES
+  CANCEL_TEMPLATE_NAME = Calendar::TemplateDefinitions::CANCEL_TEMPLATE_NAME
+  CANCEL_TEMPLATES = Calendar::TemplateDefinitions::CANCEL_TEMPLATES
+  REMINDER_TEMPLATE_NAME = Calendar::TemplateDefinitions::REMINDER_TEMPLATE_NAME
+  REMINDER_TEMPLATES = Calendar::TemplateDefinitions::REMINDER_TEMPLATES
+  DEFINITIONS = Calendar::TemplateDefinitions::DEFINITIONS
+  REPLY_TEMPLATE_NAMES = Calendar::TemplateDefinitions::REPLY_TEMPLATE_NAMES
   NOT_REVIEWABLE = %w[PENDING APPROVED IN_APPEAL].freeze
 
   def initialize(account)
@@ -56,7 +22,7 @@ class Calendar::ActivationKit
   end
 
   def language
-    TEMPLATES.key?(@account.locale.to_s[0, 2]) ? @account.locale.to_s[0, 2] : 'es'
+    Calendar::TemplateDefinitions.language(@account)
   end
 
   def status

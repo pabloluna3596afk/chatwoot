@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_20_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_22_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -556,6 +556,26 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_20_120000) do
     t.index ["deleted_by_id"], name: "index_calendar_events_on_deleted_by_id"
     t.index ["start_at"], name: "index_calendar_events_on_pending_customer_reminder", where: "((deleted_at IS NULL) AND (customer_reminder_sent_at IS NULL) AND ((customer_reminder_status IS NULL) OR ((customer_reminder_status)::text = ANY (ARRAY[('no_template'::character varying)::text, ('retry_1'::character varying)::text, ('retry_2'::character varying)::text]))))"
     t.index ["updated_by_id"], name: "index_calendar_events_on_updated_by_id"
+  end
+
+  create_table "calendar_template_resources", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "whatsapp_template_draft_id"
+    t.string "function", null: false
+    t.string "language", null: false
+    t.string "waba_id"
+    t.string "template_name", null: false
+    t.string "remote_template_id"
+    t.datetime "linked_at"
+    t.string "status", default: "pending", null: false
+    t.string "incompatibility_reason"
+    t.jsonb "contract_snapshot", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "function", "language", "waba_id"], name: "index_calendar_resources_on_waba_identity", unique: true, where: "(waba_id IS NOT NULL)"
+    t.index ["account_id", "function", "language"], name: "index_calendar_resources_on_local_identity", unique: true, where: "(waba_id IS NULL)"
+    t.index ["account_id"], name: "index_calendar_template_resources_on_account_id"
+    t.index ["whatsapp_template_draft_id"], name: "index_calendar_resources_on_draft"
   end
 
   create_table "calls", force: :cascade do |t|
@@ -2288,7 +2308,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_20_120000) do
     t.datetime "submitted_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["account_id", "waba_id", "name", "language"], name: "index_wa_submissions_on_identity", unique: true, where: "((status)::text = ANY ((ARRAY['submitting'::character varying, 'reconciling'::character varying, 'submitted'::character varying])::text[]))"
+    t.index ["account_id", "waba_id", "name", "language"], name: "index_wa_submissions_on_identity", unique: true, where: "((status)::text = ANY (ARRAY[('submitting'::character varying)::text, ('reconciling'::character varying)::text, ('submitted'::character varying)::text]))"
     t.index ["account_id"], name: "index_whatsapp_template_submissions_on_account_id"
     t.index ["actor_id"], name: "index_whatsapp_template_submissions_on_actor_id"
     t.index ["whatsapp_template_draft_id", "revision"], name: "index_wa_submissions_on_revision", unique: true
@@ -2335,6 +2355,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_20_120000) do
   add_foreign_key "calendar_events", "users", column: "created_by_id"
   add_foreign_key "calendar_events", "users", column: "deleted_by_id"
   add_foreign_key "calendar_events", "users", column: "updated_by_id"
+  add_foreign_key "calendar_template_resources", "accounts", on_delete: :cascade
+  add_foreign_key "calendar_template_resources", "whatsapp_template_drafts", on_delete: :nullify
   add_foreign_key "campaign_recipients", "accounts", on_delete: :cascade
   add_foreign_key "campaign_recipients", "campaigns", on_delete: :cascade
   add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
