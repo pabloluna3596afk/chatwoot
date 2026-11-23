@@ -5,6 +5,12 @@
 - **Cambio:** POST link admin por canal propio y selección explícita, contrato/bloqueo compartidos e idempotencia; estado con resolver real por función/idioma/WABA y compatibilidad legada; diagnóstico de idioma y preparación duradera por idioma sin reemplazar versiones.
 - **Cómo probar:** requests `calendar_template_link_spec.rb`/`calendar_template_drafts_spec.rb`, specs `calendar/template_drafts` (incluye concurrencia PostgreSQL), y consumidores `spec/services/calendar`, `spec/requests/api/v1/accounts/calendar_template_*`, `spec/controllers/google_calendar`, `spec/lib/integrations/google_calendar`.
 - **Pendiente:** PM debe ejecutar RSpec y RuboCop exacto de CI. No se ejecutaron en esta sesión por prohibición de Docker del brief y ausencia de Ruby/Bundler en host. Sin UI, Captain, ActivationKit, migraciones, Meta, push, fetch, PR ni despliegue. Contrato en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Estado por destino y vínculo.
+### B-NEW-303 - Plantillas de Citas y enlace al borrador (2026-11-23)
+
+- **Archivos:** `settings/integrations/{Calendars,CalendarTemplates}.vue`, API Calendar, `settings/templates/Index.vue`, traducciones en/es y specs Vue.
+- **Cambio:** sustituye el kit con envío directo por tres vistas previas con estados local/Meta separados, abrir borrador y reintento de preparación local. Conserva backend/API legado y el opt-in de recordatorio; exige aprobación y vínculo para encenderlo y permite apagarlo si pierde elegibilidad.
+- **Cómo probar:** suites de integraciones, Calendarios y TemplatesIndex en UTC y America/Guayaquil; comprobar enlace `?draft=<id>` de administrador, incluido archivado, e inexistente/sin permisos. Revisar conflictos, sin Google y recordatorio bloqueado.
+- **Pendiente visual:** capturas de la app real a 390 px y escritorio con el PM; sin Docker, navegador, preview, Meta, push, PR ni despliegue en esta sesión.
 
 ### B-NEW-302 - Preparación local de plantillas al conectar Google (2026-11-22)
 

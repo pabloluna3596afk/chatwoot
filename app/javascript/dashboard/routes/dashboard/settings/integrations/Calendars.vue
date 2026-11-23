@@ -14,7 +14,7 @@ import SelectInput from 'dashboard/components-next/select/Select.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import CalendarInvitationSettings from './CalendarInvitationSettings.vue';
-import CalendarActivationKit from './CalendarActivationKit.vue';
+import CalendarTemplates from './CalendarTemplates.vue';
 import CalendarAppointmentAttributes from './CalendarAppointmentAttributes.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
@@ -513,7 +513,7 @@ onMounted(async () => {
         </div>
 
         <CalendarInvitationSettings />
-        <CalendarActivationKit />
+        <CalendarTemplates :connected="googleConnections.length > 0" />
         <CalendarAppointmentAttributes />
       </div>
 

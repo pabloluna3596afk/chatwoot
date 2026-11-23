@@ -51,6 +51,14 @@ class CalendarAPI extends ApiClient {
     return axios.patch(`${this.url}/invitation`, { template, location });
   }
 
+  getTemplateDrafts() {
+    return axios.get(`${this.url}/template_drafts`);
+  }
+
+  prepareTemplateDrafts() {
+    return axios.post(`${this.url}/template_drafts`);
+  }
+
   getAppointmentAttributes() {
     return axios.get(`${this.url}/appointment_attributes`);
   }

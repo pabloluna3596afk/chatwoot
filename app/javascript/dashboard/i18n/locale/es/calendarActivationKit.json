@@ -1,18 +1,8 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
-    "TITLE": "Kit de Citas",
-    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y las plantillas de WhatsApp para avisar al cliente al agendar, recordar o cancelar una cita.",
-    "ATTRIBUTES": "Atributos de cita",
-    "ATTRIBUTES_COUNT": "{count} de {total} activos",
-    "QUESTION": "¿Avisar al cliente por WhatsApp al agendar, recordar o cancelar una cita?",
-    "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta las plantillas de confirmación, cancelación y recordatorio para que las apruebe. El recordatorio solo sale si activas el interruptor.",
-    "PREVIEW": "Plantilla de confirmación",
-    "TEMPLATE_META": "{name} · idioma {language} · categoría de utilidad",
-    "NO_INBOX": "Esta cuenta no tiene bandejas de WhatsApp Cloud.",
-    "CREATE_INBOX": "Crear una bandeja de WhatsApp",
     "STATUS": {
       "missing": "Sin enviar",
-      "pending": "Pendiente",
+      "pending": "En revisión",
       "in_appeal": "En apelación",
       "approved": "Aprobada",
       "rejected": "Rechazada",
@@ -20,33 +10,42 @@
       "paused": "Pausada",
       "disabled": "Desactivada"
     },
-    "REJECTED_REASON": "Motivo de Meta: {reason}",
-    "RESEND": "Reenviar a Meta",
-    "SEND": "Enviar a Meta",
     "RELOAD": "Actualizar estado",
-    "SENT": "Plantillas enviadas a Meta. La aprobación puede tardar unos minutos.",
-    "SENT_WITH_ERRORS": "Algunas bandejas no se pudieron enviar. Revisa los avisos en rojo.",
-    "SEND_ERROR": "No se pudieron enviar las plantillas. Inténtalo de nuevo.",
-    "LOAD_ERROR": "No se pudo cargar el kit de citas.",
-    "ERRORS": {
-      "token_invalid": "El acceso de WhatsApp venció. Vuelve a conectar la bandeja.",
-      "permission_denied": "La cuenta de WhatsApp no tiene permiso para crear plantillas.",
-      "rate_limited": "Meta recibió demasiadas solicitudes. Inténtalo más tarde.",
-      "name_exists": "Ya existe una plantilla con ese nombre en ese idioma.",
-      "name_locked": "Ese nombre se borró hace poco y Meta lo mantiene bloqueado 30 días.",
-      "template_limit": "Llegaste al límite de plantillas de tu cuenta de WhatsApp.",
-      "not_found": "Meta no encontró la cuenta de WhatsApp de esta bandeja.",
-      "meta_unreachable": "No se pudo contactar a Meta. Inténtalo de nuevo.",
-      "unknown": "Meta no aceptó la plantilla."
-    },
-    "CANCEL_PREVIEW": "Plantilla de cancelación",
     "CONFIRMATION": "Confirmación",
     "CANCELLATION": "Cancelación",
     "REMINDER": "Recordatorio",
-    "REMINDER_PREVIEW": "Plantilla de recordatorio",
-    "REMINDER_TOGGLE": "Recordatorio 24 h antes",
     "REMINDER_COST": "Cada recordatorio es un mensaje pagado de Meta. Solo para citas agendadas por una persona; no se envía si el cliente ya confirmó.",
     "REMINDER_SAVED": "Configuración de recordatorios guardada.",
     "REMINDER_SAVE_ERROR": "No se pudo guardar la configuración de recordatorios. Inténtalo de nuevo."
+  },
+  "CALENDAR_TEMPLATES": {
+    "TITLE": "Plantillas de Citas",
+    "DESCRIPTION": "Las plantillas se preparan al conectar Google. Revísalas y envíalas desde Plantillas.",
+    "ADMIN_ONLY": "Un administrador puede preparar y gestionar las plantillas de Citas.",
+    "CONNECT_GOOGLE": "Conecta Google para preparar tus plantillas.",
+    "NOT_PREPARED": "Tus plantillas aún no están preparadas. Reintenta la preparación para crear los borradores faltantes.",
+    "LOCAL": "Local:",
+    "META": "Meta:",
+    "LOCAL_STATUS": {
+      "draft": "Borrador",
+      "pending": "Pendiente",
+      "archived": "Archivada",
+      "conflict": "Conflicto"
+    },
+    "NOT_SENT": "No enviada",
+    "OPEN": "Abrir en Plantillas",
+    "RETRY": "Reintentar preparación",
+    "REMINDER_TOGGLE": "Enviar recordatorio al cliente",
+    "REMINDER_LOCKED": "Para activar los recordatorios, la plantilla debe estar aprobada y vinculada.",
+    "LOAD_ERROR": "No se pudieron cargar las plantillas de Citas.",
+    "PREPARE_ERROR": "No se pudieron preparar las plantillas. Inténtalo de nuevo.",
+    "REASONS": {
+      "archived_draft": "Este borrador está archivado. Abre Plantillas para revisarlo y crear una copia.",
+      "multiple_drafts": "Hay varios borradores con este nombre. Revísalos en Plantillas y reintenta la preparación.",
+      "remote_template_exists": "Ya existe una plantilla con este nombre en Meta. Abre Plantillas para revisar y elegir una versión compatible.",
+      "missing_destination": "El destino del borrador ya no está disponible. Elige uno en Plantillas y reintenta la preparación.",
+      "existing_resource": "Ya existe un recurso de Citas. Abre Plantillas para revisar la versión seleccionada.",
+      "incompatible": "El borrador existente no es compatible con Citas. Revisa su contenido, variables y botones en Plantillas y reintenta la preparación."
+    }
   }
 }
