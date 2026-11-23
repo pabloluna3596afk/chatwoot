@@ -570,6 +570,8 @@ Rails.application.routes.draw do
                 patch :invitation, action: :update_invitation
                 get :appointment_attributes, to: 'calendar_appointment_attributes#show'
                 patch :appointment_attributes, to: 'calendar_appointment_attributes#update'
+                get :template_drafts, to: 'calendar_template_drafts#show'
+                post :template_drafts, to: 'calendar_template_drafts#create'
                 get :activation_kit, to: 'calendar_activation_kits#show'
                 patch :activation_kit, to: 'calendar_activation_kits#update'
                 post :events, action: :create_event
