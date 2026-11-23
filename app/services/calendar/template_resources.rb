@@ -65,7 +65,10 @@ class Calendar::TemplateResources
     template = templates.find { |item| selected_template?(item, template_name, remote_template_id) }
     contract = Calendar::TemplateContract.new(function: @function, language: @language, template: template)
     reason = contract.incompatibility
-    record.update!(link_attributes(template_name, remote_template_id, draft, contract, reason))
+    attributes = link_attributes(template_name, remote_template_id, draft, contract, reason)
+    return if attributes.except(:linked_at).all? { |key, value| record.public_send(key) == value }
+
+    record.update!(attributes)
   end
 
   def selected_template?(item, template_name, remote_template_id)

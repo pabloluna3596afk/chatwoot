@@ -7,15 +7,15 @@ class Calendar::TemplateDrafts::Provisioner
     Calendar::TemplateDrafts::Status.new(account: @account).perform
   end
 
-  def perform
+  def perform(language: nil)
+    language ||= Calendar::TemplateDefinitions.language(@account)
     @account.with_lock do
-      preparation = @account.calendar_template_preparation || initial_preparation
-      language = preparation.fetch('language')
+      preparation = preparation_for(language)
       results = preparation.fetch('results')
       Calendar::TemplateDefinitions::FUNCTIONS.each_key do |function|
         next if %w[created reused].include?(results.dig(function, 'status'))
 
-        results[function] = provision(function, language)
+        results[function] = provision(function, language).merge('prepared_language' => language)
       end
       @account.update!(calendar_template_preparation: preparation)
     end
@@ -24,8 +24,12 @@ class Calendar::TemplateDrafts::Provisioner
 
   private
 
-  def initial_preparation
-    { 'language' => Calendar::TemplateDefinitions.language(@account), 'results' => {} }
+  def preparation_for(language)
+    preparation = (@account.calendar_template_preparation || {}).deep_dup
+    languages = preparation.fetch('languages', {})
+    languages[preparation.fetch('language')] ||= preparation.fetch('results') if preparation.key?('language')
+    results = languages[language] ||= {}
+    preparation.merge('language' => language, 'results' => results, 'languages' => languages)
   end
 
   def provision(function, language)

@@ -377,15 +377,102 @@ Rutas admin bajo
 
 | Método | Resultado |
 | --- | --- |
-| GET | Solo lectura; `language` y `results` por confirmation/cancellation/reminder; sin preparación devuelve `pending` |
-| POST | Preparación explícita o reintento de funciones pendientes/en conflicto; conserva las ya creadas/reutilizadas y el idioma inicial |
+| GET | Estado local; `language` y `results` por confirmation/cancellation/reminder; sin preparación devuelve `pending` |
+| POST | Preparación explícita o reintento de funciones pendientes/en conflicto; conserva las ya creadas/reutilizadas por idioma; `language` opcional es/en (efectivo por defecto) |
 
 Cada resultado expone `status` (`pending/created/reused/conflict`), `reason` si
 corresponde, `draft_id`, `draft_exists`, `archived`, `resource_id`, `resources`
 (id/WABA/estado local) y `linked`. Incluye los recursos asociados al borrador
 después de elegir destino, además del recurso original sin WABA. `linked` señala
-un vínculo local registrado; esta lectura no revalida ni contacta a Meta.
+un vínculo local registrado; es un agregado obsoleto. El desglose por destino revalida con el resolver local, sin contactar a Meta.
 `submission_status`, `remote_status`, `submitted` y `approved` describen el último
 intento por revisión del borrador, según la caché de submissions; no son prueba
 de entrega ni activan consumidores. La selección y la revisión/envío siguen
 siendo acciones explícitas de Plantillas. Todas las lecturas se acotan a la cuenta.
+## Estado por destino y vínculo
+
+El estado admin GET conserva `language`, `results` y todas las claves anteriores.
+`linked` y `approved` globales quedan **obsoletos para decidir disponibilidad**:
+representan respectivamente algún vínculo del borrador preparado y la última
+revisión remota conocida de ese borrador. No acreditan disponibilidad en todas
+las WABAs ni son requisitos para el camino legado.
+
+Cada función añade `destinations`, `ready_destinations` y `total_destinations`.
+Una entrada agrupa los números Cloud de la cuenta con la misma WABA e incluye
+`waba_id`, `channels: [{id, name}]` (ID de Channel::Whatsapp y nombre de bandeja),
+`state`, `reason`, `resource_id`, `draft_id` y `via`. Canales sin WABA configurada
+no son destinos; sin destinos configurados la lista es vacía y los totales son 0.
+
+| Estado | Significado |
+| --- | --- |
+| `usable` | El resolver real de envío encuentra una plantilla en el idioma efectivo para todos los números del destino. `via` distingue `linked` y `legacy_by_name`. |
+| `incompatible` | Selección incompatible o versión cambiada; legado rechazado/recategorizado; o borrador aprobado que aún necesita vínculo explícito (`explicit_link_required`). |
+| `pending_approval` | Envío local en proceso/revisión o espejo legado PENDING. |
+| `not_submitted` | Existe borrador, pero no un envío activo para esa WABA/idioma; incluye envíos fallidos. |
+| `missing` | No hay selección, borrador ni plantilla legada del idioma efectivo. |
+
+`via: none` indica que no se resolvió una plantilla enviable. La disponibilidad
+usa `Calendar::TemplateResources#resolve`: en vínculos valida ID/nombre, idioma,
+APPROVED, UTILITY, NAMED, las cuatro variables de cita, botones según función y
+versión congelada. El legado admite nombre fijo `cita_*`, idioma efectivo,
+APPROVED y UTILITY sin exigir borrador ni recurso ni imponer retroactivamente el
+contrato estructural nuevo. Un recurso pending conserva ese legado; uno
+incompatible lo bloquea. Cada número se resuelve con su propio espejo; si uno no
+resuelve, la WABA no se anuncia lista. El primer número que falla aporta el
+motivo. La lectura puede marcar incompatible una selección cuya versión haya
+cambiado, igual que el envío; no crea borradores ni consulta a Meta.
+
+«Enviable» aquí acredita disponibilidad local de plantilla, no entrega: siguen
+aplicándose destinatario, elegibilidad de la cita, política de recordatorios,
+horarios y validación al entregar. No enciende recordatorios ni cambia Captain.
+
+### Selección explícita
+
+`POST /api/v1/accounts/:account_id/integrations/calendar_connections/template_drafts/link`
+requiere administrador y JSON con `function` (confirmation/cancellation/reminder),
+`channel_id` entero (ID del canal WhatsApp Cloud de esa cuenta) y exactamente una
+selección:
+
+- `draft_id` entero: toma nombre/ID remoto de la última submission de su WABA e
+  idioma; no infiere identidad por un nombre parecido ni sigue ediciones locales.
+- `template_name` + `remote_template_id`: strings no vacíos de la versión remota
+  elegida en el espejo de ese canal.
+
+Resuelve la WABA desde el canal y usa el idioma efectivo actual de la cuenta.
+El borrador debe pertenecer a esa cuenta, WABA e idioma. Reutiliza `link!` con su
+bloqueo de cuenta e índices; repetir la misma selección conserva fila, versión y
+fecha de vínculo. Devuelve el estado actualizado. No requiere preparación previa.
+
+Entrada inválida, canal ajeno/no Cloud, borrador ajeno/destino incorrecto o contrato
+incompatible devuelven 422 con `error` como código (`invalid_input`,
+`invalid_channel`, `cloud_channel_required`, `missing_waba`, `invalid_draft`,
+`destination_mismatch`, `language`, `missing_submission`, `missing_template`,
+`category`, `status`, `parameter_format`, `components`, `variables`, `buttons`).
+Un intento de selección incompatible conserva ese diagnóstico en el recurso y
+bloquea el fallback legado, conforme a `link!`. Un usuario ajeno a la cuenta o
+un agente recibe 401 por el controlador base, sin acceso al catálogo.
+
+Aprobar en Plantillas actualiza la submission/espejo; **nunca vincula por sí solo**.
+El administrador elige POST link; el recurso queda linked; GET lo resuelve por
+WABA/idioma; CustomerNotice y recordatorio humano consumen ese mismo resolver.
+Captain conserva su resolver y tiempos actuales. Nada de este recorrido envía a
+Meta; el envío a revisión sigue siendo otra acción explícita de Plantillas.
+
+### Idioma preparado y efectivo
+
+La raíz y cada función exponen `prepared_language`, `effective_language` y
+`language_changed`. Antes de preparar, `prepared_language` es null y
+`language_changed` es false. `language` conserva el último idioma preparado
+(o el efectivo si nunca se preparó); los destinos siempre describen el idioma
+efectivo, calculado por `TemplateDefinitions.language(account)` como los envíos.
+
+POST de preparación acepta `language: "es"|"en"`; por defecto usa el efectivo
+actual. Guarda resultados duraderos por idioma en
+`calendar_template_preparation.languages`, y mantiene `language`/`results` para
+los consumidores anteriores. Cada resultado nuevo guarda `prepared_language`.
+Las marcas previas a este formato se conservan en su idioma original al preparar
+otro idioma. Reintentar un idioma recupera sus resultados sin restaurar borradores
+archivados/eliminados ni sustituir selecciones o versiones. Preparar en inglés no
+modifica locale ni recursos/borradores en español. OAuth sigue preparando solo en
+la primera conexión: un cambio de locale se diagnostica, no prepara ni aprueba
+recursos automáticamente. No requiere migración ni backfill.
