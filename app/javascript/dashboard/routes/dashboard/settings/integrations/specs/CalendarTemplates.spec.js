@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import CalendarTemplates from '../CalendarTemplates.vue';
+import { fillExamples } from '../calendarTemplatePreview';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
@@ -48,12 +49,15 @@ const draft = {
 };
 const kit = {
   template: {
-    body: 'Hi {{nombre}}, your appointment is booked.',
+    body: 'Hi {{nombre}}, your appointment "{{cita}}" is booked for {{fecha}} at {{hora}}.',
     buttons: ['Confirm', 'Reschedule', 'Cancel'],
   },
-  cancel_template: { body: 'Your appointment was cancelled.', buttons: [] },
+  cancel_template: {
+    body: 'Hi {{nombre}}, your appointment "{{cita}}" on {{fecha}} at {{hora}} was cancelled.',
+    buttons: [],
+  },
   reminder_template: {
-    body: 'This is a reminder of your appointment.',
+    body: 'Hi {{nombre}}, this is a reminder of your appointment "{{cita}}" on {{fecha}} at {{hora}}.',
     buttons: ['Confirm', 'Reschedule', 'Cancel'],
   },
   reminder_enabled: false,
@@ -61,9 +65,12 @@ const kit = {
 const render = async (
   results = { confirmation: draft, cancellation: draft, reminder: draft },
   props = {},
-  locale = 'en'
+  locale = 'en',
+  language = locale
 ) => {
-  CalendarAPI.getTemplateDrafts.mockResolvedValue({ data: { results } });
+  CalendarAPI.getTemplateDrafts.mockResolvedValue({
+    data: { results, language },
+  });
   const wrapper = mount(CalendarTemplates, {
     props: { connected: true, ...props },
     global: {
@@ -87,7 +94,42 @@ beforeEach(() => {
   admin.value = true;
   CalendarAPI.getActivationKit.mockResolvedValue({ data: { ...kit } });
 });
+describe('fillExamples', () => {
+  it.each([
+    ['es', 'María Consulta 23/08/2026 10:00 María {{otra}}'],
+    ['en', 'Maria Consultation 08/23/2026 10:00 Maria {{otra}}'],
+  ])(
+    'fills known variables in %s and preserves the source and unknown tokens',
+    (language, expected) => {
+      const body =
+        '{{nombre}} {{cita}} {{fecha}} {{hora}} {{ nombre }} {{otra}}';
+      expect(fillExamples(body, language)).toBe(expected);
+      expect(body).toBe(
+        '{{nombre}} {{cita}} {{fecha}} {{hora}} {{ nombre }} {{otra}}'
+      );
+    }
+  );
+});
+
 describe('CalendarTemplates', () => {
+  it.each([
+    ['es', 'en', ['María', 'Consulta', '23/08/2026', '10:00']],
+    ['en', 'es', ['Maria', 'Consultation', '08/23/2026', '10:00']],
+  ])(
+    'renders examples in account language %s independently of UI locale %s',
+    async (language, locale, examples) => {
+      const original = JSON.stringify(kit);
+      const wrapper = await render(undefined, {}, locale, language);
+      const bubbles = wrapper.findAllComponents(WhatsAppBubble);
+      expect(bubbles).toHaveLength(3);
+      bubbles.forEach(bubble => {
+        examples.forEach(example => expect(bubble.text()).toContain(example));
+        expect(bubble.text()).not.toContain('{{');
+      });
+      expect(JSON.stringify(kit)).toBe(original);
+      expect(kit.template.body).toContain('{{nombre}}');
+    }
+  );
   it('has matching English and Spanish translation keys', () => {
     expect(Object.keys(en.CALENDAR_TEMPLATES)).toEqual(
       Object.keys(es.CALENDAR_TEMPLATES)
@@ -141,7 +183,7 @@ describe('CalendarTemplates', () => {
     expect(CalendarAPI.getTemplateDrafts).toHaveBeenCalledOnce();
     expect(wrapper.findAllComponents(WhatsAppBubble)).toHaveLength(3);
     expect(wrapper.findComponent(WhatsAppBubble).props('body')).toBe(
-      kit.template.body
+      'Hi Maria, your appointment "Consultation" is booked for 08/23/2026 at 10:00.'
     );
     expect(
       wrapper.findAllComponents(WhatsAppBubble)[1].props('buttons')
@@ -204,7 +246,7 @@ describe('CalendarTemplates', () => {
     const wrapper = await render({});
     expect(wrapper.text()).toContain('not been prepared');
     CalendarAPI.prepareTemplateDrafts.mockResolvedValue({
-      data: { results: { confirmation: draft } },
+      data: { results: { confirmation: draft }, language: 'en' },
     });
     await wrapper.get('[data-testid="prepare-templates"]').trigger('click');
     await flushPromises();

@@ -11,6 +11,7 @@ import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
+import { fillExamples } from './calendarTemplatePreview';
 
 const props = defineProps({ connected: { type: Boolean, default: false } });
 const FUNCTIONS = [
@@ -36,6 +37,7 @@ const { isAdmin } = useAdmin();
 const { accountScopedRoute } = useAccount();
 const router = useRouter();
 const results = ref({});
+const language = ref(null);
 const kit = ref(null);
 const loading = ref(true);
 const loadFailed = ref(false);
@@ -94,6 +96,7 @@ const load = async () => {
       CalendarAPI.getActivationKit(),
     ]);
     results.value = drafts.data.results;
+    language.value = drafts.data.language;
     kit.value = activation.data;
   } catch {
     loadFailed.value = true;
@@ -106,6 +109,7 @@ const prepare = async () => {
   try {
     const { data } = await CalendarAPI.prepareTemplateDrafts();
     results.value = data.results;
+    language.value = data.language;
   } catch {
     useAlert(t('CALENDAR_TEMPLATES.PREPARE_ERROR'));
   } finally {
@@ -191,7 +195,7 @@ onMounted(load);
       >
         <WhatsAppBubble
           v-if="row.preview"
-          :body="row.preview.body"
+          :body="fillExamples(row.preview.body, language)"
           :buttons="row.preview.buttons || []"
         />
         <div class="flex min-w-0 flex-col items-start gap-2">

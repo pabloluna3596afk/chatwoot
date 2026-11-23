@@ -10,6 +10,7 @@
 - **Archivos:** `settings/integrations/{Calendars,CalendarTemplates}.vue`, API Calendar, `settings/templates/Index.vue`, traducciones en/es y specs Vue.
 - **Cambio:** sustituye el kit con envío directo por tres vistas previas con estados local/Meta separados, abrir borrador y reintento de preparación local. Conserva backend/API legado y el opt-in de recordatorio; exige aprobación y vínculo para encenderlo y permite apagarlo si pierde elegibilidad.
 - **Cómo probar:** suites de integraciones, Calendarios y TemplatesIndex en UTC y America/Guayaquil; comprobar enlace `?draft=<id>` de administrador, incluido archivado, e inexistente/sin permisos. Revisar conflictos, sin Google y recordatorio bloqueado.
+- **Corrección PM 1:** las tres burbujas rellenan las variables con los ejemplos canónicos es/en mediante `calendarTemplatePreview.fillExamples`, según `language` de template_drafts. Solo cambia la representación; las definiciones y los borradores conservan sus variables. Specs de función pura y componente cubren ambos idiomas, idioma de cuenta distinto al de UI y conservación del texto original.
 - **Pendiente visual:** capturas de la app real a 390 px y escritorio con el PM; sin Docker, navegador, preview, Meta, push, PR ni despliegue en esta sesión.
 
 ### B-NEW-302 - Preparación local de plantillas al conectar Google (2026-11-22)
