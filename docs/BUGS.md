@@ -7,10 +7,11 @@
 - **Pendiente:** PM debe ejecutar RSpec y RuboCop exacto de CI. No se ejecutaron en esta sesión por prohibición de Docker del brief y ausencia de Ruby/Bundler en host. Sin UI, Captain, ActivationKit, migraciones, Meta, push, fetch, PR ni despliegue. Contrato en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Estado por destino y vínculo.
 ### B-NEW-303 - Plantillas de Citas y enlace al borrador (2026-11-23)
 
-- **Archivos:** `settings/integrations/{Calendars,CalendarTemplates}.vue`, API Calendar, `settings/templates/Index.vue`, traducciones en/es y specs Vue.
+- **Archivos:** `settings/integrations/Calendars.vue`, `settings/citas/`, API Calendar, `settings/templates/Index.vue`, traducciones en/es y specs Vue.
 - **Cambio:** sustituye el kit con envío directo por tres vistas previas con estados local/Meta separados, abrir borrador y reintento de preparación local. Conserva backend/API legado y el opt-in de recordatorio; exige aprobación y vínculo para encenderlo y permite apagarlo si pierde elegibilidad.
 - **Cómo probar:** suites de integraciones, Calendarios y TemplatesIndex en UTC y America/Guayaquil; comprobar enlace `?draft=<id>` de administrador, incluido archivado, e inexistente/sin permisos. Revisar conflictos, sin Google y recordatorio bloqueado.
 - **Corrección PM 1:** las tres burbujas rellenan las variables con los ejemplos canónicos es/en mediante `calendarTemplatePreview.fillExamples`, según `language` de template_drafts. Solo cambia la representación; las definiciones y los borradores conservan sus variables. Specs de función pura y componente cubren ambos idiomas, idioma de cuenta distinto al de UI y conservación del texto original.
+- **Corrección PM 2:** las tarjetas y sus specs se trasladan sin duplicarlas a `settings/citas`; nueva página admin en orden plantillas → atributos → invitación. Integraciones conserva conexión/activación y enlaza a Citas. Menú condicionado por flag, administrador y conexión Google activa, con estado Vuex por cuenta actualizado al desconectar. Ajustes de la agenda elige destino según conexión; habilitar calendarios sigue en Integraciones. El enlace de atributos de Captain apunta a Citas; su lógica no cambia. Specs cubren página, menú, enlaces y desconexión en UTC y America/Guayaquil. Capturas y medidas a 390 px pendientes del PM.
 - **Pendiente visual:** capturas de la app real a 390 px y escritorio con el PM; sin Docker, navegador, preview, Meta, push, PR ni despliegue en esta sesión.
 
 ### B-NEW-302 - Preparación local de plantillas al conectar Google (2026-11-22)

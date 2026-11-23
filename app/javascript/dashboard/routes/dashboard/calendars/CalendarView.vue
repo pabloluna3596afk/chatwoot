@@ -261,7 +261,13 @@ const onSaved = async event => {
 };
 
 const goToSettings = () => {
-  router.push(accountScopedRoute('settings_integrations_calendars'));
+  router.push(
+    accountScopedRoute(
+      connections.value.some(item => item.provider === 'google')
+        ? 'settings_citas'
+        : 'settings_integrations_calendars'
+    )
+  );
 };
 
 const openCreate = slot => {
@@ -411,6 +417,15 @@ onMounted(loadConnections);
         </div>
         <div v-if="hasConnections" class="flex shrink-0 items-center gap-1">
           <Button
+            v-if="isAdmin"
+            intent="tertiary"
+            sm
+            icon="i-lucide-settings"
+            :aria-label="$t('CITAS_SETTINGS.CONFIGURE')"
+            data-testid="calendar-settings"
+            @click="goToSettings"
+          />
+          <Button
             blue
             sm
             icon="i-lucide-plus"
@@ -464,7 +479,9 @@ onMounted(loadConnections);
         v-if="isAdmin"
         blue
         :label="$t('SIDEBAR.CALENDAR_PAGE.ENABLE_CTA')"
-        @click="goToSettings"
+        @click="
+          router.push(accountScopedRoute('settings_integrations_calendars'))
+        "
       />
     </div>
 

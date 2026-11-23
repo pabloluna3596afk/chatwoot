@@ -757,7 +757,7 @@ onMounted(loadConnections);
       >
         {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ATTRIBUTES_NOTE') }}
         <router-link
-          :to="accountScopedRoute('settings_integrations_calendars')"
+          :to="accountScopedRoute('settings_citas')"
           class="text-n-brand hover:underline"
         >
           {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ATTRIBUTES_LINK') }}
