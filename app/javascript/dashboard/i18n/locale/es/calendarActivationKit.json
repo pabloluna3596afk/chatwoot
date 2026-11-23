@@ -18,6 +18,11 @@
     "REMINDER_SAVED": "Configuración de recordatorios guardada.",
     "REMINDER_SAVE_ERROR": "No se pudo guardar la configuración de recordatorios. Inténtalo de nuevo."
   },
+  "CITAS_SETTINGS": {
+    "DESCRIPTION": "Gestiona las plantillas, los atributos de contacto y el texto de la invitación de tus citas.",
+    "CONFIGURE": "Configurar Citas",
+    "MANAGE_CONNECTION": "Gestionar conexiones de calendarios"
+  },
   "CALENDAR_TEMPLATES": {
     "TITLE": "Plantillas de Citas",
     "DESCRIPTION": "Las plantillas se preparan al conectar Google. Revísalas y envíalas desde Plantillas.",

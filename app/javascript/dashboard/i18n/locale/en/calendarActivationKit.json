@@ -18,6 +18,11 @@
     "REMINDER_SAVED": "Reminder settings saved.",
     "REMINDER_SAVE_ERROR": "Could not save reminder settings. Try again."
   },
+  "CITAS_SETTINGS": {
+    "DESCRIPTION": "Manage appointment templates, contact attributes and invitation text.",
+    "CONFIGURE": "Configure appointments",
+    "MANAGE_CONNECTION": "Manage calendar connections"
+  },
   "CALENDAR_TEMPLATES": {
     "TITLE": "Appointment templates",
     "DESCRIPTION": "Templates are prepared when you connect Google. Review and submit them from Templates.",

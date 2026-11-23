@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAccount } from 'dashboard/composables/useAccount';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useFunctionGetter, useStore } from 'dashboard/composables/store';
@@ -13,9 +14,6 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import SelectInput from 'dashboard/components-next/select/Select.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import SettingsLayout from '../SettingsLayout.vue';
-import CalendarInvitationSettings from './CalendarInvitationSettings.vue';
-import CalendarTemplates from './CalendarTemplates.vue';
-import CalendarAppointmentAttributes from './CalendarAppointmentAttributes.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import googleCalendarLogo from 'dashboard/assets/images/integrations/google-calendar.svg';
@@ -28,6 +26,7 @@ import {
 
 const { t, locale } = useI18n();
 const route = useRoute();
+const { accountId, accountScopedRoute } = useAccount();
 const store = useStore();
 const integration = useFunctionGetter(
   'integrations/getIntegration',
@@ -53,7 +52,10 @@ const googleConnections = computed(() =>
 
 const loadConnections = async () => {
   try {
-    const { data } = await CalendarAPI.getConnections();
+    const data = await store.dispatch(
+      'calendarConnections/get',
+      accountId.value
+    );
     connections.value = data.payload || [];
     configured.value = Boolean(data.configured);
   } catch (error) {
@@ -512,9 +514,14 @@ onMounted(async () => {
           </div>
         </div>
 
-        <CalendarInvitationSettings />
-        <CalendarTemplates :connected="googleConnections.length > 0" />
-        <CalendarAppointmentAttributes />
+        <RouterLink
+          v-if="googleConnections.length"
+          :to="accountScopedRoute('settings_citas')"
+          class="self-start text-body-main text-n-blue-11 underline"
+          data-testid="configure-citas"
+        >
+          {{ $t('CITAS_SETTINGS.CONFIGURE') }}
+        </RouterLink>
       </div>
 
       <Dialog
