@@ -25,7 +25,7 @@ class Calendar::TemplateDrafts::Provisioner
   private
 
   def preparation_for(language)
-    preparation = @account.calendar_template_preparation || {}
+    preparation = (@account.calendar_template_preparation || {}).deep_dup
     languages = preparation.fetch('languages', {})
     languages[preparation.fetch('language')] ||= preparation.fetch('results') if preparation.key?('language')
     results = languages[language] ||= {}
