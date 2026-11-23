@@ -6,7 +6,7 @@ class Captain::Tools::ConfirmAppointmentTool < Captain::Tools::BaseAppointmentTo
                                     '(e.g. "Confirmo · jue 16/01 10:00")'
 
   def perform(tool_context, event_id:)
-    conversation, error = conversation_for(tool_context)
+    conversation, error = conversation_for(tool_context, maintenance: true)
     return error if error
 
     event_ref = resolve_event_id(conversation, event_id)
@@ -24,7 +24,8 @@ class Captain::Tools::ConfirmAppointmentTool < Captain::Tools::BaseAppointmentTo
 
   # Only the local status changes: the event in Google Calendar is the same, so nothing is sent to it.
   def confirm(event)
-    record = connection.calendar_events.kept.find_by!(external_calendar_id: calendar_id, google_event_id: event[:id])
+    record = @assistant.account.calendar_events.kept.find_by!(calendar_connection_id: event.fetch(:connection_id),
+                                                              external_calendar_id: event.fetch(:calendar_id), google_event_id: event[:id])
     record.update!(appointment_status: 'confirmed')
   end
 end

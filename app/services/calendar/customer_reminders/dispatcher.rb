@@ -21,6 +21,7 @@ class Calendar::CustomerReminders::Dispatcher
   def dispatch(event)
     event.with_lock do
       next unless eligible?(event)
+      next unless Calendar::ConnectionStatus.active?(event, context: 'customer_reminder_dispatch')
       next if skip(event)
       next unless Calendar::CustomerReminders::Schedule.due_at(event) <= @now
       next unless Calendar::CustomerReminders::Schedule.sending_hours?(event.account, @now)

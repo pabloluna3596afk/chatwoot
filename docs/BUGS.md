@@ -3889,3 +3889,31 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Ancla de cierre por tiempo:** se usa la despedida real cuando existe; sus callbacks pueden actualizar la conversación antes de encolar una actividad. Sin despedida, el contexto de la decisión abarca la transacción completa de `ResolutionTransition`, para que `after_commit` pase la clave al job de actividad antes de restaurarla. Los specs de inactividad cubren ambas anclas; el harness del mixin de mensajería declara su identificador de ejecución.
 - **Consumidores:** las expectativas de actividades de `Conversation` incluyen el estado anterior para acreditar reaperturas; los ejemplos de métricas de respuesta congelan el reloj para que la duración de ejecución no cambie los intervalos medidos. Sin omitir ejemplos adicionales.
 - **Despliegue:** aplicar la migración antes de usar el backend; PR 2 montará la pantalla. Sin backfill, llamadas nuevas de IA, push, PR ni despliegue en esta sesión. La retención de sesiones y de la contabilidad no cambia.
+### B-NEW-304 — Continuidad al cerrar o desconectar calendarios (D1, 2026-11-23)
+
+- **Evidencia:** PM reportó 423 ejemplos y 18 fallos en `.codex/RESULTADO-RSPEC-PM.md`; D1 reproduce cancelar/mover con calendario cerrado, avisos en conexión inactiva y ausencia de `verified`. Confirma el comportamiento defectuoso; no acredita cuándo se introdujo ni una regresión contra una versión anterior.
+- **Cambio:** `EventService` conserva mantenimiento con calendario registrado y conexión activa, manteniendo habilitación para nuevas reservas/disponibilidad. `Calendar::ConnectionStatus`, Dispatcher/Delivery humanos y Sender/reconciliador Captain pausan con razón estructurada `connection_disconnected`. Una cola humana no aceptada libera su intento, sin consumirlo; reconectar permite al cron retomarla. Se conserva la idempotencia enviada y se añade `verified` a payloads locales/remotos. El refresco de invitaciones omite conexiones inactivas.
+- **Cómo probar:** grupo `appointment continuity` de `spec/lib/integrations/google_calendar/event_service_spec.rb`; A2 en `spec/services/calendar/customer_reminders/{dispatcher,delivery}_spec.rb` y `spec/enterprise/services/captain/{appointment_reconciler,appointment_reminders}_spec.rb`; A3 en `spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb`. Control adicional de log y rechazo de mantenimiento desconectado.
+- **Estado:** código implementado después del rojo; verde y RuboCop pendientes del PM. No se cancela Google ni se trasladan citas al desconectar. Conserva filtros actuales de fecha, horario y opt-in. Límite sin reproducción específica: mensaje Captain ya creado por Sender pero aún en la cola genérica de entrega al proveedor; no tiene el contrato Delivery humano ni nueva revalidación tras desconexión. No se certifica pausa de esa cola intermedia.
+
+### B-NEW-305 — Gestión de citas anteriores desde Captain (D2, 2026-11-23)
+
+- **Evidencia:** fallos PM A4 de listado, cancelación y movimiento después de cambiar calendario.
+- **Cambio:** `Captain::AppointmentAccess` consulta citas del contacto en cuenta, por recurso configurado o conversación de bandeja autorizada del asistente. Las herramientas usan conexión/calendario originales para cancelar/mover/confirmar; nuevas reservas conservan configuración actual. Mantenimiento no exige conexión nueva activa. No amplía acceso a otros contactos ni declara exclusivo al creador.
+- **Cómo probar:** grupos A4 de `spec/enterprise/lib/captain/tools/appointment_tools_spec.rb`, incluidos ID ajeno y cambio de conexión Google. Repetir consumidores de confirmación/disponibilidad y smoke A→B→A.
+- **Límite:** la propuesta de disponibilidad para mover sigue consultando el calendario configurado; la ejecución valida horarios/ocupación del original y puede rechazar una propuesta. No se amplió ese contrato sin reproducción específica.
+- **Estado:** verde/RuboCop pendientes; sin cambio de modelo de asistentes ni migración para el acceso.
+
+### B-NEW-306 — Procedencia histórica de reservas y recordatorios (D3, 2026-11-23)
+
+- **Evidencia:** fallos PM A5 al mostrar creador y reconstruir recordatorios después de reasignar la bandeja.
+- **Cambio:** migración aditiva reversible `20261123120000` añade `calendar_events.booking_actor`; modelos OSS/Enterprise capturan snapshot al reservar. EventService lo conserva al editar y lo usa en el creador. Reconciliador busca al asistente original dentro de cuenta; no transfiere si fue eliminado. Sender con procedencia conserva identidad al cambiar nombre o asignación de bandeja, respetando interruptores. Citas antiguas sin snapshot conservan selección actual, sin backfill ni afirmación de autoría histórica.
+- **Cómo probar:** A5 de herramientas y reconciliador; controles nuevos de autor humano tras edición, asistente ausente y envío con responsable original después de reasignar bandeja.
+- **Deploy:** migración antes del código consumidor; schema ajustado a mano por autorización del PM, solo versión y columna. Pendiente validarlo contra volcado real aislado y repetir RSpec/RuboCop; no se ejecutaron migraciones aquí.
+
+### B-NEW-307 — Privacidad de lectura de agenda y contacto (D7, 2026-11-23)
+
+- **Evidencia:** fallos PM A6 de agenda general, filtro por contacto, panel de contacto y rol Enterprise pese a membresía de bandeja.
+- **Cambio:** `Calendar::EventVisibility` usa `ConversationPolicy#show?` con contexto real de usuario/cuenta, incluyendo extensión Enterprise. Devuelve solo identidad operativa/ocupación/horario si la conversación es inaccesible; omite descripción, enlaces, autores, contacto, conversación, actividades, origen y políticas del bot. Se aplica también a filas descartadas. Conserva el comportamiento previo para eventos sin conversación asociada, sin inventar permisos para recursos exclusivamente Google/CRM.
+- **Cómo probar:** grupo A6 en `spec/controllers/api/v1/accounts/integrations/calendar_authorization_spec.rb` y `spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb`, controles de agente autorizado/admin/participante. Repetir suite de servicios y todos los consumidores de lectura.
+- **Estado:** verde y RuboCop pendientes; no modifica la política ni frontend. Sin pruebas reales contra proveedores, Docker o navegador en esta sesión.

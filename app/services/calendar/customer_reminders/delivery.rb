@@ -10,6 +10,7 @@ class Calendar::CustomerReminders::Delivery
     event.with_lock do
       @message.reload
       next if @message.additional_attributes['customer_reminder_processed']
+      next cancel unless connection_available?
       next cancel unless current_claim? && eligible?
       next cancel unless Calendar::CustomerReminders::Schedule.sending_hours?(event.account, Time.current)
       next cancel unless current_template?
@@ -27,6 +28,10 @@ class Calendar::CustomerReminders::Delivery
 
   def current_claim?
     event.start_at.iso8601(6) == @metadata.fetch('start_at') && event.customer_reminder_status == "queued_#{attempt}"
+  end
+
+  def connection_available?
+    @message.source_id.present? || Calendar::ConnectionStatus.active?(event, context: 'customer_reminder_delivery')
   end
 
   def eligible?

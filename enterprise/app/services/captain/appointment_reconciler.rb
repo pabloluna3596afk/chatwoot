@@ -32,6 +32,8 @@ class Captain::AppointmentReconciler
   end
 
   def reconcile(event)
+    return unless Calendar::ConnectionStatus.active?(event, context: 'captain_appointment_reconciliation')
+
     confirm(event)
     return unless upcoming?(event)
 
@@ -87,7 +89,7 @@ class Captain::AppointmentReconciler
 
   def schedule_reminders(event)
     conversation = event.conversation
-    assistant = conversation&.inbox&.try(:captain_assistant)
+    assistant = responsible_assistant(event)
     return if assistant.blank? || !assistant.appointments.any_reminder_enabled? || event.appointment_reminders.exists?
 
     @result.reminders << event.id
@@ -100,6 +102,15 @@ class Captain::AppointmentReconciler
     @services[event.calendar_connection_id] ||= Integrations::GoogleCalendar::EventService.new(
       account: @account, user: nil, connection: event.calendar_connection
     )
+  end
+
+  # Legacy appointments keep their previous scheduling behavior; no historical author is inferred or persisted.
+  def responsible_assistant(event)
+    actor = event.booking_actor
+    return event.conversation&.inbox&.try(:captain_assistant) if actor.blank?
+    return unless actor['type'] == 'captain'
+
+    @account.captain_assistants.find_by(id: actor.fetch('id'))
   end
 
   def say(line)

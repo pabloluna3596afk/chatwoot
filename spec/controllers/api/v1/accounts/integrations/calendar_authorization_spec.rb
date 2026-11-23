@@ -75,6 +75,91 @@ RSpec.describe 'Calendar association authorization', type: :request do
     end
   end
 
+  describe 'A6 agenda reading' do
+    let(:remote_event) do
+      { 'id' => record.google_event_id, 'summary' => 'Private consultation', 'description' => 'Private medical details',
+        'htmlLink' => 'https://calendar.test/private', 'location' => 'Private address',
+        'start' => { 'dateTime' => params[:start] }, 'end' => { 'dateTime' => params[:end] },
+        'conferenceData' => { 'entryPoints' => [{ 'entryPointType' => 'video', 'uri' => 'https://meet.test/private' }] } }
+    end
+    let(:read_params) do
+      { connection_id: connection.id, calendar_id: 'main', time_min: params[:start], time_max: params[:end] }
+    end
+
+    before { allow(client).to receive(:list_events).and_return([remote_event]) }
+
+    it 'returns only occupancy to an agent without access to the conversation', :aggregate_failures do
+      get url, headers: headers, params: read_params
+
+      expect(response).to have_http_status(:ok)
+      payload = response.parsed_body['payload'].sole
+      expect(payload).to include('start' => params[:start], 'end' => params[:end])
+      expect(payload['summary']).not_to eq(remote_event['summary'])
+      %w[description html_link location meet_link invitation_text contact conversation creator created_by updated_by deleted_by origin].each do |key|
+        expect(payload[key]).to be_blank
+      end
+      expect(payload['activities']).to be_blank
+      expect(payload['bot_followup_policy']).to be_blank
+    end
+
+    [:admin, :agent].each do |actor|
+      it "preserves details for an authorized #{actor}" do
+        create(:inbox_member, inbox: conversation.inbox, user: agent) if actor == :agent
+
+        get url, headers: public_send(actor).create_new_auth_token, params: read_params
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['payload'].sole).to include(
+          'summary' => remote_event['summary'], 'description' => remote_event['description'], 'meet_link' => 'https://meet.test/private',
+          'contact' => include('id' => conversation.contact_id), 'conversation' => { 'id' => conversation.display_id }
+        )
+      end
+    end
+
+    it 'also protects the contact-filtered integration endpoint' do
+      record
+
+      get url, headers: headers, params: read_params.merge(contact_id: conversation.contact_id)
+
+      expect(response).to have_http_status(:ok)
+      payload = response.parsed_body['payload'].sole
+      expect(payload['summary']).not_to eq(record.summary)
+      expect(payload['contact']).to be_blank
+      expect(payload['conversation']).to be_blank
+      expect(payload['creator']).to be_blank
+      expect(payload['activities']).to be_blank
+    end
+
+    context 'with an Enterprise participating-only role', if: ChatwootApp.enterprise? do
+      before do
+        create(:inbox_member, inbox: conversation.inbox, user: agent)
+        role = create(:custom_role, account: account, permissions: ['conversation_participating_manage'])
+        agent.account_users.find_by!(account: account).update!(custom_role: role)
+      end
+
+      it 'redacts details despite inbox membership when conversation policy denies access' do
+        get url, headers: headers, params: read_params
+
+        expect(response).to have_http_status(:ok)
+        payload = response.parsed_body['payload'].sole
+        expect(payload['summary']).not_to eq(remote_event['summary'])
+        expect(payload['description']).to be_blank
+        expect(payload['meet_link']).to be_blank
+        expect(payload['contact']).to be_blank
+        expect(payload['conversation']).to be_blank
+      end
+
+      it 'preserves details once the agent participates in the conversation' do
+        create(:conversation_participant, account: account, conversation: conversation, user: agent)
+
+        get url, headers: headers, params: read_params
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['payload'].sole).to include('summary' => remote_event['summary'])
+      end
+    end
+  end
+
   it_behaves_like 'denied mutations'
 
   context 'when bypassing the saved conversation through request associations' do

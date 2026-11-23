@@ -9,7 +9,7 @@ class Captain::Tools::RescheduleAppointmentTool < Captain::Tools::BaseAppointmen
   parameter :customer_confirmed, type: 'boolean', description: 'true only if the customer explicitly confirmed the new time', required: false
 
   def perform(tool_context, new_start:, event_id: nil, customer_confirmed: false)
-    conversation, error = conversation_for(tool_context)
+    conversation, error = conversation_for(tool_context, maintenance: true)
     return error if error
 
     resolved = resolve_start(conversation, new_start)
@@ -31,7 +31,8 @@ class Captain::Tools::RescheduleAppointmentTool < Captain::Tools::BaseAppointmen
     return translate('outside_window', days: settings.booking_window_days) unless within_booking_limits?(start_at)
 
     end_at = start_at + (Time.iso8601(event[:end]) - Time.iso8601(event[:start]))
-    booked = event_service.update(event[:id], update_params(conversation, event, start_at, end_at), enforce_hours: true, require_local: true)
+    booked = event_service_for(event).update(event[:id], update_params(conversation, event, start_at, end_at),
+                                             enforce_hours: true, require_local: true)
     log_tool_usage('reschedule_appointment', conversation_id: conversation.id, event_id: event[:id])
     translate('rescheduled', time: format_time(Time.iso8601(booked.fetch(:start))))
   end
@@ -39,7 +40,7 @@ class Captain::Tools::RescheduleAppointmentTool < Captain::Tools::BaseAppointmen
   def update_params(conversation, event, start_at, end_at)
     contact = conversation.contact
     {
-      calendar_id: calendar_id,
+      calendar_id: event.fetch(:calendar_id),
       summary: event[:summary],
       start: start_at.iso8601,
       end: end_at.iso8601,

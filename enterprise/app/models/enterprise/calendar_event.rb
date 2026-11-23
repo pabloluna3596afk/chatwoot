@@ -4,6 +4,12 @@ module Enterprise::CalendarEvent
     base.after_update :sync_appointment_reminders
   end
 
+  def booking_actor_for(actor)
+    return super unless actor.is_a?(Captain::Assistant)
+
+    { type: 'captain', id: actor.id, name: actor.name, thumbnail: actor.avatar_or_default_url }
+  end
+
   private
 
   # Whoever moves or cancels the appointment (the customer through Captain, an agent in the agenda, a change

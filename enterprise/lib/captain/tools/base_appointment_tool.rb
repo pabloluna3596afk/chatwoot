@@ -1,5 +1,5 @@
 # Shared behavior of the Captain appointment tools: they only work in a conversation whose inbox
-# has appointments active for the assistant, talk to the assistant's own calendar, and answer
+# has appointments active for the assistant, preserve existing appointments' calendars, and answer
 # with short text (in the account language) that the model can relay to the customer.
 class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   ISO_START = /\A\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
@@ -14,13 +14,17 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
 
   # Resolves the conversation and checks that this channel may use appointments. Returns
   # [conversation, nil] or [nil, message for the model].
-  def conversation_for(tool_context)
+  def conversation_for(tool_context, maintenance: false)
     conversation = find_conversation(tool_context.state)
     return [nil, 'Conversation not found'] unless conversation
     return [nil, translate('disabled')] unless @assistant.appointments_active_in?(conversation.inbox)
-    return [nil, translate('no_calendar')] if connection.blank? || settings.calendar_id.blank?
+    return [nil, translate('no_calendar')] unless maintenance || booking_calendar_configured?
 
     [conversation, nil]
+  end
+
+  def booking_calendar_configured?
+    connection.present? && settings.calendar_id.present?
   end
 
   def connection
@@ -87,11 +91,13 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
     [:slot_busy, {}] unless slot_free?(start_at, minutes)
   end
 
-  def own_appointments(conversation, contact)
-    Integrations::GoogleCalendar::EventService.contact_payloads(
-      conversation.account, contact.id,
-      calendar_id: calendar_id, connection_id: connection.id, time_min: Time.current.iso8601, time_max: 2.years.from_now.iso8601
-    ).reject { |event| event[:deleted] }
+  def own_appointments(_conversation, contact)
+    Captain::AppointmentAccess.new(@assistant).upcoming(contact)
+  end
+
+  def event_service_for(event)
+    original_connection = @assistant.account.calendar_connections.active.find(event.fetch(:connection_id))
+    Integrations::GoogleCalendar::EventService.new(account: @assistant.account, user: @assistant, connection: original_connection)
   end
 
   def calendar_error_message(error)

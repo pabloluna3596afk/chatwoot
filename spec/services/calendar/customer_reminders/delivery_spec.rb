@@ -37,6 +37,23 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
+  it 'A2 pauses a queued delivery on disconnect and delivers once after reconnecting' do
+    paused_message = outgoing.last
+    event.calendar_connection.update!(is_active: false)
+
+    expect { SendReplyJob.perform_now(paused_message.id) }.not_to raise_error
+
+    expect(service).not_to have_received(:perform)
+    expect(event.reload.customer_reminder_sent_at).to be_nil
+    event.calendar_connection.update!(is_active: true)
+    Calendar::CustomerReminders::Dispatcher.new.perform
+    allow(service).to receive(:perform) { outgoing.last.update!(source_id: 'wamid-resumed') }
+    2.times { SendReplyJob.perform_now(outgoing.last.id) }
+    Calendar::CustomerReminders::Dispatcher.new.perform
+    expect(service).to have_received(:perform).once
+    expect(event.reload).to have_attributes(customer_reminder_status: 'sent', customer_reminder_sent_at: now)
+  end
+
   it 'R14 releases the claim after provider rejection, stops at three and never raises into the scheduler' do
     allow(service).to receive(:perform) { outgoing.last.update!(status: :failed) }
     3.times do |index|

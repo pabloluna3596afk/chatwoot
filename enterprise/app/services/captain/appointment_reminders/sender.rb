@@ -22,7 +22,7 @@ class Captain::AppointmentReminders::Sender
       return :skipped unless reminder.reload.pending?
       return :waiting if reminder.scheduled_at > now
       return skip('event_gone') unless upcoming_event?
-      return :waiting unless refresh_event
+      return :waiting unless Calendar::ConnectionStatus.active?(event, context: 'captain_reminder_delivery') && refresh_event
 
       reminder.with_lock { deliver }
     end
@@ -64,7 +64,7 @@ class Captain::AppointmentReminders::Sender
   end
 
   def active?
-    settings.reminder_enabled?(reminder.kind) && assistant.appointments_active_in?(conversation.inbox)
+    Captain::AppointmentReminders::Eligibility.new(event, assistant, conversation, settings).enabled?(reminder.kind)
   end
 
   def human_conversation?

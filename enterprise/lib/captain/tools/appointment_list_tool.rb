@@ -6,7 +6,7 @@ class Captain::Tools::AppointmentListTool < Captain::Tools::BaseAppointmentTool
                                          'change/cancel/keep buttons are attached to your reply'
 
   def perform(tool_context, offer_changes: false)
-    conversation, error = conversation_for(tool_context)
+    conversation, error = conversation_for(tool_context, maintenance: true)
     return error if error
 
     tapped = tapped_button(conversation, tool_context)

@@ -7,7 +7,7 @@ class Api::V1::Accounts::Contacts::CalendarEventsController < Api::V1::Accounts:
       Current.account, Current.account.calendar_events.where(contact_id: @contact.id), user: Current.user
     )
     payloads = Integrations::GoogleCalendar::EventService.contact_payloads(
-      Current.account, @contact.id, time_min: Time.current.iso8601, time_max: 2.years.from_now.iso8601
+      Current.account, @contact.id, time_min: Time.current.iso8601, time_max: 2.years.from_now.iso8601, user: Current.user
     )
     render json: { payload: payloads.first(MAX_EVENTS) }
   end
