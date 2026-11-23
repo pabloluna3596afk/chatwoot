@@ -421,6 +421,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **Citas continuidad / B-NEW-304..307** (cierre, desconexión, procedencia y privacidad) | chatwoot | `feat/citas-continuidad`: aplicar migración aditiva `20261123120000` antes del código; schema ajustado a mano con autorización del PM, validar volcado aislado; 423 ejemplos/18 fallos previos, correcciones y controles adicionales pendientes de RSpec/RuboCop PM; sin backfill, push, PR ni despliegue |
 | **Citas PR 2 / B-NEW-301** (identidad y contrato de recursos) | chatwoot | `feat/citas-recursos-contrato`: migración aditiva `20261122120000` antes de servir bandejas/Citas; regenerar schema y ejecutar RSpec/RuboCop con el PM; sin backfill, preparación automática, push, PR ni despliegue |
 | **Plantillas / B-NEW-293** (borradores y envío a revisión) | chatwoot | `feat/whatsapp-template-drafts`: aplicar migración aditiva `20261120120000` antes de habilitar API; CRUD admin, snapshots y reconciliación por WABA; pantalla en otro PR; sin backfill, push, PR ni despliegue |
 | **Captain / B-NEW-294** (bucle de cortesias) | chatwoot | `feat/captain-bucle-cortesias`: freno determinista antes de reservar creditos, revision de cierre sin consumo y traspaso silencioso; configuracion opcional; sin migraciones, push, PR ni despliegue |
