@@ -52,6 +52,52 @@ RSpec.describe 'Contact calendar events API', type: :request do
       .with(account, anything, user: agent)
   end
 
+  it 'A3 returns a disconnected appointment as unverified and keeps its status' do
+    event('soon', Time.zone.parse('2030-01-15T10:00:00-05:00'), appointment_status: 'confirmed')
+    connection.update!(is_active: false)
+
+    get url, headers: agent.create_new_auth_token
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['payload'].sole).to include('verified' => false, 'deleted' => false, 'appointment_status' => 'confirmed')
+  end
+
+  describe 'A6 conversation privacy' do
+    let(:conversation) { create(:conversation, account: account, contact: contact) }
+
+    before { event('private', Time.zone.parse('2030-01-15T10:00:00-05:00'), conversation: conversation, created_by: agent) }
+
+    it 'redacts the appointment of an inaccessible conversation in the contact panel' do
+      get url, headers: agent.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      payload = response.parsed_body['payload'].sole
+      expect(payload['start']).to be_present
+      expect(payload['end']).to be_present
+      expect(payload['summary']).not_to eq('private')
+      %w[contact conversation creator created_by origin html_link].each { |key| expect(payload[key]).to be_blank }
+      expect(payload['activities']).to be_blank
+    end
+
+    it 'preserves details when the agent belongs to the inbox' do
+      create(:inbox_member, user: agent, inbox: conversation.inbox)
+
+      get url, headers: agent.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['payload'].sole).to include('summary' => 'private', 'conversation' => { 'id' => conversation.display_id })
+    end
+
+    it 'preserves details for an administrator without inbox membership' do
+      admin = create(:user, account: account, role: :administrator)
+
+      get url, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['payload'].sole).to include('summary' => 'private', 'conversation' => { 'id' => conversation.display_id })
+    end
+  end
+
   it 'does not read the contacts of another account' do
     other = create(:contact, account: create(:account))
 

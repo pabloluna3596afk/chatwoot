@@ -476,3 +476,12 @@ archivados/eliminados ni sustituir selecciones o versiones. Preparar en inglés 
 modifica locale ni recursos/borradores en español. OAuth sigue preparando solo en
 la primera conexión: un cambio de locale se diagnostica, no prepara ni aprueba
 recursos automáticamente. No requiere migración ni backfill.
+## Continuidad y privacidad de Citas
+
+Contrato del brief de continuidad (2026-11-23): cerrar un calendario bloquea reservas nuevas, pero conserva mantenimiento y avisos de citas existentes mientras la conexión siga activa. Desconectar Google conserva identidad, referencias e historial; pausa avisos automáticos y la reconstrucción de recordatorios dependientes de esa conexión. La lectura debe indicar `verified: false`, sin convertir una cita en cancelada. Reconectar permite reanudar pendientes elegibles y conserva los marcadores de avisos ya enviados.
+
+Cambiar el calendario de Captain solo afecta reservas nuevas. Listar, cancelar y mover citas anteriores debe resolver el contacto y el recurso autorizado original. Las citas nuevas deben conservar la procedencia de su creador; para citas antiguas sin procedencia, el reconciliador mantiene la selección actual por bandeja sin presentar esa selección como autoría histórica ni hacer backfill.
+
+La lectura de agenda y del panel de contacto debe aplicar la política de conversación, incluida su extensión Enterprise. Un agente sin acceso recibe ocupación y horario, sin título privado, descripción, enlaces, contacto, conversación, autores ni actividades. Administradores y agentes autorizados conservan los detalles.
+
+**Estado de implementación:** contrato pendiente. Esta entrega solo incorpora specs de reproducción A1–A6 y controles de comportamiento existente. No modifica backend de producción, esquema, frontend ni plantillas. El brief exige un spec que falle antes de cada cambio; no se puede acreditar esa reproducción en este host sin Ruby/Bundler y con Docker prohibido. El PM debe ejecutar primero los specs y conservar la salida roja; después podrán implementarse los fixes y ejecutar la matriz completa. No se ha demostrado todavía un fallo en ejecución ni una corrección.

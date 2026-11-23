@@ -54,6 +54,24 @@ RSpec.describe Captain::AppointmentReminders do
     Captain::AppointmentReminder.find_by!(calendar_event_id: event.id, kind: kind)
   end
 
+  it 'A2 waits while disconnected and sends a due Captain reminder once after reconnection' do
+    schedule
+    pending_reminder = reminder('reminder_1')
+    travel_to(pending_reminder.scheduled_at)
+    allow(conversation).to receive(:can_reply?).and_return(true)
+    allow(pending_reminder).to receive(:conversation).and_return(conversation)
+    connection.update!(is_active: false)
+
+    expect(Captain::AppointmentReminders::Sender.new(pending_reminder).perform).to eq(:waiting)
+
+    expect(pending_reminder.reload.status).to eq('pending')
+    expect(conversation.messages.outgoing).to be_empty
+    connection.update!(is_active: true)
+    2.times { Captain::AppointmentReminders::Sender.new(pending_reminder).perform }
+    expect(pending_reminder.reload.status).to eq('sent')
+    expect(conversation.messages.outgoing.count).to eq(1)
+  end
+
   describe Captain::AppointmentReminders::Scheduler do
     it 'schedules the two reminders (24 h and 3 h by default) at the minute' do
       schedule

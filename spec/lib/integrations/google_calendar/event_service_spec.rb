@@ -82,6 +82,52 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     )
   end
 
+  describe 'appointment continuity' do
+    before { connection.connection_calendars.find_by!(external_id: 'cal-1').update!(is_enabled: false) }
+
+    it 'A1 cancels an existing appointment after closing the calendar to new bookings' do
+      record = local_event(contact: contact)
+
+      service.destroy(record.google_event_id, calendar_id: 'cal-1', note: 'Customer request', require_local: true)
+
+      expect(record.reload.discarded?).to be(true)
+      expect(client).to have_received(:delete_event).with(calendar_id: 'cal-1', event_id: record.google_event_id, etag: nil)
+    end
+
+    it 'A1 moves an existing appointment within the original calendar after closing new bookings' do
+      record = local_event(contact: contact)
+
+      service.update(record.google_event_id, create_params(start: '2030-01-15T11:00:00-05:00', end: '2030-01-15T11:30:00-05:00'),
+                     require_local: true)
+
+      expect(record.reload).to have_attributes(start_at: Time.iso8601('2030-01-15T11:00:00-05:00'), external_calendar_id: 'cal-1')
+      expect(client).to have_received(:update_event).once
+    end
+
+    it 'A1 still rejects new bookings and availability on a disabled calendar before Google' do
+      expect { service.create(create_params) }.to raise_error(described_class::CalendarNotEnabled)
+      expect do
+        service.available_slots(calendar_id: 'cal-1', from: Time.iso8601(slot_start), to: Time.iso8601(slot_end))
+      end.to raise_error(described_class::CalendarNotEnabled)
+      expect(client).not_to have_received(:create_event)
+      expect(client).not_to have_received(:list_events)
+    end
+
+    it 'A3 marks a disconnected appointment unverified without cancelling its local identity' do
+      record = local_event(contact: contact, appointment_status: 'confirmed')
+      connection.update!(is_active: false)
+
+      payload = described_class.payload_from_record(record.reload)
+
+      expect(payload).to include(verified: false, deleted: false, appointment_status: 'confirmed', id: record.google_event_id)
+      expect(client).not_to have_received(:delete_event)
+    end
+
+    it 'A3 marks an active connection verified even when its calendar is closed to new bookings' do
+      expect(described_class.payload_from_record(local_event)).to include(verified: true, deleted: false)
+    end
+  end
+
   describe 'association authorization without controller context' do
     let(:user) { create(:user, account: account, role: :agent) }
     let(:conversation) { create(:conversation, account: account, contact: contact) }

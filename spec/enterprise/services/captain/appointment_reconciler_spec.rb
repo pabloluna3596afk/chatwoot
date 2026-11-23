@@ -58,13 +58,14 @@ RSpec.describe Captain::AppointmentReconciler do
   end
 
   context 'when applying' do
-    it 'confirms the booking, reads the invite answer and schedules the missing reminders' do
+    it 'A5 keeps legacy reminder scheduling through the current inbox assistant when provenance is absent' do
       event = booking('g-1')
 
       reconcile(apply: true)
 
       expect(event.reload).to have_attributes(appointment_status: 'confirmed', invitation_status: 'accepted')
       expect(event.appointment_reminders.pluck(:kind)).to match_array(%w[reminder_1 reminder_2])
+      expect(event.appointment_reminders.pluck(:captain_assistant_id)).to contain_exactly(assistant.id, assistant.id)
     end
 
     it 'does not schedule reminders twice, and leaves past, manual and cancelled appointments alone' do
@@ -92,6 +93,22 @@ RSpec.describe Captain::AppointmentReconciler do
       expect(result.missing_in_google).to eq([event.id])
       expect(event.reload.discarded?).to be(true)
       expect(event.appointment_reminders).to be_empty
+    end
+
+    it 'A2 pauses remote checks and missing reminders while disconnected, then resumes idempotently' do
+      event = booking('g-1', appointment_status: 'confirmed')
+      connection.update!(is_active: false)
+
+      result = reconcile(apply: true)
+
+      expect(result.failed).to be_empty
+      expect(result.reminders).to be_empty
+      expect(client).not_to have_received(:get_event)
+      expect(event.appointment_reminders).to be_empty
+      expect(event.reload.discarded?).to be(false)
+      connection.update!(is_active: true)
+      2.times { reconcile(apply: true) }
+      expect(event.appointment_reminders.count).to eq(2)
     end
 
     it 'reports a failure and goes on with the next appointment' do
