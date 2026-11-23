@@ -41,4 +41,13 @@ RSpec.describe 'Calendar template preparation API', type: :request do
       expect(account.reload.calendar_template_preparation).to be_nil
     end
   end
+  it 'accepts an explicit preparation language and diagnoses its difference from the effective language' do
+    post path, headers: admin.create_new_auth_token, params: { language: 'en' }, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include('prepared_language' => 'en', 'effective_language' => 'es', 'language_changed' => true)
+    expect(account.whatsapp_template_drafts.pluck(:language).uniq).to eq(['en'])
+    post path, headers: admin.create_new_auth_token, params: { language: ['en'] }, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
 end

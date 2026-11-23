@@ -1,3 +1,11 @@
+### B-NEW-303 - Estado de Citas por WABA y vínculo explícito (2026-11-23)
+
+- **Archivos:** `Calendar::TemplateDrafts::{Status,DestinationStatus,Linker,Provisioner}`, `Calendar::TemplateResources`, controlador/rutas de template_drafts y specs.
+- **Problema:** no había endpoint para vincular una versión aprobada; los agregados linked/approved no representaban disponibilidad por WABA y preparar tras cambiar locale conservaba solo el idioma inicial.
+- **Cambio:** POST link admin por canal propio y selección explícita, contrato/bloqueo compartidos e idempotencia; estado con resolver real por función/idioma/WABA y compatibilidad legada; diagnóstico de idioma y preparación duradera por idioma sin reemplazar versiones.
+- **Cómo probar:** requests `calendar_template_link_spec.rb`/`calendar_template_drafts_spec.rb`, specs `calendar/template_drafts` (incluye concurrencia PostgreSQL), y consumidores `spec/services/calendar`, `spec/requests/api/v1/accounts/calendar_template_*`, `spec/controllers/google_calendar`, `spec/lib/integrations/google_calendar`.
+- **Pendiente:** PM debe ejecutar RSpec y RuboCop exacto de CI. No se ejecutaron en esta sesión por prohibición de Docker del brief y ausencia de Ruby/Bundler en host. Sin UI, Captain, ActivationKit, migraciones, Meta, push, fetch, PR ni despliegue. Contrato en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Estado por destino y vínculo.
+
 ### B-NEW-302 - Preparación local de plantillas al conectar Google (2026-11-22)
 
 - **Archivos:** `Calendar::TemplateDrafts::{Provisioner,Status}`, `Account`, callback Google, controlador/rutas de integraciones y specs de servicio, concurrencia, callback y API.

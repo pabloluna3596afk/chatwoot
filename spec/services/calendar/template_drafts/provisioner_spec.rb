@@ -29,12 +29,25 @@ RSpec.describe Calendar::TemplateDrafts::Provisioner do
     end
   end
 
-  it 'keeps the original language and results on retry without duplicating' do
+  it 'prepares the effective language after a locale change and retains earlier results' do
     first = service.perform
+    spanish = account.whatsapp_template_drafts.order(:id).map(&:attributes)
     account.update!(locale: 'en')
-    expect { service.perform }.not_to change(WhatsappTemplateDraft, :count)
-    expect(service.status).to eq(first)
-    expect(service.status['language']).to eq('es')
+    expect(service.status).to include('prepared_language' => 'es', 'effective_language' => 'en', 'language_changed' => true)
+    expect { service.perform }.to change(WhatsappTemplateDraft, :count).by(3)
+    expect(service.status).to include('prepared_language' => 'en', 'effective_language' => 'en', 'language_changed' => false)
+    expect(account.whatsapp_template_drafts.where(language: 'es').order(:id).map(&:attributes)).to eq(spanish)
+    expect { service.perform(language: 'es') }.not_to change(WhatsappTemplateDraft, :count)
+    expect(service.status['results']).to eq(first['results'].transform_values do |row|
+      row.merge('effective_language' => 'en', 'language_changed' => true)
+    end)
+  end
+
+  it 'prepares an explicit target language without changing the account locale' do
+    service.perform(language: 'en')
+    expect(account.reload.locale).to eq('es')
+    expect(account.whatsapp_template_drafts.pluck(:language).uniq).to eq(['en'])
+    expect(service.status['results'].values).to all(include('prepared_language' => 'en', 'effective_language' => 'es', 'language_changed' => true))
   end
 
   it 'keeps new drafts local without choosing even a single available WABA or submitting' do
