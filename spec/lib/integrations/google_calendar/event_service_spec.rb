@@ -67,7 +67,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     %w[g-1 g-2 external].each { |event_id| Redis::Alfred.delete(event_lock_key(event_id)) }
   end
 
-  it 'updates the four enabled derivatives after booking and processing the contact job' do
+  it 'updates the six enabled derivatives after booking and processing the contact job' do
     travel_to(Time.zone.parse(slot_start) - 1.day)
     connection.update!(access_token_expires_at: 1.hour.from_now)
     Calendar::AppointmentAttributes::Provisioner.new(account: account).perform(keys: Calendar::AppointmentAttributes::Definitions::TYPES.keys)
@@ -78,7 +78,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
 
     expect(contact.reload.custom_attributes).to include(
       'ultima_cita' => 1.day.ago.utc.iso8601, 'proxima_cita' => Time.zone.parse(slot_start).utc.iso8601,
-      'proxima_cita_titulo' => 'Consulta', 'total_citas' => 2
+      'proxima_cita_titulo' => 'Consulta', 'total_citas' => 2, 'estado_proxima_cita' => 'none', 'citas_canceladas' => 0
     )
   end
 

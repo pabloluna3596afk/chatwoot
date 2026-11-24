@@ -569,6 +569,8 @@ en:
         proxima_cita: Next appointment
         proxima_cita_titulo: Next appointment title
         total_citas: Total appointments
+        estado_proxima_cita: Next appointment status
+        citas_canceladas: Cancelled appointments
         invalid_keys: Select only supported appointment attribute keys, without duplicates.
       invitation_unknown_tokens: 'These variables do not exist: %{tokens}.'
       invitation_too_long: 'The text can have up to %{limit} characters.'
