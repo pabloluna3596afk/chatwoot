@@ -12,16 +12,21 @@ vi.mock('dashboard/composables/store', () => ({
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 
-it.each(['calendar', 'formula'])(
-  'MV-14: prevents editing and deleting fields managed by %s',
-  async managedBy => {
+it.each([
+  ['formula', 'total_citas', 'number', 3],
+  ['calendar', 'total_citas', 'number', 3],
+  ['calendar', 'estado_proxima_cita', 'text', 'confirmed'],
+  ['calendar', 'citas_canceladas', 'number', 2],
+])(
+  'MV-14: prevents editing and deleting %s field %s',
+  async (managedBy, attributeKey, attributeDisplayType, value) => {
     const wrapper = mount(ContactCustomAttributeItem, {
       props: {
         attribute: {
-          attributeKey: 'total_citas',
-          attributeDisplayType: 'number',
-          attributeDisplayName: 'Total',
-          value: 3,
+          attributeKey,
+          attributeDisplayType,
+          attributeDisplayName: attributeKey,
+          value,
           managedBy,
         },
         isEditingView: true,

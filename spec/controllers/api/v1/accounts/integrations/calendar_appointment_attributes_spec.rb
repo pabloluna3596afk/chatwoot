@@ -42,6 +42,39 @@ RSpec.describe 'Calendar appointment attributes API', type: :request do
     expect(response.parsed_body['enabled_keys']).to eq(['total_citas'])
   end
 
+  it 'completes the original four attributes with the two new definitions in Citas' do
+    original_keys = %w[ultima_cita proxima_cita proxima_cita_titulo total_citas]
+    Calendar::AppointmentAttributes::Provisioner.new(account: account).perform(keys: original_keys)
+    definitions = account.custom_attribute_definitions.order(:id).map(&:attributes)
+    keys = Calendar::AppointmentAttributes::Definitions::TYPES.keys
+
+    expect do
+      patch url, params: { keys: keys }, headers: admin.create_new_auth_token, as: :json
+    end.to change(CustomAttributeDefinition, :count).by(2)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['enabled_keys']).to eq(keys)
+    expect(response.parsed_body['results']['estado_proxima_cita']['status']).to eq('created')
+    expect(response.parsed_body['results']['citas_canceladas']['status']).to eq('created')
+    expect(account.custom_attribute_definitions.pluck(:category).uniq).to eq(['Citas'])
+    expect(account.custom_attribute_definitions.order(:id).limit(4).map(&:attributes)).to eq(definitions)
+  end
+
+  it 'returns a conflict without enabling or modifying an incompatible new key' do
+    definition = create(:custom_attribute_definition, account: account, attribute_model: :contact_attribute,
+                                                      attribute_key: 'citas_canceladas', attribute_display_type: :text)
+    original = definition.attributes
+
+    patch url, params: { keys: Calendar::AppointmentAttributes::Definitions::TYPES.keys }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['results']['citas_canceladas']).to eq(
+      'status' => 'conflict', 'expected_type' => 'number', 'actual_type' => 'text'
+    )
+    expect(response.parsed_body['enabled_keys']).not_to include('citas_canceladas')
+    expect(definition.reload.attributes).to eq(original)
+  end
+
   it 'disables with an empty selection without deleting attributes' do
     Calendar::AppointmentAttributes::Provisioner.new(account: account).perform(keys: ['total_citas'])
 
@@ -67,17 +100,17 @@ RSpec.describe 'Calendar appointment attributes API', type: :request do
       expect(account.reload.appointment_attributes).to be_nil
     end
   end
-  it 'keeps all four definitions stable when onboarding is retried after reloading' do
+  it 'keeps all six definitions stable when onboarding is retried after reloading' do
     keys = Calendar::AppointmentAttributes::Definitions::TYPES.keys
     patch url, params: { keys: keys }, headers: admin.create_new_auth_token, as: :json
-    expect(response.parsed_body['results'].values.pluck('status')).to eq(Array.new(4, 'created'))
+    expect(response.parsed_body['results'].values.pluck('status')).to eq(Array.new(6, 'created'))
     ids = account.custom_attribute_definitions.order(:id).ids
 
     get url, headers: admin.create_new_auth_token, as: :json
     expect(response.parsed_body['keys']).to eq(keys)
     patch url, params: { keys: keys }, headers: admin.create_new_auth_token, as: :json
 
-    expect(response.parsed_body['results'].values.pluck('status')).to eq(Array.new(4, 'reused'))
+    expect(response.parsed_body['results'].values.pluck('status')).to eq(Array.new(6, 'reused'))
     expect(account.custom_attribute_definitions.order(:id).ids).to eq(ids)
   end
 
@@ -106,6 +139,6 @@ RSpec.describe 'Calendar appointment attributes API', type: :request do
 
     expect(definition.reload.attributes).to eq(original)
     expect(contact.reload.custom_attributes['ultima_cita']).to eq('Customer value')
-    expect(account.custom_attribute_definitions.count).to eq(4)
+    expect(account.custom_attribute_definitions.count).to eq(6)
   end
 end

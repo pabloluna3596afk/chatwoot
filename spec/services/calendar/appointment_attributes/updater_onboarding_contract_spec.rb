@@ -10,7 +10,7 @@ RSpec.describe Calendar::AppointmentAttributes::Updater do
 
   before { Calendar::AppointmentAttributes::Provisioner.new(account: account).perform(keys: keys) }
 
-  it 'derives all four values through booking jobs' do
+  it 'derives all six values through booking jobs' do
     create(:calendar_event, calendar_connection: connection, contact: contact, start_at: 1.day.ago)
     expect do
       create(:calendar_event, calendar_connection: connection, contact: contact, start_at: 1.day.from_now, summary: 'Consultation')
@@ -19,15 +19,15 @@ RSpec.describe Calendar::AppointmentAttributes::Updater do
 
     expect(contact.reload.custom_attributes).to include(
       'ultima_cita' => '2030-01-13T12:00:00Z', 'proxima_cita' => '2030-01-15T12:00:00Z',
-      'proxima_cita_titulo' => 'Consultation', 'total_citas' => 2
+      'proxima_cita_titulo' => 'Consultation', 'total_citas' => 2, 'estado_proxima_cita' => 'none', 'citas_canceladas' => 0
     )
   end
 
-  it 'exposes all four derivatives as read only to existing consumers' do
+  it 'exposes all six derivatives as read only to existing consumers' do
     definitions = account.custom_attribute_definitions.contact_attribute
-    expect(definitions.map { |definition| Variables::Ownership.for(definition) }).to eq(Array.new(4, 'calendar'))
+    expect(definitions.map { |definition| Variables::Ownership.for(definition) }).to eq(Array.new(6, 'calendar'))
     entries = Variables::Catalog.new(account: account, surface: 'captain').as_json[:variables].select { |entry| keys.include?(entry[:key]) }
-    expect(entries.size).to eq(4)
+    expect(entries.size).to eq(6)
     expect(entries).to all(include(managedBy: 'calendar', writable: false, writeContexts: []))
 
     writer = Variables::Writer.new(account: account)

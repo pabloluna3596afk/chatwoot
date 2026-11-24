@@ -29,6 +29,14 @@
       "total_citas": {
         "NAME": "Total de citas",
         "HELP": "Cantidad de citas pasadas y futuras vinculadas al contacto, sin incluir las canceladas ni las eliminadas."
+      },
+      "estado_proxima_cita": {
+        "NAME": "Estado de la próxima cita",
+        "HELP": "Estado de la cita futura más cercana. Se vacía cuando no hay una próxima cita."
+      },
+      "citas_canceladas": {
+        "NAME": "Citas canceladas",
+        "HELP": "Cantidad de citas vinculadas al contacto con estado cancelado, incluidas las eliminadas."
       }
     }
   }

@@ -9,6 +9,34 @@ const i18n = createI18n({
   messages: { en },
 });
 
+describe('appointment attribute labels', () => {
+  it('keeps all six English and Spanish attributes in parity without CJK copy', () => {
+    const english = en.CALENDAR_APPOINTMENT_ATTRIBUTES.ATTRIBUTES;
+    const spanish = es.CALENDAR_APPOINTMENT_ATTRIBUTES.ATTRIBUTES;
+    const keys = [
+      'ultima_cita',
+      'proxima_cita',
+      'proxima_cita_titulo',
+      'total_citas',
+      'estado_proxima_cita',
+      'citas_canceladas',
+    ];
+    expect(Object.keys(english)).toEqual(keys);
+    expect(Object.keys(spanish)).toEqual(keys);
+    keys.forEach(key => {
+      expect(Object.keys(english[key])).toEqual(['NAME', 'HELP']);
+      expect(Object.keys(spanish[key])).toEqual(['NAME', 'HELP']);
+      expect(JSON.stringify([english[key], spanish[key]])).not.toMatch(
+        /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/
+      );
+    });
+    expect(english.estado_proxima_cita.NAME).toBe('Next appointment status');
+    expect(spanish.estado_proxima_cita.NAME).toBe('Estado de la próxima cita');
+    expect(english.citas_canceladas.NAME).toBe('Cancelled appointments');
+    expect(spanish.citas_canceladas.NAME).toBe('Citas canceladas');
+  });
+});
+
 describe('operational glossary in the effective English catalog', () => {
   it.each([
     ['SIDEBAR.FLOWS', 'Conversation Flows'],

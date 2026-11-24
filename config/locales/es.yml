@@ -512,6 +512,8 @@ es:
         proxima_cita: Próxima cita
         proxima_cita_titulo: Título de la próxima cita
         total_citas: Total de citas
+        estado_proxima_cita: Estado de la próxima cita
+        citas_canceladas: Citas canceladas
         invalid_keys: Selecciona solo claves de atributos de cita válidas, sin duplicados.
       invitation_unknown_tokens: 'Hay variables que no existen: %{tokens}.'
       invitation_too_long: 'El texto puede tener hasta %{limit} caracteres.'

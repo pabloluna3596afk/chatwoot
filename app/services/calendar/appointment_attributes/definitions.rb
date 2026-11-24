@@ -3,7 +3,9 @@ module Calendar::AppointmentAttributes::Definitions
     'ultima_cita' => 'datetime',
     'proxima_cita' => 'datetime',
     'proxima_cita_titulo' => 'text',
-    'total_citas' => 'number'
+    'total_citas' => 'number',
+    'estado_proxima_cita' => 'text',
+    'citas_canceladas' => 'number'
   }.freeze
   CATEGORY = 'Citas'.freeze
 

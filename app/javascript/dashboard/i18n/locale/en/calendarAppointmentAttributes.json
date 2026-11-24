@@ -29,6 +29,14 @@
       "total_citas": {
         "NAME": "Total appointments",
         "HELP": "Number of past and future appointments linked to the contact, excluding cancelled and deleted appointments."
+      },
+      "estado_proxima_cita": {
+        "NAME": "Next appointment status",
+        "HELP": "Status of the nearest future appointment. Cleared when there is no next appointment."
+      },
+      "citas_canceladas": {
+        "NAME": "Cancelled appointments",
+        "HELP": "Number of appointments linked to the contact with cancelled status, including deleted appointments."
       }
     }
   }

@@ -30,14 +30,17 @@ class Calendar::AppointmentAttributes::Updater
 
   def values
     now = Time.current
-    events = CalendarEvent.kept.where(account_id: @contact.account_id, contact_id: @contact.id)
+    contact_events = CalendarEvent.where(account_id: @contact.account_id, contact_id: @contact.id)
+    events = contact_events.kept
     previous = events.where(start_at: ..now).maximum(:start_at)
-    upcoming = events.where('start_at > ?', now).order(:start_at, :id).pick(:start_at, :summary)
+    upcoming = events.where('start_at > ?', now).order(:start_at, :id).pick(:start_at, :summary, :appointment_status)
     {
       'ultima_cita' => previous&.utc&.iso8601,
       'proxima_cita' => upcoming&.first&.utc&.iso8601,
-      'proxima_cita_titulo' => upcoming&.last,
-      'total_citas' => events.count
+      'proxima_cita_titulo' => upcoming&.second,
+      'total_citas' => events.count,
+      'estado_proxima_cita' => upcoming&.last,
+      'citas_canceladas' => contact_events.where(appointment_status: 'cancelled').count
     }
   end
 end
