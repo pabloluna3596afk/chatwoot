@@ -162,12 +162,16 @@ beforeEach(() => {
         'proxima_cita',
         'proxima_cita_titulo',
         'total_citas',
+        'estado_proxima_cita',
+        'citas_canceladas',
       ],
       enabled_keys: [
         'ultima_cita',
         'proxima_cita',
         'proxima_cita_titulo',
         'total_citas',
+        'estado_proxima_cita',
+        'citas_canceladas',
       ],
       results: {},
     },
@@ -229,8 +233,8 @@ describe('Citas panel', () => {
     }
   );
   it.each([
-    ['en', '4 active'],
-    ['es', '4 activos'],
+    ['en', '6 active'],
+    ['es', '6 activos'],
   ])(
     'shows automatic attributes as read only in %s',
     async (locale, expected) => {
@@ -254,6 +258,21 @@ describe('Citas panel', () => {
     expect(
       wrapper.get('[data-testid="appointment-attributes-status"]').text()
     ).toContain(expected);
+  });
+  it('shows the saved backend count for an account still prepared with four attributes', async () => {
+    const keys = [
+      'ultima_cita',
+      'proxima_cita',
+      'proxima_cita_titulo',
+      'total_citas',
+    ];
+    CalendarAPI.getAppointmentAttributes.mockResolvedValue({
+      data: { keys, enabled_keys: keys, results: {} },
+    });
+    const { wrapper } = await render();
+    expect(
+      wrapper.get('[data-testid="appointment-attributes-status"]').text()
+    ).toContain('4 active');
   });
   it.each([
     ['en', 'Text', 'Date', 'Custom Attributes'],
@@ -303,7 +322,7 @@ describe('Citas panel', () => {
     const { wrapper } = await render();
     const status = wrapper.get('[data-testid="appointment-attributes-status"]');
     expect(status.text()).toContain('could not be loaded');
-    expect(status.text()).not.toContain('4 active');
+    expect(status.text()).not.toContain('6 active');
     expect(status.text()).not.toContain('Created when');
   });
   it('shows the disconnected continuity notice for prior configuration', async () => {
