@@ -1,7 +1,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import Label from 'dashboard/components-next/label/Label.vue';
 import CalendarHours from './CalendarHours.vue';
 import { usesCalendar } from './useCitasPanel';
 import {
@@ -43,15 +43,12 @@ const assistantRoute = assistant =>
         </p>
       </div>
       <CalendarHours :calendar="calendar" @updated="emit('updated', $event)" />
-      <ComboBox
-        model-value="open"
-        :options="[
-          { value: 'open', label: $t('CITAS_PANEL.OPEN') },
-          { value: 'closed', label: $t('CITAS_PANEL.CLOSED') },
-        ]"
-        :label="$t('CITAS_PANEL.BOOKINGS')"
-        disabled
-      />
+      <div class="flex flex-wrap items-center gap-2">
+        <h4 class="text-body-main font-medium text-n-slate-12">
+          {{ $t('CITAS_PANEL.BOOKINGS') }}
+        </h4>
+        <Label :label="$t('CITAS_PANEL.OPEN')" color="teal" role="status" />
+      </div>
       <p class="text-body-main text-n-slate-11">
         {{ $t('CITAS_PANEL.BOOKINGS_READ_ONLY') }}
       </p>

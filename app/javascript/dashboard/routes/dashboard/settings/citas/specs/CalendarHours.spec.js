@@ -21,6 +21,23 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 describe('Calendar booking hours', () => {
+  it('labels the compact start and end fields', () => {
+    const wrapper = shallowMount(CalendarHours, {
+      props: { calendar },
+      global: { mocks: { $t: key => key } },
+    });
+    const fields = wrapper.findAllComponents(ComboBox);
+    expect(fields.map(field => field.props('label'))).toEqual([
+      'CITAS_PANEL.START',
+      'CITAS_PANEL.END',
+    ]);
+    expect(
+      fields[0].element.parentElement.classList.contains('sm:grid-cols-2')
+    ).toBe(true);
+    expect(fields[0].element.parentElement.classList.contains('max-w-xs')).toBe(
+      true
+    );
+  });
   it('saves only the selected calendar and adjusts end time when start moves later', async () => {
     CalendarAPI.updateCalendars.mockResolvedValue({
       data: { payload: [{ ...calendar, hour_start: 21, hour_end: 22 }] },

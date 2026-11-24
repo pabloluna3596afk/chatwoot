@@ -69,12 +69,13 @@ const toggleDay = day => {
     <p class="text-body-main font-medium text-n-slate-12">
       {{ $t('INTEGRATION_SETTINGS.CALENDARS.HOURS') }}
     </p>
-    <div class="flex flex-wrap gap-3">
+    <div class="grid w-full max-w-xs grid-cols-1 gap-3 sm:grid-cols-2">
       <ComboBox
         :model-value="calendar.hour_start ?? 8"
         :options="hours.filter(hour => hour.value < 23)"
         :allow-deselect="false"
         :disabled="saving"
+        :label="$t('CITAS_PANEL.START')"
         :aria-label="$t('CITAS_PANEL.START')"
         @update:model-value="updateStart"
       />
@@ -83,6 +84,7 @@ const toggleDay = day => {
         :options="endHours"
         :allow-deselect="false"
         :disabled="saving"
+        :label="$t('CITAS_PANEL.END')"
         :aria-label="$t('CITAS_PANEL.END')"
         @update:model-value="save({ hour_end: $event })"
       />
