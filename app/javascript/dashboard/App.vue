@@ -37,7 +37,7 @@ export default {
     LowBackupCodesBanner,
   },
   setup() {
-    useVisualViewportHeight();
+    const { isIOSViewport } = useVisualViewportHeight();
     const router = useRouter();
     const store = useStore();
     const { accountId } = useAccount();
@@ -51,6 +51,7 @@ export default {
       currentAccountId: accountId,
       currentFontSize,
       uiSettings,
+      isIOSViewport,
     };
   },
   data() {
@@ -140,6 +141,7 @@ export default {
     v-if="!authUIFlags.isFetching"
     id="app"
     class="flex flex-col w-full !h-[var(--app-height,100dvh)] min-h-0 bg-n-background"
+    :class="{ 'fixed start-0 top-[var(--app-offset-top)]': isIOSViewport }"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
     <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" />
