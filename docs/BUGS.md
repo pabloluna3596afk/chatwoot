@@ -5,6 +5,14 @@
 - **Cambio:** montaje con conexiones Google y lectura ligera independiente de atributos en Resumen; calendarios/asistentes al abrir Calendarios; Mensajes e Invitaci?n conservan su carga local y sus instancias durante la sesi?n. Errores dentro de la secci?n afectada y reintentos individuales por conexi?n o secci?n. Sin backend ni migraciones.
 - **C?mo probar:** abrir Resumen y comprobar ausencia de llamadas a calendarios, asistentes, plantillas y activation kit; recorrer las cuatro pesta?as dos veces y contar una carga por API. Con dos conexiones, hacer fallar una y comprobar que la otra se muestra; reintentar solo la fallida. Repetir con Captain apagado y sin conexiones. Specs en `settings/citas/specs/Index.spec.js`; suites de citas, integraciones, plantillas y sidebar en UTC y America/Guayaquil.
 
+### B-NEW-308 - Compensación del desplazamiento del teclado en iOS (2026-11-23)
+
+- **Archivos:** `app/javascript/dashboard/App.vue`, `composables/useVisualViewportHeight.js` y sus specs.
+- **Problema:** el fallback de iOS solo medía `visualViewport.height`; la raíz seguía en el flujo del documento y no compensaba `visualViewport.offsetTop`. El desplazamiento del viewport podía ocultar la cabecera y dejar espacio bajo el compositor. `html/body` conservan altura completa sin bloqueo del scroll; la conversación usa flex y scroll interno, sin otro `100vh` ni compositor fijo al pie en ese recorrido.
+- **Cambio:** raíz fija exclusivamente en iOS con VisualViewport disponible, altura y posición superior tomadas del viewport en cada `resize`/`scroll`, y retorno del documento a `(0, 0)` cuando Safari lo desplaza. Al cerrar el teclado se leen las medidas completas actuales; al desmontar se eliminan ambos listeners y variables. Se conserva el comportamiento de Android y escritorio.
+- **Cómo probar:** Vitest con `vitest.local.config.ts` sobre `composables`, `App.spec.js` y `components-next/sidebar` en `TZ=UTC` y `TZ=America/Guayaquil`: por zona, 452 aprobadas, 2 omitidas y 1 fallo ajeno en `useReportMetrics.spec.js:43` (espera `5,000`, locale del host `es-EC` produce `5.000`; reproducido aisladamente sin importar App ni el composable modificado). Las 15 pruebas focales pasan en ambas zonas; ESLint de los cuatro archivos JS/Vue sin errores. Regresiones para offset positivo, cierre, scroll del documento, rotación/barra de Safari, limpieza y exclusión de otras plataformas.
+- **Pendiente:** comprobar en Safari de iPhone/iPad la cabecera visible, ausencia de franja negra, compositor junto al teclado, cierre, rotación y barras. Las pruebas con jsdom simulan medidas y eventos; no verifican el teclado ni el renderizado nativo. Sin Docker, preview, navegador, fetch, push ni PR en esta sesión.
+
 ### B-NEW-303 - Estado de Citas por WABA y vínculo explícito (2026-11-23)
 
 - **Archivos:** `Calendar::TemplateDrafts::{Status,DestinationStatus,Linker,Provisioner}`, `Calendar::TemplateResources`, controlador/rutas de template_drafts y specs.
