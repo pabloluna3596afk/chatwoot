@@ -15,21 +15,17 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
   const connections = ref([]);
   const calendars = ref([]);
   const assistants = ref([]);
-  const drafts = ref(null);
-  const kit = ref(null);
   const attributes = ref(null);
   const loading = reactive({
     connections: false,
     calendars: false,
     assistants: false,
-    messages: false,
     attributes: false,
   });
   const errors = reactive({
     connections: false,
     calendars: false,
     assistants: false,
-    messages: false,
     attributes: false,
   });
   const run = async (section, action) => {
@@ -43,16 +39,31 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
       loading[section] = false;
     }
   };
+  const calendarErrors = reactive({});
+  const calendarLoading = reactive({});
+  const loadCalendar = connection => {
+    calendarLoading[connection.id] = true;
+    return CalendarAPI.getCalendars(connection.id)
+      .then(({ data }) => {
+        calendarErrors[connection.id] = false;
+        calendars.value = [
+          ...calendars.value.filter(
+            item => item.connection.id !== connection.id
+          ),
+          ...data.payload.map(calendar => ({ ...calendar, connection })),
+        ];
+      })
+      .catch(() => {
+        calendarErrors[connection.id] = true;
+      })
+      .finally(() => {
+        calendarLoading[connection.id] = false;
+      });
+  };
   const loadCalendars = () =>
-    run('calendars', async () => {
-      const responses = await Promise.all(
-        connections.value.map(async connection => {
-          const { data } = await CalendarAPI.getCalendars(connection.id);
-          return data.payload.map(calendar => ({ ...calendar, connection }));
-        })
-      );
-      calendars.value = responses.flat();
-    });
+    run('calendars', () =>
+      Promise.allSettled(connections.value.map(loadCalendar))
+    );
   const loadConnections = () =>
     run('connections', async () => {
       const data = await store.dispatch(
@@ -62,7 +73,6 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
       connections.value = data.payload.filter(
         connection => connection.provider === 'google'
       );
-      await loadCalendars();
     });
   const loadAssistants = () =>
     run('assistants', async () => {
@@ -70,42 +80,15 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
       const { data } = await AssistantAPI.get();
       assistants.value = data.payload;
     });
-  const loadMessages = () =>
-    run('messages', async () => {
-      const [templates, activation] = await Promise.all([
-        CalendarAPI.getTemplateDrafts(),
-        CalendarAPI.getActivationKit(),
-      ]);
-      drafts.value = templates.data;
-      kit.value = activation.data;
-    });
   const loadAttributes = () =>
     run('attributes', async () => {
       const { data } = await CalendarAPI.getAppointmentAttributes();
       attributes.value = data;
     });
-  const load = () =>
-    Promise.all([
-      loadConnections(),
-      loadAssistants(),
-      loadMessages(),
-      loadAttributes(),
-    ]);
   const withoutCalendar = computed(() =>
     assistants.value.filter(
       assistant =>
         !calendars.value.some(calendar => usesCalendar(assistant, calendar))
-    )
-  );
-  const previouslyConfigured = computed(() =>
-    Boolean(
-      drafts.value?.prepared_language ||
-        Object.values(drafts.value?.results || {}).some(
-          result => result.draft_exists
-        ) ||
-        assistants.value.some(
-          assistant => assistant.config?.appointments?.calendar_id
-        )
     )
   );
   return {
@@ -113,12 +96,15 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
     calendars,
     assistants,
     withoutCalendar,
-    drafts,
-    kit,
     attributes,
     loading,
     errors,
-    load,
-    previouslyConfigured,
+    loadConnections,
+    loadCalendars,
+    loadCalendar,
+    loadAssistants,
+    loadAttributes,
+    calendarErrors,
+    calendarLoading,
   };
 }

@@ -1,3 +1,10 @@
+### B-NEW-309 - Citas: carga por pesta?a y reintentos independientes (2026-11-23)
+
+- **Problema:** abrir Citas consultaba calendarios, asistentes y mensajes antes de necesitarlos; Mensajes duplicaba consultas y una conexi?n fallida ocultaba los otros calendarios.
+- **Archivos:** `settings/citas/Index.vue`, `useCitasPanel.js`, `CalendarSummary.vue`, `CalendarResources.vue`, `CalendarInvitationSettings.vue` y traducciones en/es de `calendarActivationKit.json`.
+- **Cambio:** montaje con conexiones Google y lectura ligera independiente de atributos en Resumen; calendarios/asistentes al abrir Calendarios; Mensajes e Invitaci?n conservan su carga local y sus instancias durante la sesi?n. Errores dentro de la secci?n afectada y reintentos individuales por conexi?n o secci?n. Sin backend ni migraciones.
+- **C?mo probar:** abrir Resumen y comprobar ausencia de llamadas a calendarios, asistentes, plantillas y activation kit; recorrer las cuatro pesta?as dos veces y contar una carga por API. Con dos conexiones, hacer fallar una y comprobar que la otra se muestra; reintentar solo la fallida. Repetir con Captain apagado y sin conexiones. Specs en `settings/citas/specs/Index.spec.js`; suites de citas, integraciones, plantillas y sidebar en UTC y America/Guayaquil.
+
 ### B-NEW-303 - Estado de Citas por WABA y vínculo explícito (2026-11-23)
 
 - **Archivos:** `Calendar::TemplateDrafts::{Status,DestinationStatus,Linker,Provisioner}`, `Calendar::TemplateResources`, controlador/rutas de template_drafts y specs.

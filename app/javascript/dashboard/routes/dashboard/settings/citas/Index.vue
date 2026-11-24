@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import {
   onBeforeRouteLeave,
   onBeforeRouteUpdate,
@@ -33,13 +33,16 @@ const {
   calendars,
   assistants,
   withoutCalendar,
-  drafts,
-  kit,
   attributes,
   loading,
   errors,
-  load,
-  previouslyConfigured,
+  loadConnections,
+  loadCalendars,
+  loadCalendar,
+  loadAssistants,
+  loadAttributes,
+  calendarErrors,
+  calendarLoading,
 } = useCitasPanel({
   store,
   accountId,
@@ -54,6 +57,8 @@ const activeTab = computed(() =>
   tabIds.includes(route.query.tab) ? route.query.tab : 'resumen'
 );
 const visited = reactive({
+  resumen: activeTab.value === 'resumen',
+  calendarios: activeTab.value === 'calendarios',
   invitacion: activeTab.value === 'invitacion',
   mensajes: activeTab.value === 'mensajes',
 });
@@ -84,10 +89,6 @@ onBeforeRouteLeave(() => {
   }
   return true;
 });
-const updateMessages = state => {
-  drafts.value = state.drafts;
-  kit.value = state.kit;
-};
 const updateCalendar = calendar => {
   calendars.value = calendars.value.map(item =>
     item.id === calendar.id && item.connection.id === calendar.connection.id
@@ -95,8 +96,40 @@ const updateCalendar = calendar => {
       : item
   );
 };
+const connectionsReady = ref(false);
+let resourcesRequested = false;
+watch(
+  [activeTab, connectionsReady],
+  ([tab, ready]) => {
+    if (!isAdmin.value) return;
+    visited[tab] = true;
+    if (
+      tab === 'resumen' &&
+      !attributes.value &&
+      !loading.attributes &&
+      !errors.attributes
+    ) {
+      loadAttributes();
+    }
+    if (
+      tab === 'calendarios' &&
+      ready &&
+      !errors.connections &&
+      !resourcesRequested
+    ) {
+      resourcesRequested = true;
+      loadCalendars();
+      loadAssistants();
+    }
+  },
+  { immediate: true }
+);
+const retryConnections = async () => {
+  await loadConnections();
+  connectionsReady.value = !errors.connections;
+};
 onMounted(() => {
-  if (isAdmin.value) load();
+  if (isAdmin.value) retryConnections();
 });
 </script>
 
@@ -113,24 +146,6 @@ onMounted(() => {
         {{ $t('CALENDAR_TEMPLATES.ADMIN_ONLY') }}
       </p>
       <div v-else class="flex w-full min-w-0 flex-col gap-4">
-        <div
-          v-if="!loading.connections && !errors.connections && !connected"
-          class="flex flex-wrap items-center gap-3 rounded-lg border border-n-weak p-4 text-body-main text-n-slate-11"
-        >
-          {{
-            $t(
-              previouslyConfigured
-                ? 'CITAS_PANEL.DISCONNECTED'
-                : 'CALENDAR_TEMPLATES.CONNECT_GOOGLE'
-            )
-          }}
-          <RouterLink
-            :to="accountScopedRoute('settings_integrations_calendars')"
-            class="text-n-blue-11 underline"
-          >
-            {{ $t('CITAS_PANEL.RECONNECT') }}
-          </RouterLink>
-        </div>
         <p
           v-if="dirtyWarning"
           role="alert"
@@ -138,18 +153,6 @@ onMounted(() => {
         >
           {{ $t('CITAS_PANEL.UNSAVED') }}
         </p>
-        <div
-          v-if="Object.values(errors).some(Boolean)"
-          role="alert"
-          class="flex flex-wrap items-center gap-2 text-body-main text-n-ruby-11"
-        >
-          {{ $t('CITAS_PANEL.SECTION_ERROR') }}
-          <Button
-            intent="secondary"
-            :label="$t('CALENDAR_ACTIVATION_KIT.RELOAD')"
-            @click="load"
-          />
-        </div>
         <VerticalTabs
           :model-value="activeTab"
           :tabs="tabs"
@@ -158,16 +161,14 @@ onMounted(() => {
         >
           <template #resumen>
             <CalendarSummary
+              v-if="visited.resumen"
               :connected="connected"
-              :calendars="calendars"
-              :assistants="assistants"
-              :without-calendar="withoutCalendar"
-              :drafts="drafts"
-              :kit="kit"
               :attributes="attributes"
               :loading="loading"
               :errors="errors"
               @navigate="navigate"
+              @retry-connections="retryConnections"
+              @retry-attributes="loadAttributes"
             />
           </template>
           <template #calendarios>
@@ -176,13 +177,34 @@ onMounted(() => {
                 loading.calendars || loading.connections || loading.assistants
               "
             />
+            <div
+              v-if="errors.connections"
+              role="alert"
+              class="text-body-main text-n-ruby-11"
+            >
+              {{ $t('INTEGRATION_SETTINGS.CALENDARS.LOAD_ERROR') }}
+              <Button
+                intent="secondary"
+                :label="$t('CALENDAR_ACTIVATION_KIT.RELOAD')"
+                @click="retryConnections"
+              />
+            </div>
             <CalendarResources
-              v-else-if="!errors.calendars && !errors.connections"
+              v-if="
+                visited.calendarios && connectionsReady && !loading.connections
+              "
+              :connections="connections"
+              :calendar-errors="calendarErrors"
+              :calendar-loading="calendarLoading"
+              :calendars-loading="loading.calendars"
               :calendars="calendars"
               :assistants="assistants"
               :without-calendar="withoutCalendar"
               :assistants-failed="errors.assistants"
+              :assistants-loading="loading.assistants"
               @updated="updateCalendar"
+              @retry-calendar="loadCalendar"
+              @retry-assistants="loadAssistants"
             />
             <RouterLink
               :to="accountScopedRoute('settings_integrations_calendars')"
@@ -192,11 +214,7 @@ onMounted(() => {
             </RouterLink>
           </template>
           <template #mensajes>
-            <CalendarTemplates
-              v-if="visited.mensajes"
-              :connected="connected"
-              @updated="updateMessages"
-            />
+            <CalendarTemplates v-if="visited.mensajes" :connected="connected" />
           </template>
           <template #invitacion>
             <CalendarInvitationSettings

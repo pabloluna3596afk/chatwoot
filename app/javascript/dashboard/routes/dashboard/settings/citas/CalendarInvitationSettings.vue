@@ -26,6 +26,7 @@ const defaultTemplate = ref('');
 const saved = ref({ template: '', location: '' });
 const maxLength = ref(4000);
 const isLoading = ref(true);
+const loadFailed = ref(false);
 const isSaving = ref(false);
 const showMenu = ref(false);
 const textBox = ref(null);
@@ -47,7 +48,12 @@ const dirty = computed(
 );
 watch(dirty, value => emit('dirty', value));
 const canSave = computed(
-  () => dirty.value && !unknown.value.length && !isSaving.value
+  () =>
+    dirty.value &&
+    !unknown.value.length &&
+    !isSaving.value &&
+    !isLoading.value &&
+    !loadFailed.value
 );
 
 const menuItems = computed(() =>
@@ -67,11 +73,13 @@ const apply = data => {
 };
 
 const load = async () => {
+  isLoading.value = true;
+  loadFailed.value = false;
   try {
     const { data } = await CalendarAPI.getInvitation();
     apply(data);
   } catch {
-    useAlert(t('CALENDAR_INVITATION.LOAD_ERROR'));
+    loadFailed.value = true;
   } finally {
     isLoading.value = false;
   }
@@ -127,7 +135,15 @@ const save = async () => {
       </p>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div v-if="loadFailed" role="alert" class="text-body-main text-n-ruby-11">
+      {{ $t('CALENDAR_INVITATION.LOAD_ERROR') }}
+      <Button
+        intent="secondary"
+        :label="$t('CALENDAR_ACTIVATION_KIT.RELOAD')"
+        @click="load"
+      />
+    </div>
+    <div v-else class="grid gap-4 lg:grid-cols-2">
       <div class="flex flex-col gap-3">
         <div ref="textBox" class="grid gap-1">
           <span class="text-sm font-medium text-n-slate-12">

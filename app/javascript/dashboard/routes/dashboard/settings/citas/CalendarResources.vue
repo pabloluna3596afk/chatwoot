@@ -1,6 +1,8 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
+import Button from 'dashboard/components-next/button/Button.vue';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import CalendarHours from './CalendarHours.vue';
 import { usesCalendar } from './useCitasPanel';
@@ -10,12 +12,17 @@ import {
 } from 'dashboard/helper/calendarLabels';
 
 defineProps({
+  connections: { type: Array, required: true },
+  calendarErrors: { type: Object, required: true },
+  calendarLoading: { type: Object, required: true },
   calendars: { type: Array, required: true },
   assistants: { type: Array, required: true },
   withoutCalendar: { type: Array, required: true },
   assistantsFailed: Boolean,
+  assistantsLoading: Boolean,
+  calendarsLoading: Boolean,
 });
-const emit = defineEmits(['updated']);
+const emit = defineEmits(['updated', 'retryCalendar', 'retryAssistants']);
 const { t } = useI18n();
 const { accountScopedRoute } = useAccount();
 const assistantRoute = assistant =>
@@ -26,7 +33,49 @@ const assistantRoute = assistant =>
 
 <template>
   <div class="flex min-w-0 flex-col gap-4">
-    <p v-if="!calendars.length" class="text-body-main text-n-slate-11">
+    <section
+      v-for="connection in connections.filter(
+        item => calendarErrors[item.id] || calendarLoading[item.id]
+      )"
+      :key="connection.id"
+      :role="calendarErrors[connection.id] ? 'alert' : 'status'"
+      class="rounded-xl border border-n-weak p-4 text-body-main text-n-ruby-11"
+    >
+      <h3>{{ connectionDisplayName(connection, t) }}</h3>
+      <p>{{ $t('CITAS_PANEL.TABS.calendarios') }}</p>
+      <Spinner v-if="calendarLoading[connection.id]" />
+      <p v-if="calendarErrors[connection.id]">
+        {{ $t('CITAS_PANEL.SECTION_ERROR') }}
+      </p>
+      <Button
+        v-if="calendarErrors[connection.id]"
+        intent="secondary"
+        :label="$t('CITAS_PANEL.RETRY')"
+        :is-loading="calendarLoading[connection.id]"
+        @click="emit('retryCalendar', connection)"
+      />
+    </section>
+    <div
+      v-if="assistantsFailed"
+      role="alert"
+      class="text-body-main text-n-ruby-11"
+    >
+      <h3>{{ $t('CITAS_PANEL.ASSISTANTS') }}</h3>
+      <p>{{ $t('CITAS_PANEL.SECTION_ERROR') }}</p>
+      <Button
+        intent="secondary"
+        :label="$t('CITAS_PANEL.RETRY')"
+        @click="emit('retryAssistants')"
+      />
+    </div>
+    <p
+      v-if="
+        !calendarsLoading &&
+        !calendars.length &&
+        !Object.values(calendarErrors).some(Boolean)
+      "
+      class="text-body-main text-n-slate-11"
+    >
       {{ $t('CITAS_PANEL.NO_CALENDARS') }}
     </p>
     <section
@@ -55,7 +104,7 @@ const assistantRoute = assistant =>
       <h4 class="text-body-main font-medium text-n-slate-12">
         {{ $t('CITAS_PANEL.USED_BY') }}
       </h4>
-      <template v-if="!assistantsFailed">
+      <template v-if="!assistantsFailed && !assistantsLoading">
         <div
           v-for="assistant in assistants.filter(item =>
             usesCalendar(item, calendar)
@@ -82,7 +131,12 @@ const assistantRoute = assistant =>
       </template>
     </section>
     <section
-      v-if="withoutCalendar.length && !assistantsFailed"
+      v-if="
+        withoutCalendar.length &&
+        !assistantsFailed &&
+        !assistantsLoading &&
+        !calendarsLoading
+      "
       class="flex flex-col gap-3 rounded-xl border border-n-weak p-4"
     >
       <h3 class="text-heading-1 text-n-slate-12">
@@ -103,7 +157,7 @@ const assistantRoute = assistant =>
       </div>
     </section>
     <p
-      v-if="!assistants.length && !assistantsFailed"
+      v-if="!assistants.length && !assistantsFailed && !assistantsLoading"
       class="text-body-main text-n-slate-11"
     >
       {{ $t('CITAS_PANEL.NO_ASSISTANTS') }}
