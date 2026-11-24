@@ -1,0 +1,362 @@
+[
+  {
+    "function": "confirmation",
+    "name": "cita_confirmacion",
+    "language": "es",
+    "category": "UTILITY",
+    "parameter_format": "NAMED",
+    "definition": {
+      "body": {
+        "text": "Hola {{nombre}}, tu cita \"{{cita}}\" quedó agendada para el {{fecha}} a las {{hora}}. ¿Confirmas tu asistencia?",
+        "examples": ["María", "Consulta", "23/08/2026", "10:00"]
+      },
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Confirmar"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Reagendar"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Cancelar"
+        }
+      ]
+    },
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Hola {{nombre}}, tu cita \"{{cita}}\" quedó agendada para el {{fecha}} a las {{hora}}. ¿Confirmas tu asistencia?",
+        "example": {
+          "body_text_named_params": [
+            {
+              "param_name": "nombre",
+              "example": "María"
+            },
+            {
+              "param_name": "cita",
+              "example": "Consulta"
+            },
+            {
+              "param_name": "fecha",
+              "example": "23/08/2026"
+            },
+            {
+              "param_name": "hora",
+              "example": "10:00"
+            }
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Confirmar"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Reagendar"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Cancelar"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "function": "confirmation",
+    "name": "cita_confirmacion",
+    "language": "en",
+    "category": "UTILITY",
+    "parameter_format": "NAMED",
+    "definition": {
+      "body": {
+        "text": "Hi {{nombre}}, your appointment \"{{cita}}\" is booked for {{fecha}} at {{hora}}. Can you confirm you will attend?",
+        "examples": ["Maria", "Consultation", "08/23/2026", "10:00"]
+      },
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Confirm"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Reschedule"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Cancel"
+        }
+      ]
+    },
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Hi {{nombre}}, your appointment \"{{cita}}\" is booked for {{fecha}} at {{hora}}. Can you confirm you will attend?",
+        "example": {
+          "body_text_named_params": [
+            {
+              "param_name": "nombre",
+              "example": "Maria"
+            },
+            {
+              "param_name": "cita",
+              "example": "Consultation"
+            },
+            {
+              "param_name": "fecha",
+              "example": "08/23/2026"
+            },
+            {
+              "param_name": "hora",
+              "example": "10:00"
+            }
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Confirm"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Reschedule"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Cancel"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "function": "cancellation",
+    "name": "cita_cancelacion",
+    "language": "es",
+    "category": "UTILITY",
+    "parameter_format": "NAMED",
+    "definition": {
+      "body": {
+        "text": "Hola {{nombre}}, tu cita \"{{cita}}\" del {{fecha}} a las {{hora}} fue cancelada. Si quieres agendar otra, respóndenos por aquí.",
+        "examples": ["María", "Consulta", "23/08/2026", "10:00"]
+      },
+      "buttons": []
+    },
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Hola {{nombre}}, tu cita \"{{cita}}\" del {{fecha}} a las {{hora}} fue cancelada. Si quieres agendar otra, respóndenos por aquí.",
+        "example": {
+          "body_text_named_params": [
+            {
+              "param_name": "nombre",
+              "example": "María"
+            },
+            {
+              "param_name": "cita",
+              "example": "Consulta"
+            },
+            {
+              "param_name": "fecha",
+              "example": "23/08/2026"
+            },
+            {
+              "param_name": "hora",
+              "example": "10:00"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "function": "cancellation",
+    "name": "cita_cancelacion",
+    "language": "en",
+    "category": "UTILITY",
+    "parameter_format": "NAMED",
+    "definition": {
+      "body": {
+        "text": "Hi {{nombre}}, your appointment \"{{cita}}\" on {{fecha}} at {{hora}} was cancelled. If you want to book another one, reply here.",
+        "examples": ["Maria", "Consultation", "08/23/2026", "10:00"]
+      },
+      "buttons": []
+    },
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Hi {{nombre}}, your appointment \"{{cita}}\" on {{fecha}} at {{hora}} was cancelled. If you want to book another one, reply here.",
+        "example": {
+          "body_text_named_params": [
+            {
+              "param_name": "nombre",
+              "example": "Maria"
+            },
+            {
+              "param_name": "cita",
+              "example": "Consultation"
+            },
+            {
+              "param_name": "fecha",
+              "example": "08/23/2026"
+            },
+            {
+              "param_name": "hora",
+              "example": "10:00"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "function": "reminder",
+    "name": "cita_recordatorio",
+    "language": "es",
+    "category": "UTILITY",
+    "parameter_format": "NAMED",
+    "definition": {
+      "body": {
+        "text": "Hola {{nombre}}, te recordamos tu cita \"{{cita}}\" para el {{fecha}} a las {{hora}}. ¿Sigues pudiendo asistir?",
+        "examples": ["María", "Consulta", "23/08/2026", "10:00"]
+      },
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Confirmar"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Reagendar"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Cancelar"
+        }
+      ]
+    },
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Hola {{nombre}}, te recordamos tu cita \"{{cita}}\" para el {{fecha}} a las {{hora}}. ¿Sigues pudiendo asistir?",
+        "example": {
+          "body_text_named_params": [
+            {
+              "param_name": "nombre",
+              "example": "María"
+            },
+            {
+              "param_name": "cita",
+              "example": "Consulta"
+            },
+            {
+              "param_name": "fecha",
+              "example": "23/08/2026"
+            },
+            {
+              "param_name": "hora",
+              "example": "10:00"
+            }
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Confirmar"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Reagendar"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Cancelar"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "function": "reminder",
+    "name": "cita_recordatorio",
+    "language": "en",
+    "category": "UTILITY",
+    "parameter_format": "NAMED",
+    "definition": {
+      "body": {
+        "text": "Hi {{nombre}}, this is a reminder of your appointment \"{{cita}}\" on {{fecha}} at {{hora}}. Can you still attend?",
+        "examples": ["Maria", "Consultation", "08/23/2026", "10:00"]
+      },
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Confirm"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Reschedule"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Cancel"
+        }
+      ]
+    },
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Hi {{nombre}}, this is a reminder of your appointment \"{{cita}}\" on {{fecha}} at {{hora}}. Can you still attend?",
+        "example": {
+          "body_text_named_params": [
+            {
+              "param_name": "nombre",
+              "example": "Maria"
+            },
+            {
+              "param_name": "cita",
+              "example": "Consultation"
+            },
+            {
+              "param_name": "fecha",
+              "example": "08/23/2026"
+            },
+            {
+              "param_name": "hora",
+              "example": "10:00"
+            }
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "QUICK_REPLY",
+            "text": "Confirm"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Reschedule"
+          },
+          {
+            "type": "QUICK_REPLY",
+            "text": "Cancel"
+          }
+        ]
+      }
+    ]
+  }
+]

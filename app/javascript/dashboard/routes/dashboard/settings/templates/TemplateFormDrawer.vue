@@ -40,6 +40,7 @@ import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
 import { bubbleFromTemplate } from 'dashboard/components-next/whatsapp/bubbleFromTemplate';
+import { variableSegments } from 'dashboard/components-next/whatsapp/variableSegments';
 import {
   BUTTON_TYPES,
   CATEGORIES,
@@ -308,6 +309,11 @@ const preview = computed(() =>
     : previewTemplate(form, headerPreviewUrl.value)
 );
 const variables = computed(() => previewVariables(form));
+const appointmentBodySegments = computed(() =>
+  draft.value && !isLibrary.value && form.name.startsWith('cita_')
+    ? variableSegments(form.body.text, variables.value)
+    : null
+);
 const promoWords = computed(() => promoWarnings(form));
 const statusKey = computed(() =>
   String(liveState.value?.status || editing.value?.status || '').toUpperCase()
@@ -1761,6 +1767,7 @@ const buttonChoices = computed(() =>
     >
       <WhatsAppBubble
         v-bind="bubbleFromTemplate(preview, variables)"
+        :body-segments="appointmentBodySegments"
         class="w-full max-w-sm mx-auto"
         data-testid="form-preview"
       />
