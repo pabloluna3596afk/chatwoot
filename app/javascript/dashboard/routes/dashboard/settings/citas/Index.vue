@@ -17,7 +17,6 @@ import VerticalTabs from 'dashboard/components-next/vertical-tabs/VerticalTabs.v
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import CalendarTemplates from './CalendarTemplates.vue';
-import CalendarAppointmentAttributes from './CalendarAppointmentAttributes.vue';
 import CalendarInvitationSettings from './CalendarInvitationSettings.vue';
 import CalendarSummary from './CalendarSummary.vue';
 import CalendarResources from './CalendarResources.vue';
@@ -36,6 +35,7 @@ const {
   withoutCalendar,
   drafts,
   kit,
+  attributes,
   loading,
   errors,
   load,
@@ -46,13 +46,7 @@ const {
   captainEnabled: () => isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN),
 });
 const connected = computed(() => connections.value.length > 0);
-const tabIds = [
-  'resumen',
-  'calendarios',
-  'mensajes',
-  'invitacion',
-  'atributos',
-];
+const tabIds = ['resumen', 'calendarios', 'mensajes', 'invitacion'];
 const tabs = computed(() =>
   tabIds.map(id => ({ id, label: t(`CITAS_PANEL.TABS.${id}`) }))
 );
@@ -61,10 +55,9 @@ const activeTab = computed(() =>
 );
 const visited = reactive({
   invitacion: activeTab.value === 'invitacion',
-  atributos: activeTab.value === 'atributos',
   mensajes: activeTab.value === 'mensajes',
 });
-const dirty = reactive({ invitacion: false, atributos: false });
+const dirty = reactive({ invitacion: false });
 const dirtyWarning = ref(false);
 const protectedTab = computed(() => dirty[activeTab.value]);
 const navigate = tab => {
@@ -171,6 +164,7 @@ onMounted(() => {
               :without-calendar="withoutCalendar"
               :drafts="drafts"
               :kit="kit"
+              :attributes="attributes"
               :loading="loading"
               :errors="errors"
               @navigate="navigate"
@@ -208,12 +202,6 @@ onMounted(() => {
             <CalendarInvitationSettings
               v-if="visited.invitacion"
               @dirty="dirty.invitacion = $event"
-            />
-          </template>
-          <template #atributos>
-            <CalendarAppointmentAttributes
-              v-if="visited.atributos"
-              @dirty="dirty.atributos = $event"
             />
           </template>
         </VerticalTabs>

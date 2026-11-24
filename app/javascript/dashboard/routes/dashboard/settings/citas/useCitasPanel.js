@@ -17,17 +17,20 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
   const assistants = ref([]);
   const drafts = ref(null);
   const kit = ref(null);
+  const attributes = ref(null);
   const loading = reactive({
     connections: false,
     calendars: false,
     assistants: false,
     messages: false,
+    attributes: false,
   });
   const errors = reactive({
     connections: false,
     calendars: false,
     assistants: false,
     messages: false,
+    attributes: false,
   });
   const run = async (section, action) => {
     loading[section] = true;
@@ -76,8 +79,18 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
       drafts.value = templates.data;
       kit.value = activation.data;
     });
+  const loadAttributes = () =>
+    run('attributes', async () => {
+      const { data } = await CalendarAPI.getAppointmentAttributes();
+      attributes.value = data;
+    });
   const load = () =>
-    Promise.all([loadConnections(), loadAssistants(), loadMessages()]);
+    Promise.all([
+      loadConnections(),
+      loadAssistants(),
+      loadMessages(),
+      loadAttributes(),
+    ]);
   const withoutCalendar = computed(() =>
     assistants.value.filter(
       assistant =>
@@ -102,6 +115,7 @@ export function useCitasPanel({ store, accountId, captainEnabled }) {
     withoutCalendar,
     drafts,
     kit,
+    attributes,
     loading,
     errors,
     load,

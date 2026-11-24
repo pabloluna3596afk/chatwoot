@@ -19,7 +19,7 @@
     "REMINDER_SAVE_ERROR": "Could not save reminder settings. Try again."
   },
   "CITAS_SETTINGS": {
-    "DESCRIPTION": "Manage appointment templates, contact attributes and invitation text.",
+    "DESCRIPTION": "Manage appointment calendars, messages and invitation text.",
     "CONFIGURE": "Configure appointments",
     "MANAGE_CONNECTION": "Manage calendar connections"
   },
@@ -58,8 +58,7 @@
       "resumen": "Overview",
       "calendarios": "Calendars",
       "mensajes": "Messages",
-      "invitacion": "Invitation",
-      "atributos": "Contact attributes"
+      "invitacion": "Invitation"
     },
     "START": "From",
     "END": "Until",
@@ -127,6 +126,13 @@
       "components": "The template components are incompatible.",
       "variables": "The appointment variables are missing or incompatible.",
       "buttons": "The template buttons are incompatible."
+    },
+    "ATTRIBUTES": {
+      "TITLE": "Contact attributes",
+      "ACTIVE": "{count} active | {count} active",
+      "NOT_PREPARED": "Created when you connect Google.",
+      "CONFLICT": "{key}: existing type {actual}; expected {expected}.",
+      "MANAGE": "Open Custom Attributes"
     }
   }
 }

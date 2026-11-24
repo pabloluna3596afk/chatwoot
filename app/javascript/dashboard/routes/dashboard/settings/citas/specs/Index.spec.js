@@ -12,6 +12,8 @@ import CalendarAPI from 'dashboard/api/integrations/calendar';
 import AssistantAPI from 'dashboard/api/captain/assistant';
 import en from 'dashboard/i18n/locale/en/calendarActivationKit.json';
 import es from 'dashboard/i18n/locale/es/calendarActivationKit.json';
+import enTypes from 'dashboard/i18n/locale/en/attributesMgmt.json';
+import esTypes from 'dashboard/i18n/locale/es/attributesMgmt.json';
 
 const { admin, captainEnabled } = vi.hoisted(() => ({
   admin: { value: true },
@@ -37,6 +39,7 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
     getCalendars: vi.fn(),
     getTemplateDrafts: vi.fn(),
     getActivationKit: vi.fn(),
+    getAppointmentAttributes: vi.fn(),
   },
 }));
 vi.mock('dashboard/api/captain/assistant', () => ({
@@ -68,6 +71,11 @@ const render = async (query = {}, locale = 'en') => {
     routes: [
       { path: '/', component: Index },
       {
+        path: '/attributes',
+        name: 'attributes_list',
+        component: { template: '<div />' },
+      },
+      {
         path: '/integrations',
         name: 'settings_integrations_calendars',
         component: { template: '<div />' },
@@ -86,7 +94,11 @@ const render = async (query = {}, locale = 'en') => {
       plugins: [
         router,
         createStore({ modules: { calendarConnections } }),
-        createI18n({ legacy: false, locale, messages: { en, es } }),
+        createI18n({
+          legacy: false,
+          locale,
+          messages: { en: { ...en, ...enTypes }, es: { ...es, ...esTypes } },
+        }),
       ],
       stubs: {
         CalendarHours: true,
@@ -98,11 +110,6 @@ const render = async (query = {}, locale = 'en') => {
           emits: ['dirty'],
           template:
             '<div><button data-testid="edit-invitation" @click="$emit(\'dirty\', true)">Edit</button><button data-testid="save-invitation" @click="$emit(\'dirty\', false)">Save</button></div>',
-        },
-        CalendarAppointmentAttributes: {
-          emits: ['dirty'],
-          template:
-            '<button data-testid="edit-attributes" @click="$emit(\'dirty\', true)">Edit</button>',
         },
       },
     },
@@ -124,6 +131,23 @@ beforeEach(() => {
   CalendarAPI.getActivationKit.mockResolvedValue({
     data: { reminder_enabled: false },
   });
+  CalendarAPI.getAppointmentAttributes.mockResolvedValue({
+    data: {
+      keys: [
+        'ultima_cita',
+        'proxima_cita',
+        'proxima_cita_titulo',
+        'total_citas',
+      ],
+      enabled_keys: [
+        'ultima_cita',
+        'proxima_cita',
+        'proxima_cita_titulo',
+        'total_citas',
+      ],
+      results: {},
+    },
+  });
   AssistantAPI.get.mockResolvedValue({ data: { payload: [assistant] } });
 });
 describe('Citas panel', () => {
@@ -144,32 +168,116 @@ describe('Citas panel', () => {
     expect(wrapper.findComponent(CalendarResources).isVisible()).toBe(true);
     expect(wrapper.text()).toContain('Aurora');
   });
-  it.each(['invitacion', 'atributos'])(
-    'protects unsaved %s edits including URL navigation',
+  it('protects unsaved invitation edits including URL navigation', async () => {
+    const { wrapper, router } = await render({ tab: 'invitacion' });
+    await wrapper.get('[data-testid="edit-invitation"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'Overview')
+      .trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.query.tab).toBe('invitacion');
+    expect(wrapper.get('[role="alert"]').text()).toContain('unsaved');
+    await router.push({ query: { tab: 'mensajes' } });
+    expect(router.currentRoute.value.query.tab).toBe('invitacion');
+    await wrapper.get('[data-testid="save-invitation"]').trigger('click');
+    await router.push({ query: { tab: 'mensajes' } });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="messages"]').isVisible()).toBe(true);
+  });
+  it.each(['atributos', 'unknown'])(
+    'opens Overview for the obsolete or unknown tab %s',
     async tab => {
-      const { wrapper, router } = await render({ tab });
-      await wrapper
-        .get(
-          `[data-testid="edit-${tab === 'invitacion' ? 'invitation' : 'attributes'}"]`
-        )
-        .trigger('click');
-      await wrapper
-        .findAll('button')
-        .find(button => button.text() === 'Overview')
-        .trigger('click');
-      await flushPromises();
-      expect(router.currentRoute.value.query.tab).toBe(tab);
-      expect(wrapper.get('[role="alert"]').text()).toContain('unsaved');
-      await router.push({ query: { tab: 'mensajes' } });
-      expect(router.currentRoute.value.query.tab).toBe(tab);
-      if (tab === 'invitacion') {
-        await wrapper.get('[data-testid="save-invitation"]').trigger('click');
-        await router.push({ query: { tab: 'mensajes' } });
-        await flushPromises();
-        expect(wrapper.get('[data-testid="messages"]').isVisible()).toBe(true);
-      }
+      const { wrapper } = await render({ tab });
+      expect(wrapper.get('button[aria-current="page"]').text()).toBe(
+        'Overview'
+      );
+      expect(
+        wrapper.findAll('nav button').map(button => button.text())
+      ).toEqual(['Overview', 'Calendars', 'Messages', 'Invitation']);
+      expect(
+        wrapper.find('calendar-appointment-attributes-stub').exists()
+      ).toBe(false);
     }
   );
+  it.each([
+    ['en', '4 active'],
+    ['es', '4 activos'],
+  ])(
+    'shows automatic attributes as read only in %s',
+    async (locale, expected) => {
+      const { wrapper } = await render({}, locale);
+      const status = wrapper.get(
+        '[data-testid="appointment-attributes-status"]'
+      );
+      expect(CalendarAPI.getAppointmentAttributes).toHaveBeenCalledOnce();
+      expect(status.text()).toContain(expected);
+      expect(status.findAll('button, input, a')).toHaveLength(0);
+    }
+  );
+  it.each([
+    ['en', 'Created when you connect Google.'],
+    ['es', 'Se crean al conectar Google.'],
+  ])('explains unprepared attributes in %s', async (locale, expected) => {
+    CalendarAPI.getAppointmentAttributes.mockResolvedValue({
+      data: { keys: null, enabled_keys: [], results: {} },
+    });
+    const { wrapper } = await render({}, locale);
+    expect(
+      wrapper.get('[data-testid="appointment-attributes-status"]').text()
+    ).toContain(expected);
+  });
+  it.each([
+    ['en', 'Text', 'Date', 'Custom Attributes'],
+    ['es', 'Texto', 'Fecha', 'Atributos personalizados'],
+  ])(
+    'shows each type conflict and a link to custom attributes in %s',
+    async (locale, actual, expected, link) => {
+      CalendarAPI.getAppointmentAttributes.mockResolvedValue({
+        data: {
+          keys: ['ultima_cita', 'proxima_cita'],
+          enabled_keys: [],
+          results: {
+            ultima_cita: {
+              status: 'conflict',
+              actual_type: 'text',
+              expected_type: 'datetime',
+            },
+            proxima_cita: {
+              status: 'conflict',
+              actual_type: 'number',
+              expected_type: 'datetime',
+            },
+          },
+        },
+      });
+      const { wrapper } = await render({}, locale);
+      const status = wrapper.get(
+        '[data-testid="appointment-attributes-status"]'
+      );
+      expect(status.findAll('[role="alert"]')).toHaveLength(2);
+      expect(status.text()).toContain(
+        locale === 'es' ? '0 activos' : '0 active'
+      );
+      expect(status.get('[role="alert"]').text()).toContain('ultima_cita');
+      expect(status.get('[role="alert"]').text()).toContain(actual);
+      expect(status.get('[role="alert"]').text()).toContain(expected);
+      expect(status.text()).toContain('proxima_cita');
+      expect(status.get('a').attributes('href')).toBe('/attributes');
+      expect(status.get('a').text()).toContain(link);
+      expect(status.findAll('button, input')).toHaveLength(0);
+    }
+  );
+  it('shows an attribute load error instead of announcing successful preparation', async () => {
+    CalendarAPI.getAppointmentAttributes.mockRejectedValueOnce(
+      new Error('offline')
+    );
+    const { wrapper } = await render();
+    const status = wrapper.get('[data-testid="appointment-attributes-status"]');
+    expect(status.text()).toContain('could not be loaded');
+    expect(status.text()).not.toContain('4 active');
+    expect(status.text()).not.toContain('Created when');
+  });
   it('shows the disconnected continuity notice for prior configuration', async () => {
     CalendarAPI.getConnections.mockResolvedValue({ data: { payload: [] } });
     const { wrapper } = await render();

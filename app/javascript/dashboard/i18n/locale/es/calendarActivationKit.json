@@ -19,7 +19,7 @@
     "REMINDER_SAVE_ERROR": "No se pudo guardar la configuración de recordatorios. Inténtalo de nuevo."
   },
   "CITAS_SETTINGS": {
-    "DESCRIPTION": "Gestiona las plantillas, los atributos de contacto y el texto de la invitación de tus citas.",
+    "DESCRIPTION": "Gestiona los calendarios, mensajes y el texto de invitación de tus citas.",
     "CONFIGURE": "Configurar Citas",
     "MANAGE_CONNECTION": "Gestionar conexiones de calendarios"
   },
@@ -58,8 +58,7 @@
       "resumen": "Resumen",
       "calendarios": "Calendarios",
       "mensajes": "Mensajes",
-      "invitacion": "Invitación",
-      "atributos": "Atributos de contacto"
+      "invitacion": "Invitación"
     },
     "START": "Desde",
     "END": "Hasta",
@@ -127,6 +126,13 @@
       "components": "Los componentes no son compatibles.",
       "variables": "Faltan variables de cita o no son compatibles.",
       "buttons": "Los botones no son compatibles."
+    },
+    "ATTRIBUTES": {
+      "TITLE": "Atributos de contacto",
+      "ACTIVE": "0 activos | {count} activo | {count} activos",
+      "NOT_PREPARED": "Se crean al conectar Google.",
+      "CONFLICT": "{key}: tipo existente {actual}; se esperaba {expected}.",
+      "MANAGE": "Abrir Atributos personalizados"
     }
   }
 }
