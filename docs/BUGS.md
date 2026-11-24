@@ -1,3 +1,11 @@
+### B-NEW-311 - Medidas de adjuntos disponibles en vivo tras el análisis (2026-11-24)
+
+- **Problema:** `message.created` puede difundirse antes de que `ActiveStorage::AnalyzeJob` guarde las dimensiones; la burbuja conserva medidas nulas hasta refrescar.
+- **Archivos:** `config/initializers/active_storage.rb`, `spec/models/active_storage_message_dimensions_spec.rb`.
+- **Cambio:** callback del blob después del commit que emite `Message#send_update_event` cuando el análisis aporta dimensiones completas distintas. Busca solo adjuntos de mensajes, agrupa por mensaje y precarga sus archivos/blobs; omite mensajes borrados. Reanalizar sin cambiar medidas no emite de nuevo. Aplica a todos los canales y a imágenes/vídeos sin bloquear la recepción ni cambiar frontend o esquema.
+- **Cómo probar:** spec nuevo con análisis real de PNG y ruta real del listener ActionCable; reanálisis, blobs compartidos, avatar/sin adjunto, mensaje destruido/huérfano/marcado eliminado, imagen ilegible/sin analizador, medidas incompletas, vídeo, PDF y audio. Vídeo/audio simulan únicamente el resultado del analizador. Ejecutar también `spec/models/{attachment,message}_spec.rb`, `spec/services/whatsapp`, `spec/listeners`, jobs relacionados y `spec/builders/messages`.
+- **Pendiente:** RSpec y RuboCop con el PM. Ruby/Bundler/rbenv ausentes del host; el brief prohíbe Docker. Sin fetch, push, PR, preview ni navegador.
+
 ### B-NEW-310 - Citas: estado de la próxima cita y citas canceladas (2026-11-24)
 
 - **Archivos:** `calendar/appointment_attributes/{definitions,updater}.rb`, traducciones en/es y specs de servicios, API, Google Calendar, contactos y panel de Citas.
