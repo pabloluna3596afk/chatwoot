@@ -4,6 +4,8 @@ import CalendarTemplates from '../CalendarTemplates.vue';
 import { fillExamples } from '../calendarTemplatePreview';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
+import Label from 'dashboard/components-next/label/Label.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
 import { useAlert } from 'dashboard/composables';
 import en from 'dashboard/i18n/locale/en/calendarActivationKit.json';
@@ -410,6 +412,12 @@ describe('CalendarTemplates', () => {
     });
     const row = wrapper.get('[data-testid="destination-confirmation-a"]');
     expect(row.text()).toContain('Approved, awaiting link');
+    expect(row.findComponent(Label).props('compact')).toBe(false);
+    expect(row.findComponent(Button).props('size')).toBe('sm');
+    expect(row.find('[data-testid="open-confirmation"]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-testid="open-confirmation"]')).toHaveLength(
+      1
+    );
     CalendarAPI.linkTemplateDraft.mockRejectedValueOnce({
       response: { status: 422, data: { error: 'variables' } },
     });
@@ -470,6 +478,28 @@ describe('CalendarTemplates', () => {
     await wrapper.get('[data-testid="prepare-language"]').trigger('click');
     await flushPromises();
     expect(CalendarAPI.prepareTemplateDrafts).toHaveBeenCalledWith('en');
+    expect(wrapper.text()).not.toContain('Prepared language:');
+    expect(wrapper.find('[data-testid="prepare-language"]').exists()).toBe(
+      false
+    );
+  });
+  it('hides the language notice when the prepared and effective languages match', async () => {
+    const wrapper = await render();
+    CalendarAPI.getTemplateDrafts.mockResolvedValueOnce({
+      data: {
+        language: 'en',
+        prepared_language: 'en',
+        effective_language: 'en',
+        language_changed: false,
+        results: {},
+      },
+    });
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'Refresh status')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('Prepared language:');
     expect(wrapper.find('[data-testid="prepare-language"]').exists()).toBe(
       false
     );

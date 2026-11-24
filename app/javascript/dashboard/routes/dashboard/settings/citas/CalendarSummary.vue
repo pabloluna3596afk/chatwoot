@@ -22,7 +22,7 @@ const summary = computed(() => {
   const destinations = Object.values(props.drafts?.results || {}).flatMap(
     result => result.destinations || []
   );
-  return t('CITAS_PANEL.TEMPLATE_COUNTS', {
+  const counts = {
     ready: destinations.filter(item => item.state === 'usable').length,
     unlinked: destinations.filter(
       item => item.reason === 'explicit_link_required'
@@ -34,7 +34,11 @@ const summary = computed(() => {
         !['usable', 'pending_approval'].includes(item.state) &&
         item.reason !== 'explicit_link_required'
     ).length,
-  });
+  };
+  return Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .map(([state, count]) => t(`CITAS_PANEL.TEMPLATE_COUNTS.${state}`, count))
+    .join(' · ');
 });
 const reminderReady = computed(() =>
   props.drafts?.results?.reminder?.destinations?.some(

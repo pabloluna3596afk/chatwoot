@@ -62,7 +62,7 @@ const assistant = {
     },
   },
 };
-const render = async (query = {}) => {
+const render = async (query = {}, locale = 'en') => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -86,7 +86,7 @@ const render = async (query = {}) => {
       plugins: [
         router,
         createStore({ modules: { calendarConnections } }),
-        createI18n({ legacy: false, locale: 'en', messages: { en } }),
+        createI18n({ legacy: false, locale, messages: { en, es } }),
       ],
       stubs: {
         CalendarHours: true,
@@ -249,6 +249,8 @@ describe('Citas panel', () => {
       resources.findAll('a').filter(link => link.text() === 'Choose calendar')
     ).toHaveLength(assistants.length - assigned.length);
     expect(resources.find('select').exists()).toBe(false);
+    expect(resources.findComponent({ name: 'ComboBox' }).exists()).toBe(false);
+    expect(resources.get('[role="status"]').text()).toBe('Open');
   });
   it('summarizes destination states without treating pending destinations as ready', async () => {
     CalendarAPI.getTemplateDrafts.mockResolvedValue({
@@ -267,7 +269,35 @@ describe('Citas panel', () => {
     });
     const { wrapper } = await render();
     expect(wrapper.getComponent(CalendarSummary).text()).toContain(
-      '1 ready; 1 approved, awaiting link; 1 in review; 1 pending'
+      '1 ready · 1 approved, awaiting link · 1 in review · 1 pending'
     );
   });
+  it.each([
+    ['en', '2 ready · 2 in review · 1 pending'],
+    ['es', '2 listas · 2 en revisión · 1 pendiente'],
+  ])(
+    'omits zero counts and pluralizes the template summary in %s',
+    async (locale, expected) => {
+      CalendarAPI.getTemplateDrafts.mockResolvedValue({
+        data: {
+          results: {
+            reminder: {
+              destinations: [
+                { state: 'usable' },
+                { state: 'usable' },
+                { state: 'pending_approval' },
+                { state: 'pending_approval' },
+                { state: 'missing' },
+              ],
+            },
+          },
+        },
+      });
+      const { wrapper } = await render({}, locale);
+      expect(wrapper.getComponent(CalendarSummary).text()).toContain(expected);
+      expect(wrapper.getComponent(CalendarSummary).text()).not.toMatch(
+        /0 (approved|aprobadas)/
+      );
+    }
+  );
 });

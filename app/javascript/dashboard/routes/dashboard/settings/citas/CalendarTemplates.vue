@@ -234,7 +234,7 @@ onMounted(load);
         {{ $t('CALENDAR_TEMPLATES.NOT_PREPARED') }}
       </p>
       <p
-        v-if="languageState.effective_language"
+        v-if="languageState.language_changed"
         class="text-body-main text-n-slate-11"
       >
         {{
@@ -320,42 +320,51 @@ onMounted(load);
             class="flex w-full min-w-0 flex-col gap-2 border-t border-n-weak pt-3"
             :data-testid="`destination-${row.key}-${destination.waba_id}`"
           >
-            <p class="text-body-main text-n-slate-12 break-words">
-              {{ destination.channels.map(channel => channel.name).join(', ') }}
-            </p>
-            <p class="text-xs text-n-slate-11 break-all">
-              {{ $t('CITAS_PANEL.WABA', { id: destination.waba_id }) }}
-            </p>
-            <Label
-              :label="
-                $t(
-                  destination.reason === 'explicit_link_required'
-                    ? 'CITAS_PANEL.UNLINKED'
-                    : `CITAS_PANEL.DESTINATION_STATES.${destination.state}`
-                )
-              "
-              :color="destination.state === 'usable' ? 'teal' : 'amber'"
-              compact
-              role="status"
-            />
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="min-w-0 flex-1 basis-32">
+                <p class="text-body-main text-n-slate-12 break-words">
+                  {{
+                    destination.channels.map(channel => channel.name).join(', ')
+                  }}
+                </p>
+                <p class="text-xs text-n-slate-11 break-all">
+                  {{ $t('CITAS_PANEL.WABA', { id: destination.waba_id }) }}
+                </p>
+              </div>
+              <div class="flex shrink-0 flex-wrap items-center gap-2">
+                <Label
+                  :label="
+                    $t(
+                      destination.reason === 'explicit_link_required'
+                        ? 'CITAS_PANEL.UNLINKED'
+                        : `CITAS_PANEL.DESTINATION_STATES.${destination.state}`
+                    )
+                  "
+                  :color="destination.state === 'usable' ? 'teal' : 'amber'"
+                  role="status"
+                />
+                <Button
+                  v-if="
+                    destination.state !== 'usable' &&
+                    row.result.draft_exists &&
+                    destination.channels.length
+                  "
+                  intent="secondary"
+                  size="sm"
+                  class="shrink-0"
+                  :label="$t('CITAS_PANEL.LINK')"
+                  :disabled="Boolean(linking) || !connected"
+                  :is-loading="linking === destinationKey(row, destination)"
+                  @click="link(row, destination)"
+                />
+              </div>
+            </div>
             <p
               v-if="destination.via && destination.via !== 'none'"
-              class="text-body-main text-n-slate-11"
+              class="text-xs text-n-slate-11"
             >
               {{ $t(`CITAS_PANEL.VIA.${destination.via}`) }}
             </p>
-            <Button
-              v-if="
-                destination.state !== 'usable' &&
-                row.result.draft_exists &&
-                destination.channels.length
-              "
-              intent="secondary"
-              :label="$t('CITAS_PANEL.LINK')"
-              :disabled="Boolean(linking) || !connected"
-              :is-loading="linking === destinationKey(row, destination)"
-              @click="link(row, destination)"
-            />
             <p
               v-if="linkErrors[destinationKey(row, destination)]"
               role="alert"
