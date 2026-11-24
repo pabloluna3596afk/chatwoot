@@ -17,11 +17,18 @@ RSpec.describe Calendar::AppointmentAttributes::Provisioner do
     expect(keys).to match_array(%w[ultima_cita proxima_cita proxima_cita_titulo total_citas estado_proxima_cita citas_canceladas])
     expect(definitions.pluck(:attribute_key, :attribute_display_type).to_h).to eq(Calendar::AppointmentAttributes::Definitions::TYPES)
     expect(definitions.pluck(:category).uniq).to eq(['Citas'])
-    expect(definitions.find_by!(attribute_key: 'ultima_cita').attribute_display_name).to eq('Última cita')
-    expect(definitions.find_by!(attribute_key: 'estado_proxima_cita').attribute_display_name).to eq('Estado de la próxima cita')
-    expect(definitions.find_by!(attribute_key: 'citas_canceladas').attribute_display_name).to eq('Citas canceladas')
     expect(result['results'].values.pluck('status')).to eq(Array.new(6, 'created'))
     expect(account.reload.appointment_attributes['enabled_keys']).to eq(keys)
+  end
+
+  it 'names the new contact attributes in Spanish' do
+    provisioner.perform(keys: keys)
+    names = account.custom_attribute_definitions.contact_attribute.pluck(:attribute_key, :attribute_display_name).to_h
+
+    expect(names.slice('ultima_cita', 'estado_proxima_cita', 'citas_canceladas')).to eq(
+      'ultima_cita' => 'Última cita', 'estado_proxima_cita' => 'Estado de la próxima cita',
+      'citas_canceladas' => 'Citas canceladas'
+    )
   end
 
   it 'reuses the same key and type without changing its metadata' do
@@ -39,7 +46,8 @@ RSpec.describe Calendar::AppointmentAttributes::Provisioner do
     provisioner.perform(keys: original_keys)
     definitions = account.custom_attribute_definitions.order(:id).map(&:attributes)
 
-    expect { provisioner.perform(keys: keys) }.to change(CustomAttributeDefinition, :count).by(2)
+    expect { provisioner.perform(keys: keys) }
+      .to change(CustomAttributeDefinition, :count).by(2)
       .and have_enqueued_job(Calendar::AppointmentAttributes::BackfillJob).with(account.id)
 
     expect(account.reload.appointment_attributes['enabled_keys']).to eq(keys)
