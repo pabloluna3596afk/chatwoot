@@ -117,5 +117,5 @@ Rails.application.config.to_prepare do
 
   ActiveStorage::Streaming.prepend(ActiveStorageProxyRangeLimit) unless ActiveStorage::Streaming < ActiveStorageProxyRangeLimit
   ActiveStorage::Blob.include(ActiveStorageOpusNormalizer) unless ActiveStorage::Blob < ActiveStorageOpusNormalizer
-  ActiveStorage::Blob.include(ActiveStorageMessageDimensions) unless ActiveStorage::Blob < ActiveStorageMessageDimensions
+  ActiveSupport.on_load(:active_storage_blob) { include ActiveStorageMessageDimensions }
 end

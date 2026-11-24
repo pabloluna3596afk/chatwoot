@@ -123,8 +123,11 @@ RSpec.describe ActiveStorageMessageDimensions do
   end
 
   it 'does not broadcast when an image analyzer cannot read the file' do
-    attachment.file.attach(io: StringIO.new('invalid image'), filename: 'broken.png', content_type: 'image/png', identify: false)
-    analyzed_blob = attachment.file.blob
+    broken = message.attachments.create!(
+      account: message.account, file_type: :image,
+      file: { io: StringIO.new('invalid image'), filename: 'broken.png', content_type: 'image/png' }
+    )
+    analyzed_blob = broken.file.blob
     expect(dispatcher).not_to receive(:dispatch).with(Events::Types::MESSAGE_UPDATED, anything, anything)
 
     ActiveStorage::AnalyzeJob.perform_now(analyzed_blob)
