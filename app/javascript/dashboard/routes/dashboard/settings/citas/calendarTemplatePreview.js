@@ -1,3 +1,5 @@
+import { variableSegments } from 'dashboard/components-next/whatsapp/variableSegments';
+
 // Keep these preview-only examples aligned with Calendar::TemplateDefinitions.
 const EXAMPLES = {
   es: {
@@ -19,3 +21,6 @@ export const fillExamples = (body, language) =>
     /{{\s*(nombre|cita|fecha|hora)\s*}}/g,
     (_, variable) => EXAMPLES[language][variable]
   );
+
+export const exampleSegments = (body, language) =>
+  variableSegments(body, EXAMPLES[language]);

@@ -11,7 +11,7 @@ import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
-import { fillExamples } from './calendarTemplatePreview';
+import { fillExamples, exampleSegments } from './calendarTemplatePreview';
 
 const props = defineProps({ connected: { type: Boolean, default: false } });
 const emit = defineEmits(['updated']);
@@ -267,6 +267,7 @@ onMounted(load);
         <WhatsAppBubble
           v-if="row.preview"
           :body="fillExamples(row.preview.body, language)"
+          :body-segments="exampleSegments(row.preview.body, language)"
           :buttons="row.preview.buttons || []"
         />
         <div class="flex min-w-0 flex-col items-start gap-2">

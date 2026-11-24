@@ -128,6 +128,11 @@ describe('CalendarTemplates', () => {
       bubbles.forEach(bubble => {
         examples.forEach(example => expect(bubble.text()).toContain(example));
         expect(bubble.text()).not.toContain('{{');
+        expect(
+          bubble
+            .findAll('[data-testid="bubble-variable"]')
+            .map(chip => chip.text())
+        ).toEqual(examples);
       });
       expect(JSON.stringify(kit)).toBe(original);
       expect(kit.template.body).toContain('{{nombre}}');

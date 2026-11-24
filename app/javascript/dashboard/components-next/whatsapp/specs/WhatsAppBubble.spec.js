@@ -1,3 +1,4 @@
+import { variableSegments } from '../variableSegments';
 import { mount } from '@vue/test-utils';
 import WhatsAppBubble from '../WhatsAppBubble.vue';
 import {
@@ -49,6 +50,65 @@ describe('WhatsAppBubble', () => {
     expect(wrapper.findAll('[data-testid="bubble-button"]')).toHaveLength(3);
     expect(wrapper.html()).toContain('i-lucide-external-link');
     expect(wrapper.html()).toContain('i-lucide-phone');
+  });
+
+  it('keeps plain previews unmarked by default', () => {
+    const wrapper = mount(WhatsAppBubble, { props: { body: 'Maria 10:00' } });
+    expect(wrapper.findAll('[data-testid="bubble-variable"]')).toHaveLength(0);
+    expect(wrapper.get('[data-testid="send-center-preview-body"]').text()).toBe(
+      'Maria 10:00'
+    );
+  });
+
+  it('marks substituted tokens only, preserves lines and escapes example text', () => {
+    const source = 'Maria {{nombre}}\n\nAt {{hora}}. {{nombre}} {{unknown}}';
+    const examples = { nombre: '<img src=x>', hora: '10:00' };
+    const segments = variableSegments(source, examples);
+    const wrapper = mount(WhatsAppBubble, {
+      props: { bodySegments: segments },
+    });
+    const body = wrapper.get('[data-testid="send-center-preview-body"]');
+    expect(body.findAll('p').map(line => line.text())).toEqual([
+      'Maria <img src=x>',
+      'At 10:00. <img src=x> {{unknown}}',
+    ]);
+    expect(
+      body.findAll('div').filter(element => element.classes().includes('h-1.5'))
+    ).toHaveLength(1);
+    const chips = body.findAll('[data-testid="bubble-variable"]');
+    expect(chips.map(chip => chip.text())).toEqual([
+      '<img src=x>',
+      '10:00',
+      '<img src=x>',
+    ]);
+    chips.forEach(chip => {
+      expect(chip.classes()).toEqual(
+        expect.arrayContaining([
+          'border-n-brand/30',
+          'bg-n-brand/10',
+          'rounded',
+          'px-1',
+          'hover:border-n-brand/50',
+        ])
+      );
+    });
+    expect(body.find('img').exists()).toBe(false);
+    expect(source).toContain('{{nombre}}');
+    expect(examples.nombre).toBe('<img src=x>');
+  });
+
+  it('does not highlight ordinary occurrences of the same example or missing values', () => {
+    expect(
+      variableSegments('Maria {{ nombre }} {{hora}}', {
+        nombre: 'Maria',
+        hora: '',
+      })
+    ).toEqual([
+      { text: 'Maria ', variable: false },
+      { text: 'Maria', variable: true },
+      { text: ' ', variable: false },
+      { text: '{{hora}}', variable: false },
+    ]);
   });
 
   it('uses the Flow icon on every button when it is a Flow message', () => {
