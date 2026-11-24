@@ -9,6 +9,8 @@ const props = defineProps({
   // IMAGE | VIDEO | DOCUMENT | LOCATION: drawn as a placeholder block above the text.
   headerMedia: { type: String, default: '' },
   body: { type: String, default: '' },
+  // Optional preview-only segments; other callers keep rendering their body unchanged.
+  bodySegments: { type: Array, default: null },
   footer: { type: String, default: '' },
   // Strings or { text, type } with type URL | PHONE_NUMBER | QUICK_REPLY | COPY_CODE | FLOW.
   buttons: { type: Array, default: () => [] },
@@ -30,7 +32,20 @@ const BUTTON_ICONS = {
 };
 
 // A blank line is a small gap, not a full empty line, so long messages stay compact.
-const bodyLines = computed(() => props.body.split('\n'));
+const bodyLines = computed(() => {
+  const lines = [[]];
+  const segments = props.bodySegments ?? [
+    { text: props.body, variable: false },
+  ];
+  segments.forEach(segment => {
+    segment.text.split('\n').forEach((text, index) => {
+      if (index) lines.push([]);
+      if (text)
+        lines[lines.length - 1].push({ text, variable: segment.variable });
+    });
+  });
+  return lines;
+});
 const items = computed(() =>
   props.buttons.map(button => {
     const { text, type } =
@@ -69,7 +84,21 @@ const items = computed(() =>
           <div data-testid="send-center-preview-body">
             <slot name="body">
               <template v-for="(line, index) in bodyLines" :key="index">
-                <p v-if="line" class="whitespace-pre-wrap">{{ line }}</p>
+                <p v-if="line.length" class="whitespace-pre-wrap">
+                  <span
+                    v-for="(segment, segmentIndex) in line"
+                    :key="segmentIndex"
+                    :class="
+                      segment.variable
+                        ? 'rounded border border-solid border-n-brand/30 bg-n-brand/10 px-1 align-baseline hover:border-n-brand/50'
+                        : undefined
+                    "
+                    :data-testid="
+                      segment.variable ? 'bubble-variable' : undefined
+                    "
+                    >{{ segment.text }}</span
+                  >
+                </p>
                 <div v-else class="h-1.5" />
               </template>
             </slot>

@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe Calendar::TemplateDrafts::Provisioner do
   let(:account) { create(:account, locale: 'es') }
   let(:service) { described_class.new(account: account) }
+  let(:contracts) { JSON.parse(Rails.root.join('spec/fixtures/files/calendar_template_drafts.json').read) }
 
   it 'reads pending state without writing anything' do
     expect(service.status['results'].values.pluck('status')).to eq(%w[pending pending pending])
@@ -20,7 +21,11 @@ RSpec.describe Calendar::TemplateDrafts::Provisioner do
         definition = Calendar::TemplateDefinitions.definition(function, language)
         expect(draft).to have_attributes(language: language, category: 'UTILITY', parameter_format: 'NAMED', waba_id: nil, preferred_channel_id: nil)
         expect(draft.definition.dig('body', 'text')).to eq(definition.fetch(:body))
+        # Shared with TemplateFormDrawer's frontend contract test: actual provisioning and Meta projection must match.
+        contract = contracts.find { |row| row.fetch('function') == function && row.fetch('language') == language }
+        expect(draft.definition).to eq(contract.fetch('definition'))
         builder = Whatsapp::TemplateComponentsBuilder.new(**draft.definition.deep_symbolize_keys, parameter_format: 'NAMED')
+        expect(builder.components.as_json).to eq(contract.fetch('components'))
         projection = draft.attributes.merge('id' => 'local-check', 'status' => 'APPROVED', 'components' => builder.components.as_json)
         expect(Calendar::TemplateContract.new(function: function, language: language, template: projection).incompatibility).to be_nil
       end

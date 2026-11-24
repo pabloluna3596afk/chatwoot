@@ -194,7 +194,7 @@ describe('AssistantAppointmentsForm', () => {
       wrapper
         .get('[data-testid="appointments-attributes-link"] [data-route]')
         .attributes('data-route')
-    ).toBe('settings_integrations_calendars');
+    ).toBe('settings_citas');
   });
 
   it('does not render the retired appointment reminder readiness summary', async () => {

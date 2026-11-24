@@ -1,3 +1,10 @@
+### B-NEW-309 - Citas: carga por pesta?a y reintentos independientes (2026-11-23)
+
+- **Problema:** abrir Citas consultaba calendarios, asistentes y mensajes antes de necesitarlos; Mensajes duplicaba consultas y una conexi?n fallida ocultaba los otros calendarios.
+- **Archivos:** `settings/citas/Index.vue`, `useCitasPanel.js`, `CalendarSummary.vue`, `CalendarResources.vue`, `CalendarInvitationSettings.vue` y traducciones en/es de `calendarActivationKit.json`.
+- **Cambio:** montaje con conexiones Google y lectura ligera independiente de atributos en Resumen; calendarios/asistentes al abrir Calendarios; Mensajes e Invitaci?n conservan su carga local y sus instancias durante la sesi?n. Errores dentro de la secci?n afectada y reintentos individuales por conexi?n o secci?n. Sin backend ni migraciones.
+- **C?mo probar:** abrir Resumen y comprobar ausencia de llamadas a calendarios, asistentes, plantillas y activation kit; recorrer las cuatro pesta?as dos veces y contar una carga por API. Con dos conexiones, hacer fallar una y comprobar que la otra se muestra; reintentar solo la fallida. Repetir con Captain apagado y sin conexiones. Specs en `settings/citas/specs/Index.spec.js`; suites de citas, integraciones, plantillas y sidebar en UTC y America/Guayaquil.
+
 ### B-NEW-308 - Compensación del desplazamiento del teclado en iOS (2026-11-23)
 
 - **Archivos:** `app/javascript/dashboard/App.vue`, `composables/useVisualViewportHeight.js` y sus specs.
@@ -13,6 +20,14 @@
 - **Cambio:** POST link admin por canal propio y selección explícita, contrato/bloqueo compartidos e idempotencia; estado con resolver real por función/idioma/WABA y compatibilidad legada; diagnóstico de idioma y preparación duradera por idioma sin reemplazar versiones.
 - **Cómo probar:** requests `calendar_template_link_spec.rb`/`calendar_template_drafts_spec.rb`, specs `calendar/template_drafts` (incluye concurrencia PostgreSQL), y consumidores `spec/services/calendar`, `spec/requests/api/v1/accounts/calendar_template_*`, `spec/controllers/google_calendar`, `spec/lib/integrations/google_calendar`.
 - **Pendiente:** PM debe ejecutar RSpec y RuboCop exacto de CI. No se ejecutaron en esta sesión por prohibición de Docker del brief y ausencia de Ruby/Bundler en host. Sin UI, Captain, ActivationKit, migraciones, Meta, push, fetch, PR ni despliegue. Contrato en `docs/WHATSAPP_TEMPLATE_DRAFTS.md`, sección Estado por destino y vínculo.
+### B-NEW-303 - Plantillas de Citas y enlace al borrador (2026-11-23)
+
+- **Archivos:** `settings/integrations/Calendars.vue`, `settings/citas/`, API Calendar, `settings/templates/Index.vue`, traducciones en/es y specs Vue.
+- **Cambio:** sustituye el kit con envío directo por tres vistas previas con estados local/Meta separados, abrir borrador y reintento de preparación local. Conserva backend/API legado y el opt-in de recordatorio; exige aprobación y vínculo para encenderlo y permite apagarlo si pierde elegibilidad.
+- **Cómo probar:** suites de integraciones, Calendarios y TemplatesIndex en UTC y America/Guayaquil; comprobar enlace `?draft=<id>` de administrador, incluido archivado, e inexistente/sin permisos. Revisar conflictos, sin Google y recordatorio bloqueado.
+- **Corrección PM 1:** las tres burbujas rellenan las variables con los ejemplos canónicos es/en mediante `calendarTemplatePreview.fillExamples`, según `language` de template_drafts. Solo cambia la representación; las definiciones y los borradores conservan sus variables. Specs de función pura y componente cubren ambos idiomas, idioma de cuenta distinto al de UI y conservación del texto original.
+- **Corrección PM 2:** las tarjetas y sus specs se trasladan sin duplicarlas a `settings/citas`; nueva página admin en orden plantillas → atributos → invitación. Integraciones conserva conexión/activación y enlaza a Citas. Menú condicionado por flag, administrador y conexión Google activa, con estado Vuex por cuenta actualizado al desconectar. Ajustes de la agenda elige destino según conexión; habilitar calendarios sigue en Integraciones. El enlace de atributos de Captain apunta a Citas; su lógica no cambia. Specs cubren página, menú, enlaces y desconexión en UTC y America/Guayaquil. Capturas y medidas a 390 px pendientes del PM.
+- **Pendiente visual:** capturas de la app real a 390 px y escritorio con el PM; sin Docker, navegador, preview, Meta, push, PR ni despliegue en esta sesión.
 
 ### B-NEW-302 - Preparación local de plantillas al conectar Google (2026-11-22)
 
@@ -3925,3 +3940,11 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Cambio:** `Calendar::EventVisibility` usa `ConversationPolicy#show?` con contexto real de usuario/cuenta, incluyendo extensión Enterprise. Devuelve solo identidad operativa/ocupación/horario si la conversación es inaccesible; omite descripción, enlaces, autores, contacto, conversación, actividades, origen y políticas del bot. Se aplica también a filas descartadas. Conserva el comportamiento previo para eventos sin conversación asociada, sin inventar permisos para recursos exclusivamente Google/CRM.
 - **Cómo probar:** grupo A6 en `spec/controllers/api/v1/accounts/integrations/calendar_authorization_spec.rb` y `spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb`, controles de agente autorizado/admin/participante. Repetir suite de servicios y todos los consumidores de lectura.
 - **Estado:** verde y RuboCop pendientes; no modifica la política ni frontend. Sin pruebas reales contra proveedores, Docker o navegador en esta sesión.
+
+
+### B-NEW-308 — Panel de Citas: disponibilidad por destino y ediciones protegidas (2026-11-23)
+
+- **Problema:** la pantalla apilada usaba `approved`/`linked` agregados para habilitar el recordatorio. No representaba disponibilidad por WABA ni el camino `legacy_by_name`; al dividirla en pestañas se necesitaba proteger las ediciones pendientes.
+- **Cambio:** `settings/citas/Index.vue` usa cinco `VerticalTabs`, URL por pestaña y bloqueo con aviso para cambios sin guardar. `CalendarTemplates.vue` decide por `destinations[].state === usable`, muestra disponibilidad parcial, idioma preparado/efectivo y vínculo explícito del borrador por canal con errores 422. `CalendarHours.vue` concentra el editor trasladado desde Integraciones; el mapa usa conexión y calendario, nunca nombres.
+- **Cómo probar:** specs de `settings/citas` (Index, CalendarHours, CalendarTemplates, CalendarInvitationSettings, CalendarAppointmentAttributes); suite existente de Integraciones/Plantillas/Calendarios/sidebar. Ejecutar con `vitest.local.config.ts` en UTC y America/Guayaquil. En app real revisar 390/1440 px y aprobar visualmente antes de PR.
+- **Límites:** reservas nuevas es un selector de lectura porque no existe un campo independiente de habilitación; se gestiona la habilitación en Integraciones. La API de conexiones solo devuelve activas: el aviso desconectado usa preparación previa o referencias de asistentes; no es inventario histórico. Sin backend, migraciones, schema ni cambios en Captain. Sin navegador/Docker por instrucción del brief. Sin push, PR ni despliegue.

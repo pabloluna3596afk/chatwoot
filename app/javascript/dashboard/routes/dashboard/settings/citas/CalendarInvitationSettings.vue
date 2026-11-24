@@ -1,7 +1,7 @@
 <script setup>
 // The text of the invitation of an appointment, written once for the account (Settings > Integrations > Calendars): what
 // the customer reads in the Google Calendar event, for the appointments of the agents and of Captain alike.
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
@@ -16,6 +16,8 @@ import {
   unknownTokens,
 } from 'dashboard/helper/invitationText';
 
+const emit = defineEmits(['dirty']);
+
 const { t, locale } = useI18n();
 
 const template = ref('');
@@ -24,6 +26,7 @@ const defaultTemplate = ref('');
 const saved = ref({ template: '', location: '' });
 const maxLength = ref(4000);
 const isLoading = ref(true);
+const loadFailed = ref(false);
 const isSaving = ref(false);
 const showMenu = ref(false);
 const textBox = ref(null);
@@ -43,8 +46,14 @@ const dirty = computed(
     template.value !== saved.value.template ||
     location.value !== saved.value.location
 );
+watch(dirty, value => emit('dirty', value));
 const canSave = computed(
-  () => dirty.value && !unknown.value.length && !isSaving.value
+  () =>
+    dirty.value &&
+    !unknown.value.length &&
+    !isSaving.value &&
+    !isLoading.value &&
+    !loadFailed.value
 );
 
 const menuItems = computed(() =>
@@ -64,11 +73,13 @@ const apply = data => {
 };
 
 const load = async () => {
+  isLoading.value = true;
+  loadFailed.value = false;
   try {
     const { data } = await CalendarAPI.getInvitation();
     apply(data);
   } catch {
-    useAlert(t('CALENDAR_INVITATION.LOAD_ERROR'));
+    loadFailed.value = true;
   } finally {
     isLoading.value = false;
   }
@@ -124,7 +135,15 @@ const save = async () => {
       </p>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div v-if="loadFailed" role="alert" class="text-body-main text-n-ruby-11">
+      {{ $t('CALENDAR_INVITATION.LOAD_ERROR') }}
+      <Button
+        intent="secondary"
+        :label="$t('CALENDAR_ACTIVATION_KIT.RELOAD')"
+        @click="load"
+      />
+    </div>
+    <div v-else class="grid gap-4 lg:grid-cols-2">
       <div class="flex flex-col gap-3">
         <div ref="textBox" class="grid gap-1">
           <span class="text-sm font-medium text-n-slate-12">
@@ -205,11 +224,12 @@ const save = async () => {
         <span class="text-sm font-medium text-n-slate-12">
           {{ $t('CALENDAR_INVITATION.PREVIEW') }}
         </span>
-        <pre
-          class="p-3 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12"
+        <div
+          class="p-3 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12 break-words"
           data-testid="invitation-preview"
-          >{{ preview }}</pre
         >
+          {{ preview }}
+        </div>
         <span class="text-xs text-n-slate-11">
           {{ $t('CALENDAR_INVITATION.PREVIEW_NOTE') }}
         </span>

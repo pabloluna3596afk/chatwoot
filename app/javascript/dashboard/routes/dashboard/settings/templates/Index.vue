@@ -301,6 +301,28 @@ const openEdit = template =>
   template.isLocalDraft
     ? formDrawerRef.value?.openDraft(template)
     : formDrawerRef.value?.openBindings(template);
+const openedDraftId = ref(null);
+watch(
+  [() => route.query.draft, isAdmin, formDrawerRef],
+  async ([id, admin, drawer]) => {
+    if (typeof id !== 'string' || !/^\d+$/.test(id)) {
+      openedDraftId.value = null;
+      return;
+    }
+    if (!admin || !drawer || openedDraftId.value === id) return;
+    openedDraftId.value = id;
+    try {
+      // The account-scoped endpoint also finds archived drafts, absent from the active list.
+      const { data: draft } = await DraftsAPI.show(id);
+      if (route.query.draft !== id || !isAdmin.value) return;
+      activeTab.value = 'templates';
+      drawer.openDraft(draftRow(draft, cloudInboxes.value));
+    } catch {
+      useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.FETCH_ERROR'));
+    }
+  },
+  { flush: 'post' }
+);
 const openedLinkedTemplate = ref(false);
 watch(templates, records => {
   if (

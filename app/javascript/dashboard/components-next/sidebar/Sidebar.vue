@@ -10,6 +10,8 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { buildCaptainMenu } from './captainMenu';
+import { buildCitasMenu } from './citasMenu';
+import { useAlert } from 'dashboard/composables';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -132,6 +134,22 @@ const hasCalendars = computed(() => {
     FEATURE_FLAGS.CALENDAR
   );
 });
+
+const hasGoogleConnection = useMapGetter(
+  'calendarConnections/hasGoogleConnection'
+);
+watch(
+  [accountId, hasCalendars, isAdmin],
+  async ([id, enabled, admin]) => {
+    if (!id || !enabled || !admin) return;
+    try {
+      await store.dispatch('calendarConnections/get', id);
+    } catch {
+      useAlert(t('INTEGRATION_SETTINGS.CALENDARS.LOAD_ERROR'));
+    }
+  },
+  { immediate: true }
+);
 
 const hasFlows = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -939,6 +957,13 @@ const menuItems = computed(() => {
               icon: 'i-lucide-layout-template',
             }),
         },
+        ...buildCitasMenu({
+          isAdmin: isAdmin.value,
+          hasCalendars: hasCalendars.value,
+          hasGoogleConnection: hasGoogleConnection.value(accountId.value),
+          t,
+          accountScopedRoute,
+        }),
         {
           name: 'Settings Labels',
           label: t('SIDEBAR.LABELS'),

@@ -65,7 +65,7 @@ vi.mock('dashboard/api/inboxes', () => ({
   default: { getMessageTemplates: vi.fn() },
 }));
 vi.mock('dashboard/api/whatsappTemplateDrafts', () => ({
-  default: { get: vi.fn(), delete: vi.fn() },
+  default: { get: vi.fn(), show: vi.fn(), delete: vi.fn() },
 }));
 vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: { createTemplate: vi.fn() },
@@ -103,6 +103,7 @@ describe('Templates page', () => {
   beforeEach(() => {
     mockNativeDialog();
     role.value = true;
+    DraftsAPI.show.mockRejectedValue({ response: { status: 404 } });
     DraftsAPI.get.mockResolvedValue({
       data: { payload: [], meta: { total_count: 0 } },
     });
@@ -129,6 +130,69 @@ describe('Templates page', () => {
     await flushPromises();
     return wrapper;
   };
+
+  it.each([
+    ['31', true, true],
+    ['999', true, false],
+    ['31', false, false],
+    [['31'], true, false],
+  ])(
+    'opens draft=%s only for its account administrator',
+    async (id, admin, opens) => {
+      query.draft = id;
+      role.value = admin;
+      DraftsAPI.get.mockResolvedValue({
+        data: {
+          payload: [
+            {
+              ...draftFromForm(emptyForm(), []),
+              id: 31,
+              status: 'draft',
+              submissions: [],
+            },
+          ],
+          meta: { total_count: 1 },
+        },
+      });
+      if (opens)
+        DraftsAPI.show.mockResolvedValue({
+          data: {
+            ...draftFromForm(emptyForm(), []),
+            id: 31,
+            status: 'draft',
+            submissions: [],
+          },
+        });
+      const wrapper = await render([]);
+      if (opens) {
+        expect(openDraft).toHaveBeenCalledWith(
+          expect.objectContaining({ id: 31, isLocalDraft: true })
+        );
+      } else {
+        expect(openDraft).not.toHaveBeenCalled();
+      }
+      delete query.draft;
+      wrapper.unmount();
+    }
+  );
+
+  it('opens an archived draft absent from the active list through its account endpoint', async () => {
+    query.draft = '81';
+    DraftsAPI.show.mockResolvedValue({
+      data: {
+        ...draftFromForm(emptyForm(), []),
+        id: 81,
+        archived_at: '2026-11-23T00:00:00Z',
+        status: 'draft',
+        submissions: [],
+      },
+    });
+    const wrapper = await render([]);
+    expect(DraftsAPI.show).toHaveBeenCalledWith('81');
+    expect(openDraft).toHaveBeenCalledWith(expect.objectContaining({ id: 81 }));
+    delete query.draft;
+    wrapper.unmount();
+  });
 
   it('keeps filters and tab on save, resets them only on View in Templates, including an unnamed draft', async () => {
     const record = {

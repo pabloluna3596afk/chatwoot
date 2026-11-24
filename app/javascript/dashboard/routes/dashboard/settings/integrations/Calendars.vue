@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAccount } from 'dashboard/composables/useAccount';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useFunctionGetter, useStore } from 'dashboard/composables/store';
@@ -10,12 +11,8 @@ import Label from 'dashboard/components-next/label/Label.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import SelectInput from 'dashboard/components-next/select/Select.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import SettingsLayout from '../SettingsLayout.vue';
-import CalendarInvitationSettings from './CalendarInvitationSettings.vue';
-import CalendarActivationKit from './CalendarActivationKit.vue';
-import CalendarAppointmentAttributes from './CalendarAppointmentAttributes.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import googleCalendarLogo from 'dashboard/assets/images/integrations/google-calendar.svg';
@@ -26,8 +23,9 @@ import {
   connectionDisplayName,
 } from 'dashboard/helper/calendarLabels';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const route = useRoute();
+const { accountId, accountScopedRoute } = useAccount();
 const store = useStore();
 const integration = useFunctionGetter(
   'integrations/getIntegration',
@@ -53,7 +51,10 @@ const googleConnections = computed(() =>
 
 const loadConnections = async () => {
   try {
-    const { data } = await CalendarAPI.getConnections();
+    const data = await store.dispatch(
+      'calendarConnections/get',
+      accountId.value
+    );
     connections.value = data.payload || [];
     configured.value = Boolean(data.configured);
   } catch (error) {
@@ -84,19 +85,6 @@ const loadCalendarsFor = async connectionId => {
 };
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
-// Monday first; the values are Date#wday (0 = Sunday), like the backend working_days.
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-// 2030-01-13 is a Sunday, so adding the weekday number lands on that weekday.
-const weekdayLabel = (day, weekday = 'short') =>
-  new Intl.DateTimeFormat(locale.value, { weekday }).format(
-    new Date(2030, 0, 13 + day)
-  );
-
-const hourOptions = Array.from({ length: 24 }, (_, hour) => ({
-  value: String(hour),
-  label: `${String(hour).padStart(2, '0')}:00`,
-}));
-
 const enabledCount = connectionId =>
   (calendarMap.value[connectionId] || []).filter(item => item.enabled).length;
 
@@ -207,34 +195,6 @@ const confirmDisconnect = async () => {
   } finally {
     disconnecting.value = false;
   }
-};
-
-const updateHours = async (connectionId, calendarId, field, value) => {
-  const hour = Number(value);
-  const list = (calendarMap.value[connectionId] || []).map(item => {
-    if (item.id !== calendarId) return item;
-    const next = { ...item, [field]: hour };
-    if (next.hour_end <= next.hour_start) {
-      next.hour_end = Math.min(23, next.hour_start + 1);
-    }
-    return next;
-  });
-  calendarMap.value = { ...calendarMap.value, [connectionId]: list };
-  await saveCalendars(connectionId, { silent: true });
-};
-
-const toggleDay = async (connectionId, calendarId, day) => {
-  const list = (calendarMap.value[connectionId] || []).map(item => {
-    if (item.id !== calendarId) return item;
-    const days = item.working_days ?? ALL_DAYS;
-    const next = days.includes(day)
-      ? days.filter(value => value !== day)
-      : [...days, day].sort((a, b) => a - b);
-    // A calendar always keeps at least one working day.
-    return next.length ? { ...item, working_days: next } : item;
-  });
-  calendarMap.value = { ...calendarMap.value, [connectionId]: list };
-  await saveCalendars(connectionId, { silent: true });
 };
 
 onMounted(async () => {
@@ -409,75 +369,6 @@ onMounted(async () => {
                           color="blue"
                           compact
                         />
-                        <template v-if="calendar.enabled">
-                          <span class="text-xs text-n-slate-11 shrink-0">
-                            {{ $t('INTEGRATION_SETTINGS.CALENDARS.HOURS') }}
-                          </span>
-                          <SelectInput
-                            :model-value="String(calendar.hour_start ?? 8)"
-                            :options="hourOptions"
-                            class="w-[5.5rem]"
-                            :disabled="savingCalendars[connection.id]"
-                            @update:model-value="
-                              updateHours(
-                                connection.id,
-                                calendar.id,
-                                'hour_start',
-                                $event
-                              )
-                            "
-                          />
-                          <!-- eslint-disable-next-line vue/no-bare-strings-in-template -->
-                          <span class="text-xs text-n-slate-11">–</span>
-                          <SelectInput
-                            :model-value="String(calendar.hour_end ?? 20)"
-                            :options="hourOptions"
-                            class="w-[5.5rem]"
-                            :disabled="savingCalendars[connection.id]"
-                            @update:model-value="
-                              updateHours(
-                                connection.id,
-                                calendar.id,
-                                'hour_end',
-                                $event
-                              )
-                            "
-                          />
-                          <div
-                            class="flex basis-full items-center gap-1 lg:basis-auto"
-                            role="group"
-                            :aria-label="
-                              $t('INTEGRATION_SETTINGS.CALENDARS.DAYS')
-                            "
-                          >
-                            <button
-                              v-for="day in DAY_ORDER"
-                              :key="day"
-                              type="button"
-                              :data-testid="`calendar-day-${day}`"
-                              :aria-pressed="
-                                (calendar.working_days ?? ALL_DAYS).includes(
-                                  day
-                                )
-                              "
-                              :title="weekdayLabel(day, 'long')"
-                              :disabled="savingCalendars[connection.id]"
-                              class="h-7 min-w-8 rounded-md px-1.5 text-xs font-medium capitalize transition-colors disabled:opacity-50"
-                              :class="
-                                (calendar.working_days ?? ALL_DAYS).includes(
-                                  day
-                                )
-                                  ? 'bg-n-brand text-white'
-                                  : 'bg-n-alpha-2 text-n-slate-11 hover:bg-n-alpha-3'
-                              "
-                              @click="
-                                toggleDay(connection.id, calendar.id, day)
-                              "
-                            >
-                              {{ weekdayLabel(day) }}
-                            </button>
-                          </div>
-                        </template>
                       </div>
                     </div>
                   </div>
@@ -512,9 +403,14 @@ onMounted(async () => {
           </div>
         </div>
 
-        <CalendarInvitationSettings />
-        <CalendarActivationKit />
-        <CalendarAppointmentAttributes />
+        <RouterLink
+          v-if="googleConnections.length"
+          :to="accountScopedRoute('settings_citas')"
+          class="self-start text-body-main text-n-blue-11 underline"
+          data-testid="configure-citas"
+        >
+          {{ $t('CITAS_SETTINGS.CONFIGURE') }}
+        </RouterLink>
       </div>
 
       <Dialog

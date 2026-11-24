@@ -8,6 +8,8 @@ import CalendarLegend from '../CalendarLegend.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import WeekGrid from '../WeekGrid.vue';
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/composables/useAccount', () => ({
   useAccount: () => ({
@@ -18,7 +20,7 @@ vi.mock('dashboard/composables/useAccount', () => ({
 vi.mock('dashboard/composables/useAdmin', () => ({
   useAdmin: () => ({ isAdmin: true }),
 }));
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: routerPush }) }));
 vi.mock('dashboard/helper/useCalendarCancelledVisibility', () => ({
   useCalendarCancelledVisibility: () => ({ showCancelled: ref(false) }),
 }));
@@ -36,6 +38,32 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
     getEvents: vi.fn().mockResolvedValue({ data: { payload: [] } }),
   },
 }));
+
+it.each([
+  [[{ id: 7, provider: 'google' }], 'settings_citas'],
+  [[{ id: 8, provider: 'microsoft' }], 'settings_integrations_calendars'],
+  [[], 'settings_integrations_calendars'],
+])(
+  'routes calendar settings according to active Google connections: %j',
+  async (payload, target) => {
+    CalendarAPI.getConnections.mockResolvedValue({ data: { payload } });
+    CalendarAPI.getCalendars.mockResolvedValue({ data: { payload: [] } });
+    const wrapper = shallowMount(CalendarView, {
+      global: { mocks: { $t: key => key } },
+    });
+    await flushPromises();
+    const button = payload.length
+      ? wrapper.getComponent('[data-testid="calendar-settings"]')
+      : wrapper
+          .findAllComponents(Button)
+          .find(
+            item => item.props('label') === 'SIDEBAR.CALENDAR_PAGE.CONNECT_CTA'
+          );
+    button.vm.$emit('click');
+    expect(routerPush).toHaveBeenCalledWith(target);
+    wrapper.unmount();
+  }
+);
 
 it('uses the real floating menu for calendar accounts and keeps provider logos and selection', async () => {
   CalendarAPI.getConnections.mockResolvedValue({

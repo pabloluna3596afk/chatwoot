@@ -1,3 +1,5 @@
+import calendarDrafts from '../../../../../../../../spec/fixtures/files/calendar_template_drafts.json';
+import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { mockNativeDialog } from 'dashboard/helper/specs/mockNativeDialog';
 import TemplateFormDrawer from '../TemplateFormDrawer.vue';
@@ -8,7 +10,8 @@ import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdow
 import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { draftFromForm } from '../templateDrafts';
-import { emptyForm } from '../templateForm';
+import { emptyForm, variableTokens, validateForm } from '../templateForm';
+import { formFromDraft } from '../templateDrafts';
 import { useAlert } from 'dashboard/composables';
 import SnackbarContainer from 'dashboard/components/SnackbarContainer.vue';
 import InboxesAPI from 'dashboard/api/inboxes';
@@ -191,6 +194,72 @@ describe('TemplateFormDrawer drafts', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });
+  it.each(calendarDrafts)(
+    'opens provisioned $name in $language with all named examples and an inline preview',
+    async contract => {
+      const localDraft = {
+        ...record,
+        ...contract,
+        id: 31,
+        waba_id: null,
+        preferred_channel_id: null,
+      };
+      const form = formFromDraft(localDraft, inboxes);
+      expect(localDraft.category).toBe('UTILITY');
+      expect(localDraft.parameter_format).toBe('NAMED');
+      expect(variableTokens(form.body.text)).toEqual([
+        'nombre',
+        'cita',
+        'fecha',
+        'hora',
+      ]);
+      expect(form.body.examples).toEqual(contract.definition.body.examples);
+      expect(form.body.examples.every(Boolean)).toBe(true);
+      // The provisioner deliberately leaves the destination unselected; choosing it completes form validation.
+      expect(validateForm({ ...form, inboxId: 7 })).toEqual({});
+      DraftsAPI.show.mockResolvedValueOnce({ data: localDraft });
+      const wrapper = await mountDrawer();
+      await wrapper.vm.openDraft(localDraft);
+      await flushPromises();
+      const fields = wrapper.get('[data-testid="examples"]').findAll('input');
+      expect(fields.map(field => field.element.value)).toEqual(
+        contract.definition.body.examples
+      );
+      expect(wrapper.find('[aria-invalid="true"]').exists()).toBe(false);
+      await wrapper
+        .get('[data-testid="template-preview-open"]')
+        .trigger('click');
+      await flushPromises();
+      const bubble = wrapper.findComponent(WhatsAppBubble);
+      expect(
+        bubble
+          .findAll('[data-testid="bubble-variable"]')
+          .map(chip => chip.text())
+      ).toEqual(contract.definition.body.examples);
+      expect(DraftsAPI.submit).not.toHaveBeenCalled();
+      wrapper.unmount();
+    }
+  );
+
+  it('keeps non-appointment draft previews unchanged', async () => {
+    const localDraft = {
+      ...record,
+      ...calendarDrafts[0],
+      name: 'delivery_notice',
+    };
+    DraftsAPI.show.mockResolvedValueOnce({ data: localDraft });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.openDraft(localDraft);
+    await flushPromises();
+    await wrapper.get('[data-testid="template-preview-open"]').trigger('click');
+    await flushPromises();
+    const bubble = wrapper.findComponent(WhatsAppBubble);
+    expect(bubble.props('bodySegments')).toBeNull();
+    expect(bubble.text()).toContain(localDraft.definition.body.examples[0]);
+    expect(bubble.findAll('[data-testid="bubble-variable"]')).toHaveLength(0);
+    wrapper.unmount();
+  });
+
   it('opens library text read-only, saves button values and submits through the common draft API', async () => {
     const libraryRecord = {
       ...record,
