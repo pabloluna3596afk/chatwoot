@@ -60,6 +60,34 @@ module ActiveStorageOpusNormalizer
   end
 end
 
+module ActiveStorageMessageDimensions
+  extend ActiveSupport::Concern
+
+  included do
+    after_update_commit :broadcast_message_dimensions, if: :analyzed_dimensions_changed?
+  end
+
+  private
+
+  def analyzed_dimensions_changed?
+    return false unless analyzed? && saved_change_to_metadata?
+
+    previous_metadata, current_metadata = saved_change_to_metadata
+    dimensions = current_metadata.slice('width', 'height')
+    dimensions.values_at('width', 'height').all?(&:present?) && dimensions != previous_metadata.slice('width', 'height')
+  end
+
+  def broadcast_message_dimensions
+    attachment_ids = attachments.where(record_type: 'Attachment', name: 'file').select(:record_id)
+    message_ids = ::Attachment.where(id: attachment_ids).select(:message_id)
+
+    # Load fresh blobs for the payload, including the other attachments on each message.
+    Message.where(id: message_ids).includes(attachments: { file_attachment: :blob }).find_each do |message|
+      message.send_update_event unless message.deleted
+    end
+  end
+end
+
 # Block the default Rails direct-upload route. Dashboard and widget uploads both go
 # through the scoped, authenticated /api/v1/... endpoints, so the bare route has no
 # legitimate caller; leaving it open allows anonymous blob creation. Scoped subclasses
@@ -89,4 +117,5 @@ Rails.application.config.to_prepare do
 
   ActiveStorage::Streaming.prepend(ActiveStorageProxyRangeLimit) unless ActiveStorage::Streaming < ActiveStorageProxyRangeLimit
   ActiveStorage::Blob.include(ActiveStorageOpusNormalizer) unless ActiveStorage::Blob < ActiveStorageOpusNormalizer
+  ActiveStorage::Blob.include(ActiveStorageMessageDimensions) unless ActiveStorage::Blob < ActiveStorageMessageDimensions
 end
