@@ -3,6 +3,7 @@ import {
   OPERATOR_TYPES_2,
   OPERATOR_TYPES_3,
   OPERATOR_TYPES_6,
+  OPERATOR_TYPES_8,
 } from './operators';
 
 export const AUTOMATIONS = {
@@ -85,6 +86,18 @@ export const AUTOMATIONS = {
         name: 'LABELS',
         inputType: 'multi_select',
         filterOperators: OPERATOR_TYPES_3,
+      },
+      {
+        key: 'within_business_hours',
+        name: 'WITHIN_BUSINESS_HOURS',
+        inputType: 'search_select',
+        filterOperators: OPERATOR_TYPES_8,
+      },
+      {
+        key: 'message_time_window',
+        name: 'MESSAGE_TIME_WINDOW',
+        inputType: 'time_window',
+        filterOperators: OPERATOR_TYPES_1,
       },
     ],
     actions: [
@@ -231,6 +244,18 @@ export const AUTOMATIONS = {
         name: 'LABELS',
         inputType: 'multi_select',
         filterOperators: OPERATOR_TYPES_3,
+      },
+      {
+        key: 'within_business_hours',
+        name: 'WITHIN_BUSINESS_HOURS',
+        inputType: 'search_select',
+        filterOperators: OPERATOR_TYPES_8,
+      },
+      {
+        key: 'message_time_window',
+        name: 'MESSAGE_TIME_WINDOW',
+        inputType: 'time_window',
+        filterOperators: OPERATOR_TYPES_1,
       },
     ],
     actions: [
@@ -382,6 +407,18 @@ export const AUTOMATIONS = {
         inputType: 'multi_select',
         filterOperators: OPERATOR_TYPES_3,
       },
+      {
+        key: 'within_business_hours',
+        name: 'WITHIN_BUSINESS_HOURS',
+        inputType: 'search_select',
+        filterOperators: OPERATOR_TYPES_8,
+      },
+      {
+        key: 'message_time_window',
+        name: 'MESSAGE_TIME_WINDOW',
+        inputType: 'time_window',
+        filterOperators: OPERATOR_TYPES_1,
+      },
     ],
     actions: [
       {
@@ -526,6 +563,18 @@ export const AUTOMATIONS = {
         inputType: 'multi_select',
         filterOperators: OPERATOR_TYPES_3,
       },
+      {
+        key: 'within_business_hours',
+        name: 'WITHIN_BUSINESS_HOURS',
+        inputType: 'search_select',
+        filterOperators: OPERATOR_TYPES_8,
+      },
+      {
+        key: 'message_time_window',
+        name: 'MESSAGE_TIME_WINDOW',
+        inputType: 'time_window',
+        filterOperators: OPERATOR_TYPES_1,
+      },
     ],
     actions: [
       {
@@ -658,6 +707,18 @@ export const AUTOMATIONS = {
         key: 'priority',
         name: 'PRIORITY',
         inputType: 'multi_select',
+        filterOperators: OPERATOR_TYPES_1,
+      },
+      {
+        key: 'within_business_hours',
+        name: 'WITHIN_BUSINESS_HOURS',
+        inputType: 'search_select',
+        filterOperators: OPERATOR_TYPES_8,
+      },
+      {
+        key: 'message_time_window',
+        name: 'MESSAGE_TIME_WINDOW',
+        inputType: 'time_window',
         filterOperators: OPERATOR_TYPES_1,
       },
     ],

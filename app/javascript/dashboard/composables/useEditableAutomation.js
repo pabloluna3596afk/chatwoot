@@ -53,6 +53,7 @@ export function useEditableAutomation() {
 
       if (
         inputType === 'plain_text' ||
+        inputType === 'time_window' ||
         inputType === 'date' ||
         inputType === 'datetime'
       ) {

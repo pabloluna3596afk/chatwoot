@@ -61,6 +61,9 @@ const MESSAGE_KEYS = new Set([
   'content',
   'private_note',
   'email',
+  // Automation-only conditions that business rules do not offer.
+  'within_business_hours',
+  'message_time_window',
 ]);
 
 const syncing = ref(false);

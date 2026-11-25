@@ -317,6 +317,12 @@
       "HIGH": "High",
       "URGENT": "Urgent"
     },
+    "TIME_WINDOW": {
+      "FROM": "From",
+      "TO": "To",
+      "DAYS": "Days of the week",
+      "HINT": "Uses the inbox time zone. With no days selected it applies every day. If the end is earlier than the start, the range crosses midnight."
+    },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Message Type",
       "PRIVATE_NOTE": "Private Note",
@@ -334,7 +340,9 @@
       "ASSIGNEE_NAME": "Assignee",
       "TEAM_NAME": "Team",
       "PRIORITY": "Priority",
-      "LABELS": "Labels"
+      "LABELS": "Labels",
+      "WITHIN_BUSINESS_HOURS": "Within business hours",
+      "MESSAGE_TIME_WINDOW": "Message time"
     }
   }
 }

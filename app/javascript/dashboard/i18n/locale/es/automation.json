@@ -317,6 +317,12 @@
       "HIGH": "Alta",
       "URGENT": "Urgente"
     },
+    "TIME_WINDOW": {
+      "FROM": "Desde",
+      "TO": "Hasta",
+      "DAYS": "Días de la semana",
+      "HINT": "Usa la zona horaria de la bandeja. Sin días seleccionados se aplica todos los días. Si la hora final es anterior a la inicial, el rango cruza la medianoche."
+    },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Tipo de mensaje",
       "PRIVATE_NOTE": "Nota privada",
@@ -334,7 +340,9 @@
       "ASSIGNEE_NAME": "Asignado a",
       "TEAM_NAME": "Equipo",
       "PRIORITY": "Prioridad",
-      "LABELS": "Etiquetas"
+      "LABELS": "Etiquetas",
+      "WITHIN_BUSINESS_HOURS": "Dentro del horario de atención",
+      "MESSAGE_TIME_WINDOW": "Hora del mensaje"
     }
   }
 }
