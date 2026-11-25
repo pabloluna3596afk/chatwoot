@@ -94,6 +94,31 @@ describe('useEditableAutomation', () => {
     ]);
   });
 
+  it('rehydrates a time window as its single string value', () => {
+    const automation = {
+      event_name: 'message_created',
+      conditions: [
+        {
+          attribute_key: 'message_time_window',
+          filter_operator: 'equal_to',
+          values: ['18:00-08:00|mon'],
+          query_operator: null,
+        },
+      ],
+      actions: [],
+    };
+    const automationTypes = {
+      message_created: {
+        conditions: [{ key: 'message_time_window', inputType: 'time_window' }],
+      },
+    };
+
+    const { formatAutomation } = useEditableAutomation();
+    const result = formatAutomation(automation, [], automationTypes, []);
+
+    expect(result.conditions[0].values).toBe('18:00-08:00|mon');
+  });
+
   it('rehydrates last responding agent as a selected action option', () => {
     const automation = {
       event_name: 'conversation_created',

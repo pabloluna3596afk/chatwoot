@@ -83,6 +83,111 @@ RSpec.describe AutomationRules::ConditionsFilterService do
       end
     end
 
+    context 'with message_time_window' do
+      let(:key) { 'message_time_window' }
+      let(:value) { '18:00-08:00' }
+      let(:message_time) { Time.utc(2026, 10, 26, 23, 30) }
+      let(:message) do
+        create(:message, account: account, conversation: conversation, inbox: inbox, message_type: :incoming, created_at: message_time)
+      end
+
+      def evaluate_with(window, operator: 'equal_to', timezone: 'America/Guayaquil', at: message_time)
+        inbox.update!(timezone: timezone)
+        rule.conditions = [condition.merge('values' => [window], 'filter_operator' => operator)]
+        record = create(:message, account: account, conversation: conversation, inbox: inbox, message_type: :incoming, created_at: at)
+        described_class.new(rule, conversation, message: record).evaluate
+      end
+
+      it 'reads the window in the inbox timezone, not in UTC' do
+        # 23:30 UTC is 18:30 in Guayaquil (UTC-5): inside 18:00-08:00 there, but outside 19:00-08:00.
+        expect(evaluate_with('18:00-08:00')).to be(true)
+        expect(evaluate_with('19:00-08:00')).to be(false)
+        expect(evaluate_with('19:00-08:00', timezone: 'UTC')).to be(true)
+      end
+
+      it 'negates the result with not_equal_to' do
+        expect(evaluate_with('18:00-08:00', operator: 'not_equal_to')).to be(false)
+        expect(evaluate_with('19:00-08:00', operator: 'not_equal_to')).to be(true)
+      end
+
+      it 'handles both sides of midnight and the exclusive end' do
+        expect(evaluate_with('18:00-08:00', at: Time.utc(2026, 10, 27, 12, 59))).to be(true)
+        expect(evaluate_with('18:00-08:00', at: Time.utc(2026, 10, 27, 13, 0))).to be(false)
+        expect(evaluate_with('18:00-08:00', at: Time.utc(2026, 10, 26, 22, 59))).to be(false)
+        expect(evaluate_with('18:00-08:00', at: Time.utc(2026, 10, 26, 23, 0))).to be(true)
+      end
+
+      it 'applies weekdays in the inbox timezone using the day the window starts' do
+        # 2026-10-26 is a Monday in Guayaquil from 05:00 UTC.
+        expect(evaluate_with('22:00-06:00|mon', at: Time.utc(2026, 10, 27, 3, 0))).to be(true)
+        expect(evaluate_with('22:00-06:00|mon', at: Time.utc(2026, 10, 27, 10, 0))).to be(true)
+        expect(evaluate_with('22:00-06:00|mon', at: Time.utc(2026, 10, 26, 10, 0))).to be(false)
+        expect(evaluate_with('22:00-06:00|tue', at: Time.utc(2026, 10, 27, 3, 0))).to be(false)
+        expect(evaluate_with('22:00-06:00|mon,tue', at: Time.utc(2026, 10, 27, 3, 0))).to be(true)
+      end
+
+      it 'follows the local wall clock across the autumn DST change' do
+        # America/New_York repeats 01:00-02:00 on 2026-11-01: 05:30 UTC is 01:30 EDT and 06:30 UTC is 01:30 EST.
+        expect(evaluate_with('01:00-02:00', timezone: 'America/New_York', at: Time.utc(2026, 11, 1, 5, 30))).to be(true)
+        expect(evaluate_with('01:00-02:00', timezone: 'America/New_York', at: Time.utc(2026, 11, 1, 6, 30))).to be(true)
+        expect(evaluate_with('01:00-02:00', timezone: 'America/New_York', at: Time.utc(2026, 11, 1, 7, 30))).to be(false)
+      end
+
+      it 'follows the local wall clock across the spring DST change' do
+        # 2026-03-08: 01:59 EST is followed by 03:00 EDT, so 02:00-03:00 never matches that night.
+        expect(evaluate_with('02:00-03:00', timezone: 'America/New_York', at: Time.utc(2026, 3, 8, 6, 59))).to be(false)
+        expect(evaluate_with('02:00-03:00', timezone: 'America/New_York', at: Time.utc(2026, 3, 8, 7, 0))).to be(false)
+        expect(evaluate_with('03:00-04:00', timezone: 'America/New_York', at: Time.utc(2026, 3, 8, 7, 0))).to be(true)
+      end
+
+      it 'does not need working hours to be enabled' do
+        inbox.update!(working_hours_enabled: false)
+
+        expect(evaluate_with('18:00-08:00')).to be(true)
+      end
+
+      it 'uses the current time when the event has no message' do
+        inbox.update!(timezone: 'America/Guayaquil')
+        rule.conditions = [condition.merge('values' => ['18:00-08:00'])]
+
+        travel_to(Time.utc(2026, 10, 26, 23, 30)) { expect(described_class.new(rule, conversation).evaluate).to be(true) }
+        travel_to(Time.utc(2026, 10, 26, 14, 0)) { expect(described_class.new(rule, conversation).evaluate).to be(false) }
+      end
+
+      it 'uses the current time when the message has no created_at yet' do
+        inbox.update!(timezone: 'America/Guayaquil')
+        rule.conditions = [condition.merge('values' => ['18:00-08:00'])]
+        unsaved = build(:message, account: account, conversation: conversation, inbox: inbox, created_at: nil)
+
+        travel_to(Time.utc(2026, 10, 26, 23, 30)) { expect(described_class.new(rule, conversation, message: unsaved).evaluate).to be(true) }
+        travel_to(Time.utc(2026, 10, 26, 14, 0)) { expect(described_class.new(rule, conversation, message: unsaved).evaluate).to be(false) }
+      end
+
+      it 'is evaluated against the message time, not the current time' do
+        inbox.update!(timezone: 'America/Guayaquil')
+        travel_to(Time.utc(2026, 10, 27, 14, 0)) do
+          expect(evaluate_with('18:00-08:00')).to be(true)
+        end
+      end
+
+      it 'does not match and reports a diagnostic for a stored invalid window' do
+        rule.conditions = [condition.merge('values' => ['nonsense'])]
+        evaluator = described_class.new(rule, conversation, message: message)
+
+        expect(evaluator.evaluate).to be(false)
+        expect(evaluator.diagnostics.first[:message]).to include('HH:MM-HH:MM')
+      end
+
+      it 'preserves AND and OR with other conditions' do
+        inbox.update!(timezone: 'America/Guayaquil')
+        status_condition = { 'attribute_key' => 'status', 'filter_operator' => 'equal_to', 'values' => ['resolved'] }
+        { 'AND' => false, 'OR' => true }.each do |query_operator, expected|
+          rule.conditions = [condition.merge('query_operator' => query_operator), status_condition]
+          expect(described_class.new(rule, conversation, message: message).evaluate).to eq(expected)
+        end
+      end
+    end
+
     context 'with captain_state' do
       let(:key) { 'captain_state' }
       let(:value) { 'none' }

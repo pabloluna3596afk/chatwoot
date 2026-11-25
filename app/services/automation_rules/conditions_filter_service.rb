@@ -178,15 +178,20 @@ class AutomationRules::ConditionsFilterService < FilterService
 
   # Bind the result as a SQL boolean so computed conditions keep the same AND/OR precedence as existing filters.
   def computed_condition_query(condition, index)
-    actual = case condition['attribute_key']
-             when 'channel_type' then Conversations::ChannelType.for(@conversation)
-             when 'within_business_hours' then !@conversation.inbox.out_of_office?
-             when 'captain_state' then @conversation.captain_state || 'none'
-             end
-    matches = condition['values'].include?(actual)
+    matches = computed_condition_matches?(condition)
     matches = !matches if condition['filter_operator'] == 'not_equal_to'
     @filter_values["computed_#{index}"] = matches
     " :computed_#{index} #{condition['query_operator']} "
+  end
+
+  def computed_condition_matches?(condition)
+    values = condition['values']
+    case condition['attribute_key']
+    when 'message_time_window' then AutomationRules::TimeWindow.matches?(values.first, @options[:message]&.created_at, @conversation.inbox.timezone)
+    when 'channel_type' then values.include?(Conversations::ChannelType.for(@conversation))
+    when 'within_business_hours' then values.include?(!@conversation.inbox.out_of_office?)
+    when 'captain_state' then values.include?(@conversation.captain_state || 'none')
+    end
   end
 
   def build_conditions_query

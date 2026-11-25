@@ -8,6 +8,7 @@ import FilterSelect from './inputs/FilterSelect.vue';
 import MultiSelect from './inputs/MultiSelect.vue';
 import SingleSelect from './inputs/SingleSelect.vue';
 import MultiTextInput from './inputs/MultiTextInput.vue';
+import TimeWindowInput from './inputs/TimeWindowInput.vue';
 
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import { validateSingleFilter } from 'dashboard/helper/validations.js';
@@ -187,8 +188,8 @@ defineExpose({ validate, resetValidation });
       class="flex flex-wrap gap-2 rounded-md"
       :class="{
         'animate-wiggle': showErrors && validationError,
-        'items-start': inputType === 'multiText',
-        'items-center': inputType !== 'multiText',
+        'items-start': ['multiText', 'timeWindow'].includes(inputType),
+        'items-center': !['multiText', 'timeWindow'].includes(inputType),
       }"
     >
       <FilterSelect
@@ -247,6 +248,10 @@ defineExpose({ validate, resetValidation });
             v-model="values"
             disable-search
             :options="booleanOptions"
+          />
+          <TimeWindowInput
+            v-else-if="inputType === 'timeWindow'"
+            v-model="values"
           />
           <MultiTextInput
             v-else-if="inputType === 'multiText'"

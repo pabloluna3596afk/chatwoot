@@ -37,6 +37,28 @@ RSpec.describe AutomationRules::LintService do
       expect(result.errors.map(&:code)).not_to include('impossible_and')
     end
 
+    it 'does not flag AND-joined time windows because different windows can overlap' do
+      windows = [{ 'attribute_key' => 'message_time_window', 'filter_operator' => 'equal_to', 'values' => ['18:00-23:00'],
+                   'query_operator' => 'AND' },
+                 { 'attribute_key' => 'message_time_window', 'filter_operator' => 'equal_to', 'values' => ['20:00-08:00'] }]
+      rule = build_rule(conditions: windows)
+
+      result = described_class.new(account: account, rules: [rule], subject: rule).perform
+
+      expect(result.errors.map(&:code)).not_to include('impossible_and')
+    end
+
+    it 'still flags a time window that must and must not match' do
+      windows = [{ 'attribute_key' => 'message_time_window', 'filter_operator' => 'equal_to', 'values' => ['18:00-08:00'],
+                   'query_operator' => 'AND' },
+                 { 'attribute_key' => 'message_time_window', 'filter_operator' => 'not_equal_to', 'values' => ['18:00-08:00'] }]
+      rule = build_rule(conditions: windows)
+
+      result = described_class.new(account: account, rules: [rule], subject: rule).perform
+
+      expect(result.errors.map(&:code)).to include('impossible_and')
+    end
+
     it 'does not flag conditions joined by OR' do
       rule = build_rule(conditions: [status_condition(['open'], joiner: 'OR'), status_condition(['resolved'])])
 
