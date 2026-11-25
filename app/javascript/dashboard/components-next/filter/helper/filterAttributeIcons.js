@@ -32,6 +32,8 @@ const ATTRIBUTE_ICONS = {
   content: 'i-lucide-message-square-text',
   mail_subject: 'i-lucide-mail-open',
   conversation_language: 'i-lucide-languages',
+  within_business_hours: 'i-lucide-store',
+  message_time_window: 'i-lucide-clock',
   // Shared
   labels: 'i-lucide-tags',
   created_at: 'i-lucide-calendar',
