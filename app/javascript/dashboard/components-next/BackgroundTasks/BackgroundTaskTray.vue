@@ -1,54 +1,73 @@
 <script setup>
-import { computed, shallowRef, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useMutationObserver } from '@vueuse/core';
 import { useStore } from 'dashboard/composables/store';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
-import Button from 'dashboard/components-next/button/Button.vue';
 import BackgroundTaskItem from './BackgroundTaskItem.vue';
 
 const store = useStore();
-const expanded = shallowRef(false);
+const MAX_VISIBLE_TASKS = 3;
+const tray = ref(null);
 const tasks = computed(() => store.getters['backgroundTasks/ordered']);
+const visibleTasks = computed(() =>
+  tasks.value.filter(
+    (task, index) => index < MAX_VISIBLE_TASKS || task.status === 'error'
+  )
+);
+const hiddenCount = computed(
+  () => tasks.value.length - visibleTasks.value.length
+);
+
+// Like SnackbarContainer, use the top layer so native dialogs cannot cover notices.
+const showPopover = () => {
+  tray.value?.hidePopover?.();
+  tray.value?.showPopover?.();
+};
+watch([tray, () => tasks.value.length], showPopover, { flush: 'post' });
+useMutationObserver(
+  document.body,
+  mutations => {
+    if (
+      mutations.some(
+        ({ target }) =>
+          target.tagName === 'DIALOG' && target.hasAttribute('open')
+      )
+    )
+      showPopover();
+  },
+  { attributes: true, attributeFilter: ['open'], subtree: true }
+);
 watch(
   () => store.getters.getCurrentAccountId,
   () => {
     store.dispatch('backgroundTasks/reset');
-    expanded.value = false;
   }
 );
-onBeforeUnmount(() => store.dispatch('backgroundTasks/reset'));
 </script>
 
 <template>
   <TeleportWithDirection>
     <section
       v-if="tasks.length"
-      class="fixed end-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-40 flex max-h-[80dvh] w-[calc(100%_-_2rem)] max-w-[21.25rem] flex-col gap-2 overflow-y-auto rtl:end-[max(1rem,env(safe-area-inset-left))]"
+      ref="tray"
+      popover="manual"
+      class="pointer-events-none fixed inset-auto end-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[10000] m-0 flex max-h-[80dvh] w-[calc(100%_-_2rem)] max-w-[21.25rem] flex-col gap-2 overflow-y-auto border-0 bg-transparent p-1 rtl:end-[max(1rem,env(safe-area-inset-left))]"
       :aria-label="$t('BACKGROUND_TASKS.COUNT', { n: tasks.length })"
     >
-      <Button
-        v-if="tasks.length > 1"
-        intent="secondary"
-        class="self-end rounded-full"
-        :aria-expanded="expanded"
-        aria-controls="background-task-list"
-        @click="expanded = !expanded"
+      <BackgroundTaskItem
+        v-for="task in visibleTasks"
+        :key="task.id"
+        :task="task"
+        @dismiss="store.dispatch('backgroundTasks/dismiss', $event)"
+      />
+      <p
+        v-if="hiddenCount"
+        role="status"
+        aria-live="polite"
+        class="m-0 self-end rounded-md bg-n-solid-1 px-2 py-1 text-xs text-n-slate-11 shadow-sm"
       >
-        <span role="status" aria-live="polite">{{
-          $t('BACKGROUND_TASKS.COUNT', { n: tasks.length })
-        }}</span>
-      </Button>
-      <div
-        v-if="tasks.length === 1 || expanded"
-        id="background-task-list"
-        class="flex flex-col gap-2"
-      >
-        <BackgroundTaskItem
-          v-for="task in tasks"
-          :key="task.id"
-          :task="task"
-          @dismiss="store.dispatch('backgroundTasks/dismiss', $event)"
-        />
-      </div>
+        {{ $t('BACKGROUND_TASKS.MORE', { n: hiddenCount }) }}
+      </p>
     </section>
   </TeleportWithDirection>
 </template>

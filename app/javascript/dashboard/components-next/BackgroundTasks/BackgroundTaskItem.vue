@@ -11,9 +11,9 @@ const router = useRouter();
 const accent = computed(
   () =>
     ({
-      running: 'border-n-brand text-n-slate-12',
-      success: 'border-n-teal-9 text-n-teal-11',
-      error: 'border-n-ruby-9 text-n-ruby-11',
+      running: 'border-n-brand bg-n-solid-1 text-n-slate-12',
+      success: 'border-n-teal-9 bg-n-teal-2 text-n-teal-11',
+      error: 'border-n-ruby-9 bg-n-ruby-2 text-n-ruby-11',
     })[props.task.status]
 );
 </script>
@@ -23,7 +23,7 @@ const accent = computed(
     role="status"
     aria-live="polite"
     aria-atomic="true"
-    class="flex gap-3 rounded-xl border border-s-4 bg-n-solid-1 p-3 shadow-lg"
+    class="pointer-events-auto flex shrink-0 animate-fade-in-up gap-3 rounded-xl border border-s-4 p-3 shadow-lg motion-reduce:animate-none"
     :class="accent"
   >
     <Spinner

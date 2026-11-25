@@ -2,9 +2,8 @@
   "BACKGROUND_TASKS": {
     "SENDING": "Enviando a Meta…",
     "REVIEW": "En revisión de Meta",
-    "APPROVED": "Meta aprobó la plantilla",
-    "REJECTED": "Meta rechazó la plantilla",
     "COUNT": "{n} tareas en segundo plano",
+    "MORE": "+{n} más",
     "CLOSE": "Cerrar",
     "VIEW_TEMPLATE": "Ver plantilla"
   }

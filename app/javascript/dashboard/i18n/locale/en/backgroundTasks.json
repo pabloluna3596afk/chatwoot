@@ -2,9 +2,8 @@
   "BACKGROUND_TASKS": {
     "SENDING": "Sending to Meta…",
     "REVIEW": "Under Meta review",
-    "APPROVED": "Meta approved the template",
-    "REJECTED": "Meta rejected the template",
     "COUNT": "{n} background tasks",
+    "MORE": "+{n} more",
     "CLOSE": "Close",
     "VIEW_TEMPLATE": "View template"
   }
