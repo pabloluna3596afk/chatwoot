@@ -3963,3 +3963,19 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Cambio:** `settings/citas/Index.vue` usa cinco `VerticalTabs`, URL por pestaña y bloqueo con aviso para cambios sin guardar. `CalendarTemplates.vue` decide por `destinations[].state === usable`, muestra disponibilidad parcial, idioma preparado/efectivo y vínculo explícito del borrador por canal con errores 422. `CalendarHours.vue` concentra el editor trasladado desde Integraciones; el mapa usa conexión y calendario, nunca nombres.
 - **Cómo probar:** specs de `settings/citas` (Index, CalendarHours, CalendarTemplates, CalendarInvitationSettings, CalendarAppointmentAttributes); suite existente de Integraciones/Plantillas/Calendarios/sidebar. Ejecutar con `vitest.local.config.ts` en UTC y America/Guayaquil. En app real revisar 390/1440 px y aprobar visualmente antes de PR.
 - **Límites:** reservas nuevas es un selector de lectura porque no existe un campo independiente de habilitación; se gestiona la habilitación en Integraciones. La API de conexiones solo devuelve activas: el aviso desconectado usa preparación previa o referencias de asistentes; no es inventario histórico. Sin backend, migraciones, schema ni cambios en Captain. Sin navegador/Docker por instrucción del brief. Sin push, PR ni despliegue.
+
+### B-NEW-312 — Centro común para tareas en segundo plano (2026-11-24)
+
+El envío de borradores a Meta no tenía un aviso persistente ni procesaba `message_template_status_update`.
+`BackgroundTasks::Notifier` y `ActionCableListener#background_task_updated` publican el contrato común a agentes y administradores de la cuenta;
+el adaptador `Whatsapp::TemplateBackgroundTask` registra envío, revisión, aprobación y error con un ID estable.
+`Whatsapp::TemplateStatusWebhookService` procesa cambios antes de resolver el canal telefónico, actualiza solo campos mutables y no repite avisos por estado.
+`Whatsapp::RefreshTemplateSubmissionsJob` recupera estados pendientes con más de diez minutos, en lotes de cien, con asociaciones precargadas y rotación.
+El store `backgroundTasks`, `useBackgroundTasks` y `BackgroundTaskTray` muestran tareas reutilizables, pliegan varias y descartan éxitos tras diez segundos.
+Plantillas recupera tareas desde sus submissions ya cargadas; no hay endpoints ni migraciones nuevos.
+
+Prueba: enviar un borrador, comprobar envío/revisión y entregar webhook APPROVED o REJECTED; repetir el webhook y verificar un único aviso.
+Recargar Plantillas con revisión pendiente y comprobar el mismo ID. Probar varias tareas, cierre de error, auto cierre del éxito y cambio de cuenta.
+Specs nuevos en `spec/services/background_tasks`, `spec/services/whatsapp/template_status_webhook_service_spec.rb`,
+`spec/jobs/whatsapp/refresh_template_submissions_job_spec.rb` y Vitest de bandeja, store, ActionCable y Plantillas.
+RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita del brief. Sin push, PR ni despliegue en esta tarea.

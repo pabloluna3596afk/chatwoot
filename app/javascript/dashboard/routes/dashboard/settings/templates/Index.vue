@@ -12,6 +12,7 @@ import { useWhatsAppTemplateSync } from 'dashboard/composables/useWhatsAppTempla
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
+import { useTemplateBackgroundTasks } from './useTemplateBackgroundTasks';
 import { draftRow, LOCAL_STATUSES, META_STATUSES } from './templateDrafts';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
@@ -55,6 +56,7 @@ const FUZZY_SEARCH_KEYS = [
 ];
 
 const store = useStore();
+const { restore: restoreBackgroundTasks } = useTemplateBackgroundTasks();
 const route = useRoute();
 const { t, te } = useI18n();
 
@@ -459,7 +461,10 @@ const fetchTemplates = async () => {
             total = data.meta.total_count;
             page += 1;
           } while (!signal.aborted && records.length < total);
-          if (!signal.aborted) drafts.value = records;
+          if (!signal.aborted) {
+            drafts.value = records;
+            restoreBackgroundTasks(records);
+          }
         } catch {
           if (!signal.aborted)
             useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.FETCH_ERROR'));
