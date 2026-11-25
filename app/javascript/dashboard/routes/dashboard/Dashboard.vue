@@ -2,6 +2,7 @@
 import { defineAsyncComponent, ref, computed } from 'vue';
 
 import NextSidebar from 'next/sidebar/Sidebar.vue';
+import BackgroundTaskTray from 'dashboard/components-next/BackgroundTasks/BackgroundTaskTray.vue';
 import WootKeyShortcutModal from 'dashboard/components/widgets/modal/WootKeyShortcutModal.vue';
 import AddAccountModal from 'dashboard/components/app/AddAccountModal.vue';
 import UpgradePage from 'dashboard/routes/dashboard/upgrade/UpgradePage.vue';
@@ -29,6 +30,7 @@ import { useCallsStore } from 'dashboard/stores/calls';
 
 export default {
   components: {
+    BackgroundTaskTray,
     NextSidebar,
     CommandBar,
     WootKeyShortcutModal,
@@ -130,6 +132,7 @@ export default {
 
 <template>
   <div class="flex flex-grow overflow-hidden text-n-slate-12">
+    <BackgroundTaskTray />
     <NextSidebar
       :is-mobile-sidebar-open="isMobileSidebarOpen"
       @toggle-account-modal="toggleAccountModal"

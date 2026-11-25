@@ -49,6 +49,25 @@ describe('ActionCableConnector - Copilot Tests', () => {
     vi.useRealTimers();
   });
 
+  it('upserts background tasks only for the active account', () => {
+    const task = {
+      id: 'import:42',
+      kind: 'import',
+      title: 'Contacts',
+      status: 'success',
+    };
+    actionCable.onReceived({
+      event: 'background_task.updated',
+      data: { account_id: 2, task },
+    });
+    expect(mockDispatch).not.toHaveBeenCalled();
+    actionCable.onReceived({
+      event: 'background_task.updated',
+      data: { account_id: 1, task },
+    });
+    expect(mockDispatch).toHaveBeenCalledWith('backgroundTasks/upsert', task);
+  });
+
   it('expires Captain typing after 30 seconds if no typing_off event arrives', () => {
     vi.useFakeTimers();
     const conversation = { id: 42 };
