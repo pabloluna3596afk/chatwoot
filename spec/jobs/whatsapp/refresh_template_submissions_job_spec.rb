@@ -2,7 +2,10 @@ require 'rails_helper'
 
 RSpec.describe Whatsapp::RefreshTemplateSubmissionsJob do
   let(:account) { create(:account) }
-  let(:draft) { create(:whatsapp_template_draft, account: account, waba_id: 'waba') }
+  let(:channel) { create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false) }
+  let(:draft) do
+    create(:whatsapp_template_draft, account: account, preferred_channel: channel, waba_id: channel.provider_config.fetch('business_account_id'))
+  end
   let(:attributes) do
     { account: account, waba_id: draft.waba_id, name: draft.name, language: 'es', snapshot: { 'payload' => {} },
       payload_digest: 'digest', status: 'submitted', remote_id: 'meta', updated_at: 11.minutes.ago }

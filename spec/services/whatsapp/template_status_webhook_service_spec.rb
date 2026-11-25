@@ -2,7 +2,10 @@ require 'rails_helper'
 
 RSpec.describe Whatsapp::TemplateStatusWebhookService do
   let(:account) { create(:account, locale: 'es') }
-  let(:draft) { create(:whatsapp_template_draft, account: account, waba_id: 'waba-42') }
+  let(:channel) { create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false) }
+  let(:draft) do
+    create(:whatsapp_template_draft, account: account, preferred_channel: channel, waba_id: channel.provider_config.fetch('business_account_id'))
+  end
   let!(:submission) do
     draft.submissions.create!(account: account, revision: 0, waba_id: draft.waba_id, name: draft.name, language: 'es',
                               snapshot: { 'payload' => {} }, payload_digest: 'digest', status: 'submitted',
