@@ -9,23 +9,30 @@ const clearTimer = (state, id) => {
 
 export default {
   namespaced: true,
-  state: () => ({ tasks: {} }),
+  state: () => ({ tasks: {}, order: [] }),
   getters: {
     ordered: state =>
-      Object.values(state.tasks).sort(
-        (a, b) =>
-          Number(b.status === 'running') - Number(a.status === 'running')
-      ),
+      state.order
+        .map(id => state.tasks[id])
+        .sort(
+          (a, b) =>
+            Number(a.status === 'running') - Number(b.status === 'running')
+        ),
   },
   mutations: {
     upsert(state, task) {
+      if (state.tasks[task.id]?.status !== task.status) {
+        state.order = [task.id, ...state.order.filter(id => id !== task.id)];
+      }
       state.tasks[task.id] = task;
     },
     dismiss(state, id) {
       delete state.tasks[id];
+      state.order = state.order.filter(taskId => taskId !== id);
     },
     reset(state) {
       state.tasks = {};
+      state.order = [];
     },
   },
   actions: {

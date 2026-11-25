@@ -3979,3 +3979,11 @@ Recargar Plantillas con revisión pendiente y comprobar el mismo ID. Probar vari
 Specs nuevos en `spec/services/background_tasks`, `spec/services/whatsapp/template_status_webhook_service_spec.rb`,
 `spec/jobs/whatsapp/refresh_template_submissions_job_spec.rb` y Vitest de bandeja, store, ActionCable y Plantillas.
 RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita del brief. Sin push, PR ni despliegue en esta tarea.
+
+### B-NEW-313 — Avisos finalizados visibles y acento lateral de las tareas en segundo plano (2026-11-24)
+
+- **Problema:** con tres tareas en curso, un éxito podía quedar oculto tras «+N más» hasta desaparecer. El acento de color también pintaba todo el contorno de la tarjeta.
+- **Archivos:** `store/modules/backgroundTasks.js`, `components-next/BackgroundTasks/BackgroundTaskTray.vue`, `BackgroundTaskItem.vue` y sus specs.
+- **Cambio:** éxitos y errores siempre aparecen arriba, con el cambio de estado más reciente primero; solo las tareas en curso tienen un límite de tres. El store conserva un orden interno por creación/cambio de estado sin modificar el contrato de tarea. La tarjeta tiene contorno neutro fino y acento solo en el borde inicial; el spinner conserva su componente compartido y añade un anillo decorativo alineado, con arco de marca contrastado. El título ocupa una sola línea sin cambiar textos.
+- **Cómo probar:** registrar cuatro tareas en curso y pasar una a éxito: deben verse el éxito y las otras tres, sin «+N más»; a los diez segundos desaparece solo el éxito. Con cinco en curso deben verse tres y «+2 más». Cambiar el estado de una tarea debe subirla al principio de su grupo; actualizar únicamente el detalle no debe reordenarla. Revisar contorno neutro, acento lateral, spinner y título en modo claro/oscuro y RTL.
+- **Validación:** Vitest de bandeja/store cubre visibilidad, límite, orden, descarte y estilos. CSS de Tailwind compilado verifica que el acento modifica solo `border-inline-start-color`. Revisión visual posterior al cambio pendiente del PM. Sin backend, contrato, migraciones, push ni PR.

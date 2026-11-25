@@ -6,14 +6,14 @@ import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirecti
 import BackgroundTaskItem from './BackgroundTaskItem.vue';
 
 const store = useStore();
-const MAX_VISIBLE_TASKS = 3;
+const MAX_VISIBLE_RUNNING_TASKS = 3;
 const tray = ref(null);
 const tasks = computed(() => store.getters['backgroundTasks/ordered']);
-const visibleTasks = computed(() =>
-  tasks.value.filter(
-    (task, index) => index < MAX_VISIBLE_TASKS || task.status === 'error'
-  )
-);
+const visibleTasks = computed(() => {
+  const finished = tasks.value.filter(task => task.status !== 'running');
+  const running = tasks.value.filter(task => task.status === 'running');
+  return [...finished, ...running.slice(0, MAX_VISIBLE_RUNNING_TASKS)];
+});
 const hiddenCount = computed(
   () => tasks.value.length - visibleTasks.value.length
 );

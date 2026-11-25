@@ -18,7 +18,7 @@ describe('backgroundTasks', () => {
     vi.useRealTimers();
   });
 
-  it('upserts by id and orders running first without mutating insertion order', async () => {
+  it('upserts by id and orders finished tasks before running tasks', async () => {
     await store.dispatch('backgroundTasks/upsert', task('1', 'error'));
     await store.dispatch('backgroundTasks/upsert', task('2'));
     await store.dispatch('backgroundTasks/upsert', {
@@ -27,7 +27,7 @@ describe('backgroundTasks', () => {
     });
     expect(
       store.getters['backgroundTasks/ordered'].map(item => item.id)
-    ).toEqual(['2', '1']);
+    ).toEqual(['1', '2']);
     expect(store.state.backgroundTasks.tasks['1'].detail).toBe('Invalid file');
   });
 
@@ -40,7 +40,7 @@ describe('backgroundTasks', () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(
       store.getters['backgroundTasks/ordered'].map(item => item.id)
-    ).toEqual(['3', '2']);
+    ).toEqual(['2', '3']);
     await store.dispatch('backgroundTasks/dismiss', '2');
     expect(store.getters['backgroundTasks/ordered']).toEqual([task('3')]);
   });
@@ -60,5 +60,34 @@ describe('backgroundTasks', () => {
     await store.dispatch('backgroundTasks/upsert', task('1', 'success'));
     await store.dispatch('backgroundTasks/track', task('1'));
     expect(store.state.backgroundTasks.tasks['1'].status).toBe('success');
+  });
+
+  it('promotes new tasks and status changes within their group, keeping same-status updates in place', async () => {
+    await store.dispatch('backgroundTasks/upsert', task('1'));
+    await store.dispatch('backgroundTasks/upsert', task('2'));
+    expect(
+      store.getters['backgroundTasks/ordered'].map(item => item.id)
+    ).toEqual(['2', '1']);
+    await store.dispatch('backgroundTasks/upsert', task('3', 'error'));
+    await store.dispatch('backgroundTasks/upsert', task('4', 'error'));
+    await store.dispatch('backgroundTasks/upsert', task('1', 'success'));
+    expect(
+      store.getters['backgroundTasks/ordered'].map(item => item.id)
+    ).toEqual(['1', '4', '3', '2']);
+    await store.dispatch('backgroundTasks/upsert', {
+      ...task('3', 'error'),
+      detail: 'Updated reason',
+    });
+    expect(
+      store.getters['backgroundTasks/ordered'].map(item => item.id)
+    ).toEqual(['1', '4', '3', '2']);
+    await store.dispatch('backgroundTasks/upsert', task('3', 'success'));
+    expect(
+      store.getters['backgroundTasks/ordered'].map(item => item.id)
+    ).toEqual(['3', '1', '4', '2']);
+    await store.dispatch('backgroundTasks/upsert', task('4'));
+    expect(
+      store.getters['backgroundTasks/ordered'].map(item => item.id)
+    ).toEqual(['3', '1', '4', '2']);
   });
 });

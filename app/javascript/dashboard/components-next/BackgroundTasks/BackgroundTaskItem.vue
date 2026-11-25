@@ -11,9 +11,9 @@ const router = useRouter();
 const accent = computed(
   () =>
     ({
-      running: 'border-n-brand bg-n-solid-1 text-n-slate-12',
-      success: 'border-n-teal-9 bg-n-teal-2 text-n-teal-11',
-      error: 'border-n-ruby-9 bg-n-ruby-2 text-n-ruby-11',
+      running: 'border-s-n-brand bg-n-solid-1 text-n-slate-12',
+      success: 'border-s-n-teal-9 bg-n-teal-2 text-n-teal-11',
+      error: 'border-s-n-ruby-9 bg-n-ruby-2 text-n-ruby-11',
     })[props.task.status]
 );
 </script>
@@ -23,15 +23,25 @@ const accent = computed(
     role="status"
     aria-live="polite"
     aria-atomic="true"
-    class="pointer-events-auto flex shrink-0 animate-fade-in-up gap-3 rounded-xl border border-s-4 p-3 shadow-lg motion-reduce:animate-none"
+    class="pointer-events-auto flex shrink-0 animate-fade-in-up gap-3 rounded-xl border border-n-weak border-s-4 p-3 shadow-lg motion-reduce:animate-none"
     :class="accent"
   >
-    <Spinner
+    <span
       v-if="task.status === 'running'"
-      :size="20"
-      class="mt-0.5 shrink-0 motion-reduce:animate-none"
+      class="relative mt-0.5 size-5 shrink-0"
       aria-hidden="true"
-    />
+    >
+      <svg
+        viewBox="0 0 24 24"
+        class="absolute inset-0 size-5 fill-none stroke-n-blue-5 stroke-2"
+      >
+        <circle cx="12" cy="12" r="9" />
+      </svg>
+      <Spinner
+        :size="20"
+        class="absolute inset-0 stroke-2 text-n-brand motion-reduce:animate-none"
+      />
+    </span>
     <Icon
       v-else
       :icon="
@@ -41,7 +51,10 @@ const accent = computed(
       aria-hidden="true"
     />
     <div class="min-w-0 flex-1">
-      <p class="m-0 break-words text-sm font-medium text-n-slate-12">
+      <p
+        :title="task.title"
+        class="m-0 truncate text-sm font-medium text-n-slate-12"
+      >
         {{ task.title }}
       </p>
       <p

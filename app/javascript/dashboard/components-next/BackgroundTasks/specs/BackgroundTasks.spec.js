@@ -64,15 +64,30 @@ describe('background task tray', () => {
       expect(wrapper.text()).toContain('Importing contacts');
       expect(wrapper.classes()).toContain('animate-fade-in-up');
       expect(wrapper.classes()).toContain('motion-reduce:animate-none');
+      expect(wrapper.classes()).toContain('border-n-weak');
+      expect(wrapper.get('[title="Contacts"]').classes()).toContain('truncate');
+      expect(wrapper.findAll('[title="Contacts"]')).toHaveLength(1);
       expect(wrapper.findComponent(Spinner).exists()).toBe(
         status === 'running'
       );
-      if (status === 'running')
+      if (status === 'running') {
         expect(wrapper.getComponent(Spinner).classes()).toContain(
           'motion-reduce:animate-none'
         );
-      else {
+        expect(wrapper.getComponent(Spinner).classes()).toContain(
+          'text-n-brand'
+        );
+        expect(wrapper.getComponent(Spinner).classes()).toContain('stroke-2');
+        expect(wrapper.get('.stroke-n-blue-5 circle').attributes('r')).toBe(
+          '9'
+        );
+        expect(wrapper.classes()).toContain('border-s-n-brand');
+        expect(wrapper.classes()).not.toContain('border-n-brand');
+      } else {
         expect(wrapper.classes()).toContain(
+          status === 'success' ? 'border-s-n-teal-9' : 'border-s-n-ruby-9'
+        );
+        expect(wrapper.classes()).not.toContain(
           status === 'success' ? 'border-n-teal-9' : 'border-n-ruby-9'
         );
         expect(wrapper.classes()).toContain(
@@ -103,12 +118,12 @@ describe('background task tray', () => {
       wrapper
         .findAllComponents(BackgroundTaskItem)
         .map(item => item.props('task').id)
-    ).toEqual(['import:1', 'import:2']);
+    ).toEqual(['import:2', 'import:1']);
     await store.dispatch('backgroundTasks/dismiss', 'import:2');
     expect(wrapper.findAllComponents(BackgroundTaskItem)).toHaveLength(1);
   });
 
-  it('limits ordinary notices to three and counts the rest without hiding errors', async () => {
+  it('limits only running notices to three and counts the rest without hiding errors', async () => {
     const i18n = createI18n({ legacy: false, locale: 'es', messages: { es } });
     await Promise.all(
       Array.from({ length: 5 }, (_, index) =>
@@ -135,36 +150,75 @@ describe('background task tray', () => {
       .findAllComponents(BackgroundTaskItem)
       .map(item => item.props('task').id);
     expect(shown).toEqual([
-      'import:1',
-      'import:2',
-      'import:3',
-      'error:1',
       'error:2',
+      'error:1',
+      'import:5',
+      'import:4',
+      'import:3',
     ]);
     expect(wrapper.text()).toContain('+2 más');
-    await store.dispatch('backgroundTasks/dismiss', 'import:1');
+    await store.dispatch('backgroundTasks/dismiss', 'import:5');
     expect(
       wrapper
         .findAllComponents(BackgroundTaskItem)
         .map(item => item.props('task').id)
-    ).toContain('import:4');
+    ).toContain('import:2');
     expect(wrapper.text()).toContain('+1 más');
   });
 
-  it('shows every error even when there are more than three', async () => {
+  it.each(['success', 'error'])(
+    'shows every %s even when there are more than three',
+    async status => {
+      await Promise.all(
+        Array.from({ length: 5 }, (_, index) =>
+          store.dispatch('backgroundTasks/upsert', {
+            ...task(status),
+            id: `error:${index + 1}`,
+          })
+        )
+      );
+      wrapper = mount(BackgroundTaskTray, {
+        global: { plugins: [store, router], stubs: { teleport: true } },
+      });
+      expect(wrapper.findAllComponents(BackgroundTaskItem)).toHaveLength(5);
+      expect(wrapper.find('p[role="status"]').exists()).toBe(false);
+    }
+  );
+
+  it('keeps a newly successful task visible above three running tasks for ten seconds', async () => {
     await Promise.all(
-      Array.from({ length: 5 }, (_, index) =>
+      Array.from({ length: 4 }, (_, index) =>
         store.dispatch('backgroundTasks/upsert', {
-          ...task('error'),
-          id: `error:${index + 1}`,
+          ...task('running'),
+          id: `import:${index + 1}`,
         })
       )
     );
     wrapper = mount(BackgroundTaskTray, {
       global: { plugins: [store, router], stubs: { teleport: true } },
     });
-    expect(wrapper.findAllComponents(BackgroundTaskItem)).toHaveLength(5);
+    expect(wrapper.findAllComponents(BackgroundTaskItem)).toHaveLength(3);
+    await store.dispatch('backgroundTasks/upsert', task('success'));
+    expect(
+      wrapper
+        .findAllComponents(BackgroundTaskItem)
+        .map(item => item.props('task').id)
+    ).toEqual(['import:1', 'import:4', 'import:3', 'import:2']);
+    expect(wrapper.getComponent(BackgroundTaskItem).props('task').status).toBe(
+      'success'
+    );
     expect(wrapper.find('p[role="status"]').exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(9999);
+    expect(wrapper.getComponent(BackgroundTaskItem).props('task').status).toBe(
+      'success'
+    );
+    await vi.advanceTimersByTimeAsync(1);
+    expect(wrapper.findAllComponents(BackgroundTaskItem)).toHaveLength(3);
+    expect(
+      wrapper
+        .findAllComponents(BackgroundTaskItem)
+        .every(item => item.props('task').status === 'running')
+    ).toBe(true);
   });
 
   it('keeps notices through navigation and remounting in the same account', async () => {
