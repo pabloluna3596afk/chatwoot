@@ -39,6 +39,12 @@ class ActionCableListener < BaseListener
               })
   end
 
+  def background_task_updated(event)
+    account = event.data[:account]
+    # Account-wide operational notices go to agents and admins. Linked routes still enforce their own permissions.
+    broadcast(account, user_tokens(account, account.agents), BACKGROUND_TASK_UPDATED, task: event.data[:task])
+  end
+
   def message_created(event)
     message, account = extract_message_and_account(event)
     conversation = message.conversation

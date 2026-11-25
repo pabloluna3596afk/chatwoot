@@ -1,0 +1,9 @@
+es:
+  background_tasks:
+    whatsapp_template:
+      sending: Enviando a Meta…
+      review: En revisión de Meta
+      approved: Meta aprobó la plantilla
+      rejected: Meta rechazó la plantilla
+      failed: No se pudo enviar la plantilla a Meta
+      link: Ver plantilla

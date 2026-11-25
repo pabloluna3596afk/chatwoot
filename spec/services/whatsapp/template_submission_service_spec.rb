@@ -16,6 +16,68 @@ RSpec.describe Whatsapp::TemplateSubmissionService do
     )
   end
 
+  it 'publishes one stable task id while submitting, under review, and approved by refresh' do
+    allow(BackgroundTasks::Notifier).to receive(:publish)
+    attempt = submission
+    task_id = "whatsapp_template_submission:#{attempt.id}"
+    expect(BackgroundTasks::Notifier).to have_received(:publish).with(hash_including(id: task_id, status: 'running'))
+    stub_request(:post, endpoint).to_return(status: 200, body: remote.to_json, headers: { 'Content-Type' => 'application/json' })
+    described_class.new(attempt).perform
+    expect(BackgroundTasks::Notifier).to have_received(:publish).with(hash_including(id: task_id, status: 'running')).twice
+    stub_request(:get, 'https://graph.facebook.com/v22.0/meta-1').with(query: hash_including('fields')).to_return(
+      status: 200, body: remote.merge('status' => 'APPROVED').to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+    described_class.new(attempt).perform(refresh: true)
+    expect(BackgroundTasks::Notifier).to have_received(:publish).with(hash_including(id: task_id, status: 'success')).once
+    described_class.new(attempt).perform(refresh: true)
+    expect(BackgroundTasks::Notifier).to have_received(:publish).with(hash_including(status: 'success')).once
+  end
+
+  it 'publishes a readable error when the submission fails' do
+    attempt = submission
+    allow(BackgroundTasks::Notifier).to receive(:publish)
+    stub_request(:post, endpoint).to_return(status: 400, body: { error: { code: 100, message: 'Invalid template' } }.to_json,
+                                            headers: { 'Content-Type' => 'application/json' })
+    described_class.new(attempt).perform
+    expected = { id: "whatsapp_template_submission:#{attempt.id}", status: 'error', detail: a_kind_of(String) }
+    expect(BackgroundTasks::Notifier).to have_received(:publish).with(hash_including(expected))
+    expect(attempt.reload.status).to eq('failed')
+  end
+
+  it 'recovers an approval received before the POST response stored the remote id' do
+    attempt = submission
+    payload = { entry: [{ id: waba_id, changes: [{ field: 'message_template_status_update',
+                                                   value: { event: 'APPROVED', message_template_id: 'meta-1' } }] }] }
+    stub_request(:post, endpoint).to_return do
+      Whatsapp::TemplateStatusWebhookService.new(payload).perform
+      { status: 200, body: remote.to_json, headers: { 'Content-Type' => 'application/json' } }
+    end
+    described_class.new(attempt).perform
+    expect(attempt.reload.remote_status).to eq('PENDING')
+    attempt.update!(updated_at: 11.minutes.ago)
+    stub_request(:get, 'https://graph.facebook.com/v22.0/meta-1').with(query: hash_including('fields')).to_return(
+      status: 200, body: remote.merge('status' => 'APPROVED').to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+    expect(BackgroundTasks::Notifier).to receive(:publish).with(hash_including(status: 'success'))
+    Whatsapp::RefreshTemplateSubmissionsJob.perform_now
+    expect(attempt.reload.remote_status).to eq('APPROVED')
+  end
+
+  it 'keeps the webhook result when an older HTTP refresh completes afterwards' do
+    stub_request(:post, endpoint).to_return(status: 200, body: remote.to_json, headers: { 'Content-Type' => 'application/json' })
+    described_class.new(submission).perform
+    stub_request(:get, 'https://graph.facebook.com/v22.0/meta-1').with(query: hash_including('fields')).to_return do
+      Whatsapp::TemplateStatusWebhookService.new(
+        entry: [{ id: waba_id, changes: [{ field: 'message_template_status_update',
+                                           value: { event: 'APPROVED', message_template_id: 'meta-1' } }] }]
+      ).perform
+      { status: 200, body: remote.to_json, headers: { 'Content-Type' => 'application/json' } }
+    end
+    expect(BackgroundTasks::Notifier).to receive(:publish).with(hash_including(status: 'success')).once
+    described_class.new(submission).perform(refresh: true)
+    expect(submission.reload.remote_status).to eq('APPROVED')
+  end
+
   it 'persists the immutable attempt before HTTP and records actual returned status/category' do
     post = stub_request(:post, endpoint).to_return do
       expect(submission.reload.status).to eq('reconciling')

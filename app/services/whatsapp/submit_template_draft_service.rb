@@ -23,6 +23,7 @@ class Whatsapp::SubmitTemplateDraftService
                                             name: @draft.name, language: snapshot.fetch('payload').fetch('language'), snapshot: snapshot,
                                             payload_digest: Digest::SHA256.hexdigest(snapshot.to_json))
     submission.media.attach(@draft.media.blob) if @draft.media.attached?
+    Whatsapp::TemplateBackgroundTask.publish(submission)
     submission
   end
 end
