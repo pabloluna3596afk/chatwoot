@@ -7,18 +7,18 @@ RSpec.describe Whatsapp::RefreshTemplateSubmissionsJob do
     create(:whatsapp_template_draft, account: account, preferred_channel: channel, waba_id: channel.provider_config.fetch('business_account_id'))
   end
   let(:attributes) do
-    { account: account, waba_id: draft.waba_id, name: draft.name, language: 'es', snapshot: { 'payload' => {} },
+    { account: account, waba_id: draft.waba_id, language: 'es', snapshot: { 'payload' => {} },
       payload_digest: 'digest', status: 'submitted', remote_id: 'meta', updated_at: 11.minutes.ago }
   end
 
   it 'refreshes only old submitted non-final states, including null, with a bounded eagerly loaded batch' do
-    pending = draft.submissions.create!(**attributes, revision: 0, remote_status: 'PENDING')
-    paused = draft.submissions.create!(**attributes, revision: 1, remote_status: 'PAUSED')
-    unknown = draft.submissions.create!(**attributes, revision: 2)
-    draft.submissions.create!(**attributes, revision: 3, remote_status: 'APPROVED')
-    draft.submissions.create!(**attributes, revision: 4, remote_status: 'REJECTED')
-    draft.submissions.create!(**attributes, revision: 5, status: 'failed')
-    draft.submissions.create!(**attributes, revision: 6, updated_at: Time.current)
+    pending = draft.submissions.create!(**attributes, name: "#{draft.name}_0", revision: 0, remote_status: 'PENDING')
+    paused = draft.submissions.create!(**attributes, name: "#{draft.name}_1", revision: 1, remote_status: 'PAUSED')
+    unknown = draft.submissions.create!(**attributes, name: "#{draft.name}_2", revision: 2)
+    draft.submissions.create!(**attributes, name: "#{draft.name}_3", revision: 3, remote_status: 'APPROVED')
+    draft.submissions.create!(**attributes, name: "#{draft.name}_4", revision: 4, remote_status: 'REJECTED')
+    draft.submissions.create!(**attributes, name: "#{draft.name}_5", revision: 5, status: 'failed')
+    draft.submissions.create!(**attributes, name: "#{draft.name}_6", revision: 6, updated_at: Time.current)
     stub_const('Whatsapp::RefreshTemplateSubmissionsJob::LIMIT', 2)
     seen = []
     allow(Whatsapp::TemplateSubmissionService).to receive(:new) do |submission|
@@ -42,8 +42,8 @@ RSpec.describe Whatsapp::RefreshTemplateSubmissionsJob do
   end
 
   it 'rotates unchanged pending rows so the next batch can make progress' do
-    first = draft.submissions.create!(**attributes, revision: 0, remote_status: 'PENDING')
-    second = draft.submissions.create!(**attributes, revision: 1, remote_status: 'PENDING')
+    first = draft.submissions.create!(**attributes, name: "#{draft.name}_0", revision: 0, remote_status: 'PENDING')
+    second = draft.submissions.create!(**attributes, name: "#{draft.name}_1", revision: 1, remote_status: 'PENDING')
     stub_const('Whatsapp::RefreshTemplateSubmissionsJob::LIMIT', 1)
     service = instance_double(Whatsapp::TemplateSubmissionService, perform: nil)
     expect(Whatsapp::TemplateSubmissionService).to receive(:new).with(have_attributes(id: first.id)).ordered.and_return(service)
