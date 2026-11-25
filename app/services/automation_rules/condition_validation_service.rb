@@ -5,6 +5,8 @@ class AutomationRules::ConditionValidationService
   EVENTS = %w[
     conversation_created conversation_updated conversation_opened conversation_resolved message_created time_triggered contact_updated
   ].freeze
+  TIME_WINDOW_HELP = 'HH:MM-HH:MM on a 24-hour clock with different start and end, plus optional weekdays ' \
+                     'such as |mon,tue (sun, mon, tue, wed, thu, fri, sat, each at most once).'.freeze
   MESSAGE_ATTRIBUTES = %w[content message_type private_note].freeze
   EQUALITY_OPERATORS = %w[equal_to not_equal_to].freeze
   PRESENCE_OPERATORS = %w[is_present is_not_present].freeze
@@ -98,6 +100,7 @@ class AutomationRules::ConditionValidationService
   def computed_condition_error(condition, filter)
     key = condition['attribute_key']
     return "The filter operator is not supported for #{key}." unless filter['filter_operators'].include?(condition['filter_operator'])
+    return time_window_error(key, condition['values']) if filter['value_format'] == 'time_window'
 
     allowed = if filter['values_catalog'] == 'channel_type'
                 Conversations::ChannelType::AUTOMATION_VALUES
@@ -108,6 +111,13 @@ class AutomationRules::ConditionValidationService
     return if values.is_a?(Array) && values.length == 1 && allowed.include?(values.first)
 
     "The value is not supported for #{key}."
+  end
+
+  def time_window_error(key, values)
+    return "#{key} requires one value such as 18:00-08:00 or 09:00-13:00|mon,tue." unless values.is_a?(Array) && values.length == 1
+    return if AutomationRules::TimeWindow.parse(values.first)
+
+    "The value for #{key} must be #{TIME_WINDOW_HELP}"
   end
 
   def campaign_condition_error(condition, filter)

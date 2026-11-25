@@ -142,6 +142,12 @@ conversations:
     data_type: "text"
     filter_operators: ["equal_to", "not_equal_to"]
     allowed_values: ["none", "ai", "escalated"]
+  message_time_window:
+    attribute_type: "computed"
+    automation_only: true
+    data_type: "text"
+    filter_operators: ["equal_to", "not_equal_to"]
+    value_format: "time_window"
 
 ### ----- End of Conversation Filters ----- ###
 
