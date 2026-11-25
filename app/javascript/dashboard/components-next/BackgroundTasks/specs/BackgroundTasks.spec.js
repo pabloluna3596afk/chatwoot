@@ -65,6 +65,15 @@ describe('background task tray', () => {
       expect(wrapper.classes()).toContain('animate-fade-in-up');
       expect(wrapper.classes()).toContain('motion-reduce:animate-none');
       expect(wrapper.classes()).toContain('border-n-weak');
+      expect(wrapper.classes()).toEqual(
+        expect.arrayContaining([
+          'px-3',
+          'py-2',
+          'gap-2',
+          'rounded-lg',
+          'shadow-md',
+        ])
+      );
       expect(wrapper.get('[title="Contacts"]').classes()).toContain('truncate');
       expect(wrapper.findAll('[title="Contacts"]')).toHaveLength(1);
       expect(wrapper.findComponent(Spinner).exists()).toBe(
@@ -78,6 +87,7 @@ describe('background task tray', () => {
           'text-n-brand'
         );
         expect(wrapper.getComponent(Spinner).classes()).toContain('stroke-2');
+        expect(wrapper.getComponent(Spinner).props('size')).toBe(16);
         expect(wrapper.get('.stroke-n-blue-5 circle').attributes('r')).toBe(
           '9'
         );
@@ -112,6 +122,14 @@ describe('background task tray', () => {
       global: { plugins: [store, router], stubs: { teleport: true } },
     });
     expect(wrapper.find('[dir="rtl"]').exists()).toBe(true);
+    expect(wrapper.get('section').classes()).toEqual(
+      expect.arrayContaining([
+        'max-w-none',
+        'sm:max-w-[18rem]',
+        'gap-1.5',
+        'p-0',
+      ])
+    );
     expect(wrapper.findAllComponents(BackgroundTaskItem)).toHaveLength(2);
     expect(wrapper.find('[aria-expanded]').exists()).toBe(false);
     expect(
@@ -336,7 +354,86 @@ describe('background task tray', () => {
       },
       global: { plugins: [router] },
     });
-    await wrapper.get('button').trigger('click');
+    expect(wrapper.get('[role="link"]').attributes('aria-label')).toBe(
+      'View import'
+    );
+    expect(wrapper.text()).not.toContain('View import');
+    expect(wrapper.find('button').exists()).toBe(false);
+    await wrapper.get('[role="link"]').trigger('click');
     expect(push).toHaveBeenCalledWith({ name: 'home' });
+  });
+
+  it('opens the linked card with Enter', async () => {
+    const push = vi.spyOn(router, 'push').mockResolvedValue();
+    wrapper = mount(BackgroundTaskItem, {
+      props: {
+        task: {
+          ...task('running'),
+          link: { label: 'View import', route: { name: 'home' } },
+        },
+      },
+      global: { plugins: [router] },
+    });
+    const card = wrapper.get('[role="link"]');
+    expect(card.attributes('tabindex')).toBe('0');
+    expect(card.attributes('aria-live')).toBe('polite');
+    await card.trigger('keydown', { key: 'Enter' });
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'home' });
+  });
+
+  it.each(['success', 'error'])(
+    'closes %s without opening the linked card',
+    async status => {
+      const push = vi.spyOn(router, 'push').mockResolvedValue();
+      wrapper = mount(BackgroundTaskItem, {
+        props: {
+          task: {
+            ...task(status),
+            link: { label: 'View import', route: { name: 'home' } },
+          },
+        },
+        global: { plugins: [router] },
+      });
+      const close = wrapper.get('button');
+      expect(close.classes()).toContain('!size-5');
+      await close.trigger('keydown', { key: 'Enter' });
+      await close.trigger('click');
+      expect(wrapper.emitted('dismiss')).toEqual([['import:1']]);
+      expect(push).not.toHaveBeenCalled();
+    }
+  );
+
+  it('truncates long names and rejection reasons with their full text in native tooltips', () => {
+    const title = 'Long template name '.repeat(20);
+    const detail = 'Long rejection reason '.repeat(40);
+    wrapper = mount(BackgroundTaskItem, {
+      props: { task: { ...task('error'), title, detail } },
+      global: { plugins: [router] },
+    });
+    const lines = wrapper.findAll('p');
+    expect(lines).toHaveLength(2);
+    expect(lines.map(line => line.attributes('title'))).toEqual([
+      title,
+      detail,
+    ]);
+    lines.forEach(line => {
+      expect(line.classes()).toContain('truncate');
+      expect(line.classes()).toContain('leading-4');
+      expect(line.classes()).not.toContain('break-words');
+    });
+  });
+
+  it('renders one text line without detail and remains noninteractive without a link', async () => {
+    const push = vi.spyOn(router, 'push').mockResolvedValue();
+    wrapper = mount(BackgroundTaskItem, {
+      props: { task: { ...task('running'), detail: null } },
+      global: { plugins: [router] },
+    });
+    expect(wrapper.findAll('p')).toHaveLength(1);
+    expect(wrapper.attributes('role')).toBe('status');
+    expect(wrapper.attributes('tabindex')).toBeUndefined();
+    expect(wrapper.classes()).toContain('min-h-11');
+    await wrapper.trigger('click');
+    expect(push).not.toHaveBeenCalled();
   });
 });

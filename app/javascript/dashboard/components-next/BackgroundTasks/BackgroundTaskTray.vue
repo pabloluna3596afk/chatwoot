@@ -51,7 +51,7 @@ watch(
       v-if="tasks.length"
       ref="tray"
       popover="manual"
-      class="pointer-events-none fixed inset-auto end-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[10000] m-0 flex max-h-[80dvh] w-[calc(100%_-_2rem)] max-w-[21.25rem] flex-col gap-2 overflow-y-auto border-0 bg-transparent p-1 rtl:end-[max(1rem,env(safe-area-inset-left))]"
+      class="pointer-events-none fixed inset-auto end-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[10000] m-0 flex max-h-[80dvh] w-[calc(100%_-_2rem)] max-w-none flex-col gap-1.5 overflow-y-auto border-0 bg-transparent p-0 sm:max-w-[18rem] rtl:end-[max(1rem,env(safe-area-inset-left))]"
       :aria-label="$t('BACKGROUND_TASKS.COUNT', { n: tasks.length })"
     >
       <BackgroundTaskItem
