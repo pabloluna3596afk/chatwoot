@@ -15,6 +15,12 @@ const { admin, push } = vi.hoisted(() => ({
   admin: { value: true },
   push: vi.fn(),
 }));
+const SubmissionDialogStub = {
+  name: 'TemplateSubmissionDialog',
+  emits: ['submit'],
+  methods: { open: vi.fn(), close: vi.fn() },
+  template: '<div />',
+};
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
 vi.mock('dashboard/composables/useAccount', () => ({
@@ -36,6 +42,7 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
     linkTemplateDraft: vi.fn(),
     prepareTemplateDrafts: vi.fn(),
     getActivationKit: vi.fn(),
+    submitTemplateDrafts: vi.fn(),
     updateReminderEnabled: vi.fn(),
   },
 }));
@@ -87,7 +94,7 @@ const render = async (
           },
         }),
       ],
-      stubs: { TemplateSubmissionDialog: true },
+      stubs: { TemplateSubmissionDialog: SubmissionDialogStub },
     },
   });
   await flushPromises();
@@ -164,6 +171,92 @@ describe('CalendarTemplates', () => {
       );
     }
   );
+  it.each([
+    [
+      {
+        status: 'failed',
+        error_details: { code: 'submission_failed' },
+        revision_current: true,
+      },
+      'Could not send the template to Meta.',
+    ],
+    [
+      {
+        status: 'submitted',
+        remote_status: 'REJECTED',
+        revision_current: true,
+      },
+      'Rejected',
+    ],
+  ])(
+    'keeps failed and rejected submissions retryable: %j',
+    async (submission, label) => {
+      const wrapper = await render({
+        confirmation: {
+          ...draft,
+          destinations: [
+            {
+              waba_id: 'waba-1',
+              channels: [{ id: 10, name: 'Sales' }],
+              state: 'pending_approval',
+              submission,
+            },
+          ],
+        },
+      });
+
+      expect(
+        wrapper.get('[data-testid="open-template-submission"]').exists()
+      ).toBe(true);
+      expect(wrapper.get('[data-testid="meta-confirmation"]').text()).toBe(
+        submission.status === 'failed' ? 'Error' : 'Rejected'
+      );
+      expect(wrapper.text()).toContain(label);
+      expect(wrapper.text()).not.toContain('CALENDAR_');
+    }
+  );
+  it('reloads after an API error and shows partial-result reasons', async () => {
+    const wrapper = await render();
+    CalendarAPI.submitTemplateDrafts.mockRejectedValueOnce(
+      new Error('offline')
+    );
+    wrapper.findComponent(SubmissionDialogStub).vm.$emit('submit', {
+      functions: ['confirmation'],
+      waba_ids: ['waba-1'],
+    });
+    await flushPromises();
+    expect(CalendarAPI.getTemplateDrafts).toHaveBeenCalledTimes(2);
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'could not be submitted'
+    );
+
+    CalendarAPI.submitTemplateDrafts.mockResolvedValueOnce({
+      data: {
+        skipped: [
+          { function: 'confirmation', waba_id: 'waba-1', reason: 'name_taken' },
+        ],
+        failed: [
+          {
+            function: 'reminder',
+            waba_id: 'waba-2',
+            reason: 'submission_failed',
+          },
+        ],
+      },
+    });
+    wrapper.findComponent(SubmissionDialogStub).vm.$emit('submit', {
+      functions: ['confirmation'],
+      waba_ids: ['waba-1'],
+    });
+    await flushPromises();
+    expect(CalendarAPI.getTemplateDrafts).toHaveBeenCalledTimes(3);
+    expect(wrapper.get('[data-testid="submission-feedback"]').text()).toContain(
+      'A different draft already uses this name'
+    );
+    expect(wrapper.get('[data-testid="submission-feedback"]').text()).toContain(
+      'Could not send the template to Meta'
+    );
+  });
   it('shows the spinner until the preview request completes', async () => {
     let finish;
     CalendarAPI.getActivationKit.mockReturnValue(

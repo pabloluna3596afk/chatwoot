@@ -59,6 +59,25 @@
       "SELECT_REQUIRED": "Select at least one account and one template.",
       "NO_ACCOUNTS": "No active WhatsApp accounts are available.",
       "ALREADY_SENT": "Already sent",
+      "SKIPPED": "Skipped {count} destination(s).",
+      "FAILED": "Could not submit to {count} destination(s).",
+      "ERRORS": {
+        "submission_failed": "Could not send the template to Meta.",
+        "draft_changed": "The draft changed before it could be sent. Review and try again.",
+        "invalid_name": "The template name is invalid.",
+        "invalid_language": "The template language is invalid.",
+        "invalid_category": "The template category is invalid.",
+        "archived": "The template draft is archived.",
+        "destination_required": "The template has no WhatsApp destination."
+      },
+      "REASONS": {
+        "already_submitted": "This revision is already being reviewed or approved.",
+        "name_taken": "A different draft already uses this name at this destination.",
+        "destination_unavailable": "The WhatsApp destination is no longer available.",
+        "source_unavailable": "The prepared template is no longer available.",
+        "submission_failed": "Could not send the template to Meta.",
+        "draft_changed": "The draft changed before it could be sent. Review and try again."
+      },
       "STATUS": "Meta status:",
       "ERROR": "The templates could not be submitted. Refresh to see the current status.",
       "STATES": {

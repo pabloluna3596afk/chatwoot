@@ -49,14 +49,21 @@ const render = (locale = 'en') =>
       stubs: { Dialog: DialogStub },
     },
   });
+const keyPaths = (value, prefix = '') =>
+  Object.entries(value)
+    .flatMap(([key, nested]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      return [
+        path,
+        ...(nested && typeof nested === 'object' ? keyPaths(nested, path) : []),
+      ];
+    })
+    .sort();
 
 describe('TemplateSubmissionDialog', () => {
   it('keeps English and Spanish submission copy in key parity', () => {
-    expect(Object.keys(en.CALENDAR_TEMPLATES.SUBMISSION)).toEqual(
-      Object.keys(es.CALENDAR_TEMPLATES.SUBMISSION)
-    );
-    expect(Object.keys(en.CALENDAR_TEMPLATES.SUBMISSION.STATES)).toEqual(
-      Object.keys(es.CALENDAR_TEMPLATES.SUBMISSION.STATES)
+    expect(keyPaths(en.CALENDAR_TEMPLATES.SUBMISSION)).toEqual(
+      keyPaths(es.CALENDAR_TEMPLATES.SUBMISSION)
     );
   });
 
@@ -96,10 +103,24 @@ describe('TemplateSubmissionDialog', () => {
     }
   );
 
-  it('emits only selected templates and accounts and keeps already sent templates disabled', async () => {
-    const wrapper = render();
+  it('emits selected templates and accounts while leaving rejected and failed templates retryable', async () => {
+    const retryableTemplates = templates.map((template, index) => ({
+      ...template,
+      disabled: index === 2,
+    }));
+    const wrapper = mount(TemplateSubmissionDialog, {
+      props: { accounts, templates: retryableTemplates },
+      global: {
+        plugins: [
+          createI18n({ legacy: false, locale: 'en', messages: { en } }),
+        ],
+        stubs: { Dialog: DialogStub },
+      },
+    });
     await wrapper.vm.open();
     const inputs = wrapper.findAll('input[type="checkbox"]');
+    expect(inputs[2].attributes('disabled')).toBeUndefined();
+    expect(inputs[3].attributes('disabled')).toBeUndefined();
     expect(inputs[4].attributes('disabled')).toBeDefined();
     await inputs[1].setValue(true);
     await inputs[3].setValue(false);

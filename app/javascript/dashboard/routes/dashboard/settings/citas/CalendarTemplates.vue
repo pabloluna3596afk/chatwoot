@@ -33,6 +33,7 @@ const COLORS = {
   REJECTED: 'ruby',
   PAUSED: 'amber',
   DISABLED: 'ruby',
+  ERROR: 'ruby',
 };
 const { t, te } = useI18n();
 const { isAdmin } = useAdmin();
@@ -48,6 +49,7 @@ const loading = ref(true);
 const submitting = ref(false);
 const submissionError = ref(false);
 const submissionDialog = ref(null);
+const submissionFeedback = ref({ skipped: [], failed: [] });
 const loadFailed = ref(false);
 const preparing = ref(false);
 const savingReminder = ref(false);
@@ -60,12 +62,12 @@ const metaStatus = result => {
   const submissions = (result.destinations || [])
     .map(destination => destination.submission)
     .filter(Boolean);
+  if (submissions.some(submission => submission.status === 'failed'))
+    return 'ERROR';
   const remoteStatus = submissions.find(
     submission => submission.remote_status
   )?.remote_status;
   if (remoteStatus) return remoteStatus;
-  if (submissions.some(submission => submission.status === 'failed'))
-    return 'REJECTED';
   if (
     submissions.some(submission =>
       ['submitting', 'reconciling', 'submitted'].includes(submission.status)
@@ -104,6 +106,25 @@ const submissionTemplateDescription = key => {
   return t('CALENDAR_TEMPLATES.DESCRIPTIONS.reminder');
 };
 const submissionStatusLabel = submission => {
+  if (submission.status === 'failed') {
+    const code = submission.error_details?.code || 'submission_failed';
+    switch (code) {
+      case 'draft_changed':
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.draft_changed');
+      case 'invalid_name':
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.invalid_name');
+      case 'invalid_language':
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.invalid_language');
+      case 'invalid_category':
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.invalid_category');
+      case 'archived':
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.archived');
+      case 'destination_required':
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.destination_required');
+      default:
+        return t('CALENDAR_TEMPLATES.SUBMISSION.ERRORS.submission_failed');
+    }
+  }
   const status = submission.remote_status?.toLowerCase();
   if (status === 'approved')
     return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.approved');
@@ -117,9 +138,23 @@ const submissionStatusLabel = submission => {
     return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.in_appeal');
   if (status === 'flagged')
     return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.flagged');
-  return submission.status === 'failed'
-    ? t('CALENDAR_TEMPLATES.SUBMISSION.STATES.error')
-    : t('CALENDAR_TEMPLATES.SUBMISSION.STATES.pending');
+  return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.pending');
+};
+const submissionReasonLabel = reason => {
+  switch (reason) {
+    case 'already_submitted':
+      return t('CALENDAR_TEMPLATES.SUBMISSION.REASONS.already_submitted');
+    case 'name_taken':
+      return t('CALENDAR_TEMPLATES.SUBMISSION.REASONS.name_taken');
+    case 'destination_unavailable':
+      return t('CALENDAR_TEMPLATES.SUBMISSION.REASONS.destination_unavailable');
+    case 'source_unavailable':
+      return t('CALENDAR_TEMPLATES.SUBMISSION.REASONS.source_unavailable');
+    case 'draft_changed':
+      return t('CALENDAR_TEMPLATES.SUBMISSION.REASONS.draft_changed');
+    default:
+      return t('CALENDAR_TEMPLATES.SUBMISSION.REASONS.submission_failed');
+  }
 };
 const reminderDestinations = computed(
   () => results.value.reminder?.destinations || []
@@ -128,12 +163,17 @@ const accounts = computed(() => {
   const destinations = rows.value.flatMap(row => row.result.destinations || []);
   return [...new Map(destinations.map(item => [item.waba_id, item])).values()];
 });
+const isSubmissionBlocked = submission =>
+  submission?.revision_current &&
+  !['REJECTED', 'PAUSED', 'DISABLED'].includes(submission.remote_status) &&
+  (['submitting', 'reconciling', 'submitted'].includes(submission.status) ||
+    ['APPROVED', 'PENDING', 'IN_APPEAL'].includes(submission.remote_status));
 const hasUnsentTemplates = computed(() =>
   rows.value.some(
     row =>
       row.result.draft_exists &&
       (row.result.destinations || []).some(
-        destination => !destination.submission
+        destination => !isSubmissionBlocked(destination.submission)
       )
   )
 );
@@ -144,12 +184,15 @@ const submissionTemplates = computed(() =>
       key: row.key,
       title: submissionTemplateName(row.key),
       description: submissionTemplateDescription(row.key),
-      disabled: accounts.value.every(
-        account =>
-          (results.value[row.key]?.destinations || []).find(
-            destination => destination.waba_id === account.waba_id
-          )?.submission
-      ),
+      disabled:
+        accounts.value.length > 0 &&
+        accounts.value.every(account =>
+          isSubmissionBlocked(
+            (results.value[row.key]?.destinations || []).find(
+              destination => destination.waba_id === account.waba_id
+            )?.submission
+          )
+        ),
     }))
 );
 const canEnableReminder = computed(
@@ -228,13 +271,18 @@ const submitForReview = async selection => {
   if (submitting.value) return;
   submitting.value = true;
   submissionError.value = false;
+  submissionFeedback.value = { skipped: [], failed: [] };
   try {
-    await CalendarAPI.submitTemplateDrafts(selection);
-    await load();
+    const { data } = await CalendarAPI.submitTemplateDrafts(selection);
+    submissionFeedback.value = {
+      skipped: data.skipped || [],
+      failed: data.failed || [],
+    };
     submissionDialog.value?.close();
   } catch {
     submissionError.value = true;
   } finally {
+    await load();
     submitting.value = false;
   }
 };
@@ -474,14 +522,14 @@ onMounted(load);
             <p
               v-if="
                 destination.submission?.remote_reason ||
-                destination.submission?.error_details?.detail
+                destination.submission?.status === 'failed'
               "
               class="m-0 break-words text-body-main text-n-ruby-11"
               role="alert"
             >
               {{
                 destination.submission.remote_reason ||
-                destination.submission.error_details.detail
+                submissionStatusLabel(destination.submission)
               }}
             </p>
             <p
@@ -575,6 +623,41 @@ onMounted(load);
       >
         {{ $t('CALENDAR_TEMPLATES.SUBMISSION.ERROR') }}
       </p>
+      <div
+        v-if="
+          submissionFeedback.skipped.length || submissionFeedback.failed.length
+        "
+        class="flex flex-col gap-1 text-body-main text-n-slate-11"
+        role="status"
+        data-testid="submission-feedback"
+      >
+        <p v-if="submissionFeedback.skipped.length" class="m-0">
+          {{
+            $t('CALENDAR_TEMPLATES.SUBMISSION.SKIPPED', {
+              count: submissionFeedback.skipped.length,
+            })
+          }}
+        </p>
+        <p v-if="submissionFeedback.failed.length" class="m-0 text-n-ruby-11">
+          {{
+            $t('CALENDAR_TEMPLATES.SUBMISSION.FAILED', {
+              count: submissionFeedback.failed.length,
+            })
+          }}
+        </p>
+        <ul class="m-0 ps-5">
+          <li
+            v-for="(item, index) in [
+              ...submissionFeedback.skipped,
+              ...submissionFeedback.failed,
+            ]"
+            :key="`${item.function}:${item.waba_id}:${index}`"
+          >
+            <span>{{ submissionReasonLabel(item.reason) }}</span>
+            <span>{{ $t('CITAS_PANEL.WABA', { id: item.waba_id }) }}</span>
+          </li>
+        </ul>
+      </div>
       <TemplateSubmissionDialog
         ref="submissionDialog"
         :accounts="accounts"

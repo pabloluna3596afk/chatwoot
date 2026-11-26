@@ -59,6 +59,25 @@
       "SELECT_REQUIRED": "Elige al menos una cuenta y una plantilla.",
       "NO_ACCOUNTS": "No hay cuentas activas de WhatsApp disponibles.",
       "ALREADY_SENT": "Ya enviada",
+      "SKIPPED": "Se omitieron {count} destinos.",
+      "FAILED": "No se pudo enviar a {count} destinos.",
+      "ERRORS": {
+        "submission_failed": "No se pudo enviar la plantilla a Meta.",
+        "draft_changed": "El borrador cambió antes del envío. Revísalo e inténtalo de nuevo.",
+        "invalid_name": "El nombre de la plantilla no es válido.",
+        "invalid_language": "El idioma de la plantilla no es válido.",
+        "invalid_category": "La categoría de la plantilla no es válida.",
+        "archived": "El borrador de la plantilla está archivado.",
+        "destination_required": "La plantilla no tiene un destino de WhatsApp."
+      },
+      "REASONS": {
+        "already_submitted": "Esta revisión ya está en curso o aprobada.",
+        "name_taken": "Otro borrador ya usa este nombre en el destino.",
+        "destination_unavailable": "El destino de WhatsApp ya no está disponible.",
+        "source_unavailable": "La plantilla preparada ya no está disponible.",
+        "submission_failed": "No se pudo enviar la plantilla a Meta.",
+        "draft_changed": "El borrador cambió antes del envío. Revísalo e inténtalo de nuevo."
+      },
       "STATUS": "Estado de Meta:",
       "ERROR": "No se pudieron enviar las plantillas. Actualiza para ver el estado actual.",
       "STATES": {
