@@ -23,6 +23,13 @@ describe('time based automation conditions', () => {
     expect(condition(event, 'message_time_window')).toMatchObject({
       name: 'MESSAGE_TIME_WINDOW',
       inputType: 'time_window',
+      filterOperators: [
+        { value: 'equal_to', label: 'AUTOMATION.TIME_WINDOW.OPERATOR_INSIDE' },
+        {
+          value: 'not_equal_to',
+          label: 'AUTOMATION.TIME_WINDOW.OPERATOR_OUTSIDE',
+        },
+      ],
     });
   });
 

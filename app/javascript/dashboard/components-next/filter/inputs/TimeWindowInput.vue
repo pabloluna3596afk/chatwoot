@@ -5,28 +5,30 @@ import TimeField from 'next/time-field/TimeField.vue';
 import {
   TIME_WINDOW_DAYS,
   buildTimeWindow,
+  getTimeWindowState,
   parseTimeWindow,
 } from 'dashboard/helper/timeWindow';
 
-const modelValue = defineModel({ type: String, default: '' });
+defineProps({
+  disabled: { type: Boolean, default: false },
+});
+const modelValue = defineModel({ type: [String, Array], default: '' });
 
 const { t } = useI18n();
 
-const DAY_LABEL_KEYS = {
-  sun: 'SUNDAY',
-  mon: 'MONDAY',
-  tue: 'TUESDAY',
-  wed: 'WEDNESDAY',
-  thu: 'THURSDAY',
-  fri: 'FRIDAY',
-  sat: 'SATURDAY',
-};
-
-const initial = parseTimeWindow(modelValue.value);
+const getModelString = value => (Array.isArray(value) ? value[0] : value);
+const initial = parseTimeWindow(getModelString(modelValue.value));
 const from = ref(initial?.from || '');
 const to = ref(initial?.to || '');
 const days = ref(initial?.days || []);
-
+// An empty day list means every day is allowed; explicit days are a restriction.
+const hasRestrictedDays = computed(() => days.value.length > 0);
+const selectedDays = computed(() =>
+  days.value.length ? days.value : TIME_WINDOW_DAYS
+);
+const state = computed(() =>
+  getTimeWindowState({ from: from.value, to: to.value })
+);
 const composed = computed(() =>
   buildTimeWindow({ from: from.value, to: to.value, days: days.value })
 );
@@ -34,8 +36,8 @@ const composed = computed(() =>
 // Only resync from outside when the parent really changed the value (loading a saved rule,
 // switching attribute); echoing our own output back would erase half-filled fields.
 watch(modelValue, value => {
-  if (value === composed.value) return;
-  const parsed = parseTimeWindow(value);
+  if (getModelString(value) === composed.value) return;
+  const parsed = parseTimeWindow(getModelString(value));
   from.value = parsed?.from || '';
   to.value = parsed?.to || '';
   days.value = parsed?.days || [];
@@ -45,55 +47,130 @@ watch(composed, value => {
   if (value !== modelValue.value) modelValue.value = value;
 });
 
-const dayOptions = computed(() =>
-  TIME_WINDOW_DAYS.map(key => {
-    const name = t(`DAYS_OF_WEEK.${DAY_LABEL_KEYS[key]}`);
-    return { key, name, short: name.slice(0, 3) };
-  })
-);
+const dayOptions = computed(() => [
+  {
+    key: 'sun',
+    name: t('DAYS_OF_WEEK.SUNDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_SUN'),
+  },
+  {
+    key: 'mon',
+    name: t('DAYS_OF_WEEK.MONDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_MON'),
+  },
+  {
+    key: 'tue',
+    name: t('DAYS_OF_WEEK.TUESDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_TUE'),
+  },
+  {
+    key: 'wed',
+    name: t('DAYS_OF_WEEK.WEDNESDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_WED'),
+  },
+  {
+    key: 'thu',
+    name: t('DAYS_OF_WEEK.THURSDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_THU'),
+  },
+  {
+    key: 'fri',
+    name: t('DAYS_OF_WEEK.FRIDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_FRI'),
+  },
+  {
+    key: 'sat',
+    name: t('DAYS_OF_WEEK.SATURDAY'),
+    short: t('AUTOMATION.TIME_WINDOW.DAY_SHORT_SAT'),
+  },
+]);
 
 const toggleDay = key => {
-  days.value = days.value.includes(key)
-    ? days.value.filter(day => day !== key)
-    : [...days.value, key];
+  if (selectedDays.value.length === 1 && selectedDays.value.includes(key)) {
+    return;
+  }
+  days.value = selectedDays.value.includes(key)
+    ? selectedDays.value.filter(day => day !== key)
+    : [...selectedDays.value, key];
 };
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 min-w-0">
-    <div class="flex flex-wrap items-end gap-2">
-      <div class="w-36">
-        <TimeField v-model="from" :label="t('AUTOMATION.TIME_WINDOW.FROM')" />
-      </div>
-      <div class="w-36">
-        <TimeField v-model="to" :label="t('AUTOMATION.TIME_WINDOW.TO')" />
-      </div>
-    </div>
-    <div
-      class="flex flex-wrap gap-1"
-      role="group"
-      :aria-label="t('AUTOMATION.TIME_WINDOW.DAYS')"
-    >
-      <button
-        v-for="day in dayOptions"
-        :key="day.key"
-        type="button"
-        class="px-2 py-1 text-xs rounded-md outline outline-1 -outline-offset-1"
-        :class="
-          days.includes(day.key)
-            ? 'bg-n-brand text-white outline-n-brand'
-            : 'bg-n-solid-1 text-n-slate-12 outline-n-weak hover:bg-n-alpha-2'
-        "
-        :aria-pressed="days.includes(day.key)"
-        :aria-label="day.name"
-        :title="day.name"
-        @click="toggleDay(day.key)"
+  <div
+    class="flex w-full min-w-0 flex-col gap-2 p-0"
+    :class="{ 'pointer-events-none opacity-50': disabled }"
+    :aria-disabled="disabled"
+  >
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <label
+        dir="ltr"
+        class="flex min-w-0 flex-none items-center gap-2 text-xs text-n-slate-11"
       >
-        {{ day.short }}
-      </button>
+        <span>{{ t('AUTOMATION.TIME_WINDOW.FROM') }}</span>
+        <TimeField
+          v-model="from"
+          class="w-28 flex-none"
+          :disabled="disabled"
+          :message-type="state === 'same' ? 'error' : 'info'"
+        />
+      </label>
+      <label
+        dir="ltr"
+        class="flex min-w-0 flex-none items-center gap-2 text-xs text-n-slate-11"
+      >
+        <span>{{ t('AUTOMATION.TIME_WINDOW.TO') }}</span>
+        <TimeField
+          v-model="to"
+          class="w-28 flex-none"
+          :disabled="disabled"
+          :message-type="state === 'same' ? 'error' : 'info'"
+        />
+      </label>
+      <div
+        class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2"
+        role="group"
+        :aria-label="t('AUTOMATION.TIME_WINDOW.DAYS')"
+      >
+        <span class="text-xs font-medium text-n-slate-11">
+          {{ t('AUTOMATION.TIME_WINDOW.DAYS_LABEL') }}
+        </span>
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            v-for="day in dayOptions"
+            :key="day.key"
+            type="button"
+            class="size-8 shrink-0 rounded-md p-0 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand"
+            :class="
+              selectedDays.includes(day.key)
+                ? hasRestrictedDays
+                  ? 'bg-n-brand text-white outline-n-brand'
+                  : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak'
+                : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak hover:bg-n-alpha-3'
+            "
+            :aria-pressed="selectedDays.includes(day.key)"
+            :aria-disabled="
+              selectedDays.length === 1 && selectedDays.includes(day.key)
+            "
+            :aria-label="day.name"
+            :title="
+              selectedDays.length === 1 && selectedDays.includes(day.key)
+                ? t('AUTOMATION.TIME_WINDOW.MIN_DAY')
+                : day.name
+            "
+            @click="toggleDay(day.key)"
+          >
+            {{ day.short }}
+          </button>
+        </div>
+      </div>
     </div>
-    <p class="m-0 text-xs text-n-slate-11">
-      {{ t('AUTOMATION.TIME_WINDOW.HINT') }}
+
+    <p
+      v-if="state === 'same'"
+      class="m-0 text-xs leading-4 text-n-ruby-11"
+      aria-live="polite"
+    >
+      {{ t('AUTOMATION.TIME_WINDOW.ERROR_SAME') }}
     </p>
   </div>
 </template>

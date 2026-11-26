@@ -31,6 +31,21 @@ describe('TimeField', () => {
     expect(wrapper.get('input').element.value).toBe('10:00');
     wrapper.unmount();
   });
+  it('selects a time after blur from an empty field without showing an error', async () => {
+    const wrapper = mountField({ modelValue: '' });
+    await wrapper.get('input').trigger('click');
+    await wrapper.get('input').trigger('blur');
+    const option = wrapper
+      .findAll('[role="option"]')
+      .find(item => item.text() === '09:15');
+    await option.trigger('mousedown');
+    await option.trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([['09:15']]);
+    expect(wrapper.get('input').attributes('aria-invalid')).toBe('false');
+    expect(wrapper.text()).not.toContain('Enter a valid time');
+    wrapper.unmount();
+  });
   it('centers the list on the current quarter hour without a selection', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2030, 0, 15, 14, 30));

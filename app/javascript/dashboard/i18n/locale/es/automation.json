@@ -318,10 +318,32 @@
       "URGENT": "Urgente"
     },
     "TIME_WINDOW": {
+      "OPERATOR_INSIDE": "Dentro de",
+      "OPERATOR_OUTSIDE": "Fuera de",
       "FROM": "Desde",
       "TO": "Hasta",
       "DAYS": "Días de la semana",
-      "HINT": "Usa la zona horaria de la bandeja. Sin días seleccionados se aplica todos los días. Si la hora final es anterior a la inicial, el rango cruza la medianoche."
+      "DAYS_LABEL": "Días",
+      "WEEKDAYS": "Lun a vie",
+      "ALL": "Todos",
+      "SUMMARY_EMPTY": "Elige la hora de inicio y de fin.",
+      "SUMMARY_IN": "Se cumple de {from} a {to} · {days}",
+      "SUMMARY_OUT": "Se cumple fuera de {from} a {to} · {days}",
+      "INBOX_TIME_ZONE": "hora de la bandeja",
+      "OVERNIGHT": "cruza la medianoche",
+      "ERROR_SAME": "La hora de fin debe ser distinta de la de inicio.",
+      "MIN_DAY": "Elige al menos un día.",
+      "DAY_SHORT_SUN": "Dom",
+      "DAY_SHORT_MON": "Lun",
+      "DAY_SHORT_TUE": "Mar",
+      "DAY_SHORT_WED": "Mié",
+      "DAY_SHORT_THU": "Jue",
+      "DAY_SHORT_FRI": "Vie",
+      "DAY_SHORT_SAT": "Sáb",
+      "SUMMARY_ALL_DAYS": "Todos los d\u00edas",
+      "SUMMARY_WEEKDAYS": "Lun a vie",
+      "SUMMARY_ROW_IN": "Hora del mensaje: dentro de {summary}",
+      "SUMMARY_ROW_OUT": "Hora del mensaje: fuera de {summary}"
     },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Tipo de mensaje",
