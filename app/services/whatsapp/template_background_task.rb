@@ -1,6 +1,7 @@
 class Whatsapp::TemplateBackgroundTask
   ERROR_STATUSES = %w[REJECTED DISABLED PAUSED FLAGGED].freeze
-  FINAL_STATUSES = %w[APPROVED REJECTED DISABLED PAUSED FLAGGED].freeze
+  FINAL_STATUSES = %w[APPROVED REJECTED].freeze
+  RESULT_STATUSES = %w[APPROVED REJECTED DISABLED PAUSED FLAGGED].freeze
   REMOTE_STATES = { 'APPROVED' => %w[success approved], 'REJECTED' => %w[error rejected], 'DISABLED' => %w[error rejected],
                     'PAUSED' => %w[error rejected], 'FLAGGED' => %w[error rejected] }.freeze
 
@@ -13,9 +14,9 @@ class Whatsapp::TemplateBackgroundTask
   def self.tasks(account, _user)
     scope = WhatsappTemplateSubmission.where(account: account)
     active = scope.where(status: %w[submitting reconciling submitted])
-                  .where('remote_status IS NULL OR remote_status NOT IN (?)', FINAL_STATUSES)
+                  .where('remote_status IS NULL OR remote_status NOT IN (?)', RESULT_STATUSES)
     recent = scope.where('updated_at >= ?', 24.hours.ago)
-                  .where("status = 'failed' OR remote_status IN (?)", FINAL_STATUSES)
+                  .where("status = 'failed' OR remote_status IN (?)", RESULT_STATUSES)
     (active.order(updated_at: :desc, id: :desc).includes(:account).to_a +
       recent.order(updated_at: :desc, id: :desc).limit(BackgroundTasks::Sources::LIMIT).includes(:account).to_a)
       .uniq(&:id).map { |submission| task_payload(submission) }
