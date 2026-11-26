@@ -5,6 +5,8 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key, params) => {
       const translated = {
+        'AUTOMATION.TIME_WINDOW.FROM': 'Desde',
+        'AUTOMATION.TIME_WINDOW.TO': 'Hasta',
         'AUTOMATION.TIME_WINDOW.SUMMARY_ALL_DAYS': 'Todos los días',
         'AUTOMATION.TIME_WINDOW.SUMMARY_WEEKDAYS': 'Lun a vie',
         'AUTOMATION.TIME_WINDOW.SUMMARY_EMPTY':
@@ -162,9 +164,11 @@ describe('TimeWindowInput', () => {
       expect.arrayContaining(['grid-cols-7', 'min-w-0'])
     );
     expect(
-      wrapper.findAll('button[aria-pressed]').every(button =>
-        button.classes().some(className => className === 'h-7')
-      )
+      wrapper
+        .findAll('button[aria-pressed]')
+        .every(button =>
+          button.classes().some(className => className === 'h-7')
+        )
     ).toBe(true);
     expect(
       wrapper
