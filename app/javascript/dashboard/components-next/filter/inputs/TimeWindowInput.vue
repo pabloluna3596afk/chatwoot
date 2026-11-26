@@ -119,7 +119,7 @@ const setDays = nextDays => {
     :class="{ 'pointer-events-none opacity-50': disabled }"
     :aria-disabled="disabled"
   >
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid min-w-0 grid-cols-2 gap-2">
       <div dir="ltr" class="min-w-0">
         <TimeField
           v-model="from"
@@ -166,7 +166,7 @@ const setDays = nextDays => {
     </div>
 
     <div
-      class="grid grid-cols-7 gap-1"
+      class="grid min-w-0 grid-cols-7 gap-1"
       role="group"
       :aria-label="t('AUTOMATION.TIME_WINDOW.DAYS')"
     >
@@ -174,10 +174,12 @@ const setDays = nextDays => {
         v-for="day in dayOptions"
         :key="day.key"
         type="button"
-        class="h-11 min-w-11 rounded-lg px-1 text-sm font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand"
+        class="h-11 min-w-0 rounded-lg px-0.5 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand sm:px-1 sm:text-sm"
         :class="
           selectedDays.includes(day.key)
-            ? 'bg-n-brand text-white outline-n-brand'
+            ? isShortcutActive('all')
+              ? 'bg-n-brand/15 text-n-brand outline-n-brand/30'
+              : 'bg-n-brand text-white outline-n-brand'
             : 'bg-n-solid-1 text-n-slate-11 outline-n-weak hover:bg-n-alpha-3'
         "
         :aria-pressed="selectedDays.includes(day.key)"
@@ -197,7 +199,7 @@ const setDays = nextDays => {
     </div>
 
     <p
-      class="m-0 truncate text-sm"
+      class="m-0 min-w-0 whitespace-normal break-words text-sm"
       :class="
         state === 'same'
           ? 'text-n-ruby-11'
@@ -206,7 +208,6 @@ const setDays = nextDays => {
             : 'text-n-slate-12'
       "
       aria-live="polite"
-      :title="summary"
     >
       {{ summary }}
     </p>

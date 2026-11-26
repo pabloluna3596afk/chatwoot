@@ -216,7 +216,10 @@ defineExpose({ validate, resetValidation });
       <div
         :class="
           currentOperator?.hasInput
-            ? 'flex items-start gap-2 min-w-0'
+            ? [
+                'flex items-start gap-2 min-w-0',
+                inputType === 'timeWindow' && 'flex-1',
+              ]
             : 'contents'
         "
       >
@@ -253,6 +256,7 @@ defineExpose({ validate, resetValidation });
             v-else-if="inputType === 'timeWindow'"
             v-model="values"
             :operator="filterOperator"
+            class="min-w-0 flex-1"
           />
           <MultiTextInput
             v-else-if="inputType === 'multiText'"

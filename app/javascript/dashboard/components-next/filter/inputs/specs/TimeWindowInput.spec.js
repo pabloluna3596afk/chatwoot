@@ -109,14 +109,56 @@ describe('TimeWindowInput', () => {
   });
 
   it('provides weekday and all-day shortcuts', async () => {
-    const wrapper = mountInput('09:00-13:00|sat');
+    const wrapper = mountInput('09:00-18:00|sat');
     const shortcuts = wrapper
       .findAll('button')
       .filter(button => ['Lun a vie', 'Todos'].includes(button.text()));
     await shortcuts[0].trigger('click');
-    expect(lastEmitted(wrapper)).toBe('09:00-13:00|mon,tue,wed,thu,fri');
+    expect(lastEmitted(wrapper)).toBe('09:00-18:00|mon,tue,wed,thu,fri');
+    const weekdays = wrapper.findAll('button[aria-pressed="true"]');
+    expect(weekdays.map(button => button.attributes('aria-label'))).toEqual([
+      'Lunes',
+      'Martes',
+      'Mi\u00e9rcoles',
+      'Jueves',
+      'Viernes',
+    ]);
+    expect(wrapper.find('p[aria-live="polite"]').text()).toBe(
+      'Se cumple de 09:00 a 18:00 \u00b7 Lun a vie \u00b7 hora de la bandeja'
+    );
+    expect(
+      wrapper
+        .find('button[aria-label="S\u00e1bado"]')
+        .attributes('aria-pressed')
+    ).toBe('false');
+
+    await wrapper.setProps({ modelValue: [lastEmitted(wrapper)] });
+    expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(5);
+
     await shortcuts[1].trigger('click');
-    expect(lastEmitted(wrapper)).toBe('09:00-13:00');
+    expect(lastEmitted(wrapper)).toBe('09:00-18:00');
+    expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(7);
+    expect(wrapper.find('p[aria-live="polite"]').text()).toBe(
+      'Se cumple de 09:00 a 18:00 \u00b7 Todos los d\u00edas \u00b7 hora de la bandeja'
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps the two time fields and seven weekday buttons within flexible grids', () => {
+    const wrapper = mountInput('09:00-18:00');
+    expect(wrapper.find('.grid-cols-2').classes()).toContain('min-w-0');
+    const days = wrapper.find('[role="group"]');
+    expect(days.classes()).toEqual(
+      expect.arrayContaining(['grid-cols-7', 'min-w-0'])
+    );
+    expect(
+      wrapper
+        .findAll('button[aria-pressed]')
+        .every(button => button.classes().includes('min-w-0'))
+    ).toBe(true);
+    expect(wrapper.find('p[aria-live="polite"]').classes()).toContain(
+      'whitespace-normal'
+    );
     wrapper.unmount();
   });
 
