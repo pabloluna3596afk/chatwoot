@@ -1,0 +1,31 @@
+{
+  "BACKGROUND_TASKS": {
+    "ACTIVITY": "Actividad",
+    "TITLE": "Tareas en segundo plano",
+    "CLOSE": "Cerrar",
+    "SEPARATOR": " · ",
+    "ACTIVE_COUNT": "{count} en curso",
+    "WAITING_COUNT": "{count} en espera",
+    "NEW_ERRORS": "{count} error nuevo | {count} errores nuevos",
+    "NEW_SUCCESSES": "{count} resultados nuevos",
+    "LOADING": "Consultando actividad…",
+    "EMPTY": "No hay tareas recientes. Las operaciones que inicies aparecerán aquí.",
+    "LOAD_ERROR": "No pudimos actualizar la actividad.",
+    "UNAVAILABLE": "Actividad no disponible",
+    "RELOAD": "Volver a cargar",
+    "VIEW_ACTIVITY": "Ver actividad",
+    "NOTICE": {
+      "SUCCESS": "{count} tareas finalizaron",
+      "MIXED": "{count} tareas finalizaron; {errors} requieren atención"
+    },
+    "STATUS": {
+      "ERROR": "Requiere atención",
+      "SUCCESS": "Completada",
+      "WAITING": "En revisión",
+      "RUNNING": "En curso"
+    },
+    "SENDING": "Enviando a Meta…",
+    "REVIEW": "En revisión de Meta",
+    "VIEW_TEMPLATE": "Ver plantilla"
+  }
+}

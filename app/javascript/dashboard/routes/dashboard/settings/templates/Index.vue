@@ -459,7 +459,9 @@ const fetchTemplates = async () => {
             total = data.meta.total_count;
             page += 1;
           } while (!signal.aborted && records.length < total);
-          if (!signal.aborted) drafts.value = records;
+          if (!signal.aborted) {
+            drafts.value = records;
+          }
         } catch {
           if (!signal.aborted)
             useAlert(t('WHATSAPP_TEMPLATE_MGMT.DRAFTS.FETCH_ERROR'));

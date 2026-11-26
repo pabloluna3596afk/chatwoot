@@ -6,7 +6,8 @@ const props = defineProps({
   tone: {
     type: String,
     default: 'default',
-    validator: value => ['default', 'attention', 'urgent'].includes(value),
+    validator: value =>
+      ['default', 'attention', 'urgent', 'success'].includes(value),
   },
 });
 
@@ -25,6 +26,9 @@ const toneClass = computed(() => {
   }
   if (props.tone === 'attention') {
     return 'bg-n-amber-4 text-n-amber-11 dark:bg-n-amber-5';
+  }
+  if (props.tone === 'success') {
+    return 'bg-n-teal-3 text-n-teal-11 dark:bg-n-teal-4';
   }
   return 'bg-n-slate-4 text-n-slate-12 dark:bg-n-slate-5';
 });

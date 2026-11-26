@@ -49,6 +49,44 @@ describe('ActionCableConnector - Copilot Tests', () => {
     vi.useRealTimers();
   });
 
+  it('upserts background tasks only for the active account', () => {
+    const task = {
+      id: 'import:42',
+      kind: 'import',
+      title: 'Contacts',
+      status: 'success',
+    };
+    actionCable.onReceived({
+      event: 'background_task.updated',
+      data: { account_id: 2, task },
+    });
+    expect(mockDispatch).not.toHaveBeenCalled();
+    actionCable.onReceived({
+      event: 'background_task.updated',
+      data: { account_id: 1, task },
+    });
+    expect(mockDispatch).toHaveBeenCalledWith('backgroundTasks/upsert', task);
+  });
+
+  it('announces a live completion but not a phase or progress update', () => {
+    const task = { id: 'template:1', status: 'running', phase: 'waiting' };
+    store.$store.state = { backgroundTasks: { tasks: { [task.id]: task } } };
+    actionCable.onBackgroundTaskUpdated({
+      task: { ...task, detail: '320/800' },
+    });
+    expect(emitter.emit).not.toHaveBeenCalledWith(
+      'backgroundTask:completed',
+      expect.anything()
+    );
+    actionCable.onBackgroundTaskUpdated({
+      task: { ...task, status: 'success', phase: null },
+    });
+    expect(emitter.emit).toHaveBeenCalledWith(
+      'backgroundTask:completed',
+      expect.objectContaining({ status: 'success' })
+    );
+  });
+
   it('expires Captain typing after 30 seconds if no typing_off event arrives', () => {
     vi.useFakeTimers();
     const conversation = { id: 42 };

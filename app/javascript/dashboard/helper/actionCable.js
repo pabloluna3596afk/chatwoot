@@ -39,6 +39,7 @@ class ActionCableConnector extends BaseActionCableConnector {
     this.mentionUnreadCountsRetryTimer = null;
     this.filteredUnreadCountsRetryTimer = null;
     this.events = {
+      'background_task.updated': this.onBackgroundTaskUpdated,
       'message.created': this.onMessageCreated,
       'message.updated': this.onMessageUpdated,
       'conversation.created': this.onConversationCreated,
@@ -94,6 +95,18 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onMessageUpdated = data => {
     this.app.$store.dispatch('updateMessage', data);
+  };
+
+  onBackgroundTaskUpdated = data => {
+    const previous =
+      this.app.$store.state?.backgroundTasks?.tasks?.[data.task.id];
+    this.app.$store.dispatch('backgroundTasks/upsert', data.task);
+    if (
+      (!previous || previous.status === 'running') &&
+      ['success', 'error'].includes(data.task.status)
+    ) {
+      emitter.emit('backgroundTask:completed', data.task);
+    }
   };
 
   onPresenceUpdate = data => {

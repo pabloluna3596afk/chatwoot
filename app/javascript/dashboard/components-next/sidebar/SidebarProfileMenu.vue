@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import Auth from 'dashboard/api/auth';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
@@ -14,6 +14,7 @@ import {
   DropdownItem,
 } from 'next/dropdown-menu/base';
 import CustomBrandPolicyWrapper from '../../components/CustomBrandPolicyWrapper.vue';
+import { emitter } from 'shared/helpers/mitt';
 
 defineProps({
   isCollapsed: { type: Boolean, default: false },
@@ -26,6 +27,10 @@ defineOptions({
 });
 
 const { t } = useI18n();
+const menu = ref(null);
+const closeForActivity = () => menu.value?.close();
+onMounted(() => emitter.on('backgroundTask:opened', closeForActivity));
+onBeforeUnmount(() => emitter.off('backgroundTask:opened', closeForActivity));
 
 const currentUser = useMapGetter('getCurrentUser');
 const currentUserAvailability = useMapGetter('getCurrentUserAvailability');
@@ -129,6 +134,7 @@ const allowedMenuItems = computed(() => {
 
 <template>
   <DropdownContainer
+    ref="menu"
     class="relative min-w-0"
     :class="isCollapsed ? 'w-auto' : 'w-full'"
     @close="emit('close')"

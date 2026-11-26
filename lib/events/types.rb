@@ -5,6 +5,7 @@ module Events::Types
   # account events
   ACCOUNT_CREATED = 'account.created'
   ACCOUNT_CACHE_INVALIDATED = 'account.cache_invalidated'
+  BACKGROUND_TASK_UPDATED = 'background_task.updated'
 
   #### Account Events ###
   # campaign events

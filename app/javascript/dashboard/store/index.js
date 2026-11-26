@@ -1,6 +1,7 @@
 import { createStore } from 'vuex';
 
 import accounts from './modules/accounts';
+import backgroundTasks from './modules/backgroundTasks';
 import plans from './modules/plans';
 import agentBots from './modules/agentBots';
 import agentCapacityPolicies from './modules/agentCapacityPolicies';
@@ -74,6 +75,7 @@ const plugins = [];
 export default createStore({
   modules: {
     accounts,
+    backgroundTasks,
     plans,
     agentBots,
     agentCapacityPolicies,

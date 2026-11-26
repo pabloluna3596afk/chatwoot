@@ -193,6 +193,7 @@ Rails.application.routes.draw do
               post 'publications/:waba_id/retry', action: :retry_publish
             end
           end
+          resources :background_tasks, only: [:index]
           resources :whatsapp_template_drafts, only: [:index, :create, :show, :update, :destroy] do
             post :from_blueprint, on: :collection
             post :from_library, on: :collection
