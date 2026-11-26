@@ -10,9 +10,10 @@ class Calendar::TemplateDrafts::DestinationStatus
   def perform
     template = resolve_destination
     state, reason = template ? ['usable', nil] : unavailable
-    { 'waba_id' => waba_id, 'channels' => @channels.map { |channel| { 'id' => channel.id, 'name' => channel.inbox.name } },
-      'state' => state, 'reason' => reason, 'resource_id' => @resource&.id, 'draft_id' => draft&.id,
-      'via' => template ? resolved_via : 'none' }
+    { 'waba_id' => waba_id,
+      'channels' => @channels.map { |channel| { 'id' => channel.id, 'name' => channel.inbox.name, 'phone_number' => channel.phone_number } },
+      'state' => state, 'reason' => reason, 'resource_id' => @resource&.id, 'draft_id' => destination_draft&.id || draft&.id,
+      'via' => template ? resolved_via : 'none', 'submission' => submission_payload }
   end
 
   private
@@ -53,7 +54,7 @@ class Calendar::TemplateDrafts::DestinationStatus
     return ['incompatible', @resource.incompatibility_reason] if @resource&.status_incompatible?
     return remote_state unless draft
 
-    submission = draft.submissions.where(waba_id: waba_id, language: @language).order(revision: :desc).first
+    submission = destination_draft&.submissions&.where(waba_id: waba_id, language: @language)&.order(revision: :desc)&.first
     return submission_state(submission) if submission
 
     %w[not_submitted draft_not_submitted]
@@ -76,5 +77,18 @@ class Calendar::TemplateDrafts::DestinationStatus
     return %w[not_submitted submission_failed] if submission.status == 'failed'
 
     %w[pending_approval awaiting_approval]
+  end
+
+  def submission_payload
+    submission = destination_draft&.submissions&.where(waba_id: waba_id, language: @language)&.order(revision: :desc)&.first
+    return unless submission
+
+    submission.attributes.slice('id', 'status', 'remote_status', 'remote_reason', 'error_details')
+  end
+
+  def destination_draft
+    @destination_draft ||= @account.whatsapp_template_drafts.active.find_by(
+      name: Calendar::TemplateDefinitions::FUNCTIONS.fetch(@function), language: @language, waba_id: waba_id
+    ) || draft
   end
 end

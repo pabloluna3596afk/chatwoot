@@ -35,8 +35,10 @@ RSpec.describe Calendar::TemplateDrafts::Status do
     row = service.perform['results']['confirmation']
     expect(row).to include('ready_destinations' => 1, 'total_destinations' => 2)
     expect(row['destinations'].first['channels']).to eq([
-                                                          { 'id' => channel.id,
-                                                            'name' => channel.inbox.name }, { 'id' => second.id, 'name' => second.inbox.name }
+                                                          { 'id' => channel.id, 'name' => channel.inbox.name,
+                                                            'phone_number' => channel.phone_number },
+                                                          { 'id' => second.id, 'name' => second.inbox.name,
+                                                            'phone_number' => second.phone_number }
                                                         ])
     expect(row['destinations'].last).to include('waba_id' => 'other-waba', 'state' => 'missing', 'via' => 'none')
   end
@@ -75,7 +77,10 @@ RSpec.describe Calendar::TemplateDrafts::Status do
     submission = draft.submissions.create!(account: account, revision: 0, waba_id: draft.waba_id, name: draft.name, language: 'es',
                                            snapshot: { 'name' => draft.name }, payload_digest: 'digest',
                                            status: 'submitted', remote_status: 'PENDING')
-    expect(service.perform['results']['confirmation']['destinations'].sole).to include('state' => 'pending_approval', 'draft_id' => draft.id)
+    expect(service.perform['results']['confirmation']['destinations'].sole).to include(
+      'state' => 'pending_approval', 'draft_id' => draft.id,
+      'submission' => include('id' => submission.id, 'status' => 'submitted', 'remote_status' => 'PENDING')
+    )
     submission.update!(remote_status: 'APPROVED')
     expect(service.perform['results']['confirmation']['destinations'].sole).to include(
       'state' => 'incompatible', 'reason' => 'explicit_link_required'

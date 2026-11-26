@@ -17,6 +17,15 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
     render json: Calendar::TemplateDrafts::Provisioner.new(account: Current.account).perform(language: params[:language])
   end
 
+  def submit
+    return invalid_submission_input unless submission_input_valid?
+
+    submissions = Calendar::TemplateDrafts::Submitter.new(account: Current.account, actor: Current.user,
+                                                            functions: params[:functions], waba_ids: params[:waba_ids]).perform
+    render json: { submissions: submissions.map { |submission| submission.attributes.slice(*WhatsappTemplateDraftSerializer::SUBMISSION_FIELDS) } },
+           status: :accepted
+  end
+
   def link
     raise Whatsapp::TemplateComponentsBuilder::Invalid, 'invalid_input' unless valid_link_input?
 
@@ -36,5 +45,22 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
     else
       [:template_name, :remote_template_id].all? { |key| params[key].is_a?(String) && params[key].present? }
     end
+  end
+
+  def submission_input_valid?
+    functions = params[:functions]
+    waba_ids = params[:waba_ids]
+    return false unless functions.is_a?(Array) && functions.present? && functions.all? { |value| value.is_a?(String) }
+    return false unless functions.uniq == functions && (functions - Calendar::TemplateDefinitions::FUNCTIONS.keys).empty?
+    return false unless waba_ids.is_a?(Array) && waba_ids.present? && waba_ids.all? { |value| value.is_a?(String) && value.present? }
+    return false unless waba_ids.uniq == waba_ids
+
+    available = Current.account.whatsapp_channels.where(provider: 'whatsapp_cloud')
+                       .pluck(Arel.sql("provider_config ->> 'business_account_id'")).compact.uniq
+    (waba_ids - available).empty?
+  end
+
+  def invalid_submission_input
+    render json: { error: 'invalid_submission' }, status: :unprocessable_entity
   end
 end
