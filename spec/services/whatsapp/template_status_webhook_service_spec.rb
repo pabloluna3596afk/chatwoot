@@ -35,10 +35,10 @@ RSpec.describe Whatsapp::TemplateStatusWebhookService do
     end
   end
 
-  it 'publishes PENDING as running' do
+  it 'publishes PENDING as running and waiting for Meta review' do
     submission.update!(remote_status: 'PAUSED')
     value[:event] = 'PENDING'
-    expect(BackgroundTasks::Notifier).to receive(:publish).with(hash_including(status: 'running'))
+    expect(BackgroundTasks::Notifier).to receive(:publish).with(hash_including(status: 'running', phase: 'waiting'))
     described_class.new(params).perform
     expect(submission.reload.remote_status).to eq('PENDING')
   end
