@@ -5,8 +5,8 @@ class BackgroundTasks::Notifier
   # Register any module's task through this entry point:
   # publish(account: account, id: 'import:42', kind: 'import', title: 'Contacts', status: 'running')
   # Publish again with the same id and status: 'success' or 'error' to finish it.
-  def self.publish(account:, id:, kind:, title:, status:, phase: 'running',
-                   detail: nil, link: nil) # rubocop:disable Metrics/ParameterLists -- Shared task contract
+  def self.publish(account:, id:, kind:, title:, status:, phase: 'running', # rubocop:disable Metrics/ParameterLists -- Shared task contract
+                   detail: nil, link: nil)
     raise ArgumentError, 'Invalid background task status' unless STATUSES.include?(status)
     raise ArgumentError, 'Invalid background task phase' unless PHASES.include?(phase)
 

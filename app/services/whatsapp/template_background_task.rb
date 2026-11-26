@@ -29,11 +29,17 @@ class Whatsapp::TemplateBackgroundTask
     detail = "#{detail}: #{reason}" if status == 'error' && reason.present?
     {
       id: "whatsapp_template_submission:#{submission.id}", kind: 'whatsapp_template', title: submission.name,
-      status: status, phase: status == 'running' ? (submission.status == 'submitted' ? 'waiting' : 'running') : nil,
+      status: status, phase: phase_for(status, submission),
       updated_at: submission.updated_at.iso8601, version: submission.updated_at.to_f, detail: detail,
       link: { label: I18n.t('background_tasks.whatsapp_template.link', locale: account.locale),
               route: { name: 'settings_templates', params: { accountId: account.id }, query: { q: submission.name } } }
     }
+  end
+
+  def self.phase_for(status, submission)
+    return unless status == 'running'
+
+    submission.status == 'submitted' ? 'waiting' : 'running'
   end
 
   def self.state_for(submission)
