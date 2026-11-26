@@ -169,10 +169,9 @@ const openFromHeader = () => emitter.emit('backgroundTask:open');
       aria-hidden="true"
     />
   </button>
+  <div v-else-if="!triggerOnly" class="w-full [&>span]:flex [&>span]:w-full">
   <Popover
-    v-else-if="!triggerOnly"
     ref="panel"
-    class="w-full"
     align="start"
     side="top"
     mobile-sheet
@@ -190,7 +189,7 @@ const openFromHeader = () => emitter.emit('backgroundTask:open');
         aria-haspopup="dialog"
         :aria-label="triggerLabel"
         :title="collapsed ? triggerLabel : undefined"
-        class="relative flex h-5 min-h-5 w-full items-center gap-1.5 overflow-hidden bg-n-alpha-1 text-start text-[11px] text-n-slate-11 hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none motion-reduce:transition-none"
+        class="relative flex h-5 min-h-5 w-full items-center rounded-none gap-1.5 overflow-hidden bg-n-alpha-1 text-start text-[11px] text-n-slate-11 hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none motion-reduce:transition-none"
         :class="collapsed ? 'justify-center px-0' : 'justify-start px-3'"
       >
         <span
@@ -310,4 +309,5 @@ const openFromHeader = () => emitter.emit('backgroundTask:open');
       </section>
     </template>
   </Popover>
+  </div>
 </template>
