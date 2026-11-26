@@ -9,11 +9,7 @@ class Calendar::TemplateDrafts::DestinationStatus
 
   def perform
     template = resolve_destination
-    state, reason = template ? ['usable', nil] : unavailable
-    { 'waba_id' => waba_id,
-      'channels' => @channels.map { |channel| { 'id' => channel.id, 'name' => channel.inbox.name, 'phone_number' => channel.phone_number } },
-      'state' => state, 'reason' => reason, 'resource_id' => @resource&.id, 'draft_id' => destination_draft&.id || draft&.id,
-      'via' => template ? resolved_via : 'none', 'submission' => submission_payload }
+    destination_payload(template).merge('waba_id' => waba_id, 'channels' => channel_payload)
   end
 
   private
@@ -34,6 +30,17 @@ class Calendar::TemplateDrafts::DestinationStatus
     @resource&.status_linked? ? 'linked' : 'legacy_by_name'
   end
 
+  def destination_payload(template)
+    state, reason = template ? ['usable', nil] : unavailable
+    { 'state' => state, 'reason' => reason, 'resource_id' => @resource&.id,
+      'draft_id' => destination_draft&.id || draft&.id, 'via' => template ? resolved_via : 'none',
+      'submission' => submission_payload }
+  end
+
+  def channel_payload
+    @channels.map { |channel| { 'id' => channel.id, 'name' => channel.inbox.name, 'phone_number' => channel.phone_number } }
+  end
+
   def waba_id
     @channel.provider_config['business_account_id'].presence
   end
@@ -51,13 +58,25 @@ class Calendar::TemplateDrafts::DestinationStatus
   end
 
   def unavailable
-    return ['incompatible', @resource.incompatibility_reason] if @resource&.status_incompatible?
+    return resource_state if @resource&.status_incompatible?
     return remote_state unless draft
 
-    submission = destination_draft&.submissions&.where(waba_id: waba_id, language: @language)&.order(revision: :desc)&.first
+    submission_state_or_draft
+  end
+
+  def resource_state
+    ['incompatible', @resource.incompatibility_reason]
+  end
+
+  def submission_state_or_draft
+    submission = latest_submission
     return submission_state(submission) if submission
 
     %w[not_submitted draft_not_submitted]
+  end
+
+  def latest_submission
+    destination_draft&.submissions&.where(waba_id: waba_id, language: @language)&.order(revision: :desc)&.first
   end
 
   def remote_state
@@ -73,17 +92,31 @@ class Calendar::TemplateDrafts::DestinationStatus
 
   def submission_state(submission)
     return %w[incompatible explicit_link_required] if submission.remote_status == 'APPROVED'
-    return ['incompatible', submission.remote_status.downcase] if %w[REJECTED PAUSED DISABLED].include?(submission.remote_status)
-    return %w[not_submitted submission_failed] if submission.status == 'failed'
+    return ['incompatible', submission.remote_status.downcase] if terminal_remote_status?(submission)
+    return %w[not_submitted submission_failed] if failed_submission?(submission)
 
     %w[pending_approval awaiting_approval]
+  end
+
+  def terminal_remote_status?(submission)
+    %w[REJECTED PAUSED DISABLED].include?(submission.remote_status)
+  end
+
+  def failed_submission?(submission)
+    submission.status == 'failed'
   end
 
   def submission_payload
     submission = destination_draft&.submissions&.where(waba_id: waba_id, language: @language)&.order(revision: :desc)&.first
     return unless submission
 
-    submission.attributes.slice('id', 'status', 'remote_status', 'remote_reason', 'error_details')
+    submission.attributes.slice('id', 'revision', 'status', 'remote_status', 'remote_reason')
+              .merge('error_details' => safe_error_details(submission),
+                     'revision_current' => submission.revision == destination_draft.lock_version)
+  end
+
+  def safe_error_details(submission)
+    { 'code' => submission.error_details['code'] }.compact
   end
 
   def destination_draft

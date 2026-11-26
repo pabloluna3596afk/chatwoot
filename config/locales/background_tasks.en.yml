@@ -6,4 +6,14 @@ en:
       approved: Meta approved the template
       rejected: Meta rejected the template
       failed: Could not send the template to Meta
+      errors:
+        submission_failed: Could not send the template to Meta
+        draft_changed: The draft changed before it could be sent. Review and try again.
+        destination_unavailable: This WhatsApp destination is no longer available.
+        source_unavailable: The prepared template is no longer available.
+        invalid_name: The template name is invalid.
+        invalid_language: The template language is invalid.
+        invalid_category: The template category is invalid.
+        archived: The template draft is archived.
+        destination_required: The template has no WhatsApp destination.
       link: View template

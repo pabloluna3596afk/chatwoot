@@ -20,9 +20,9 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
   def submit
     return invalid_submission_input unless submission_input_valid?
 
-    submissions = Calendar::TemplateDrafts::Submitter.new(account: Current.account, actor: Current.user,
-                                                            functions: params[:functions], waba_ids: params[:waba_ids]).perform
-    render json: { submissions: submissions.map { |submission| submission.attributes.slice(*WhatsappTemplateDraftSerializer::SUBMISSION_FIELDS) } },
+    result = Calendar::TemplateDrafts::Submitter.new(account: Current.account, actor: Current.user,
+                                                     functions: params[:functions], waba_ids: params[:waba_ids]).perform
+    render json: { submissions: submission_payloads(result[:submissions]), skipped: result[:skipped], failed: result[:failed] },
            status: :accepted
   end
 
@@ -48,22 +48,11 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
   end
 
   def submission_input_valid?
-    functions = params[:functions]
-    waba_ids = params[:waba_ids]
-    return false unless functions.is_a?(Array) && functions.present? && functions.all? { |value| value.is_a?(String) }
-    return false unless functions.uniq == functions && (functions - Calendar::TemplateDefinitions::FUNCTIONS.keys).empty?
-    return false unless functions.all? { |function| prepared_draft_exists?(function) }
-    return false unless waba_ids.is_a?(Array) && waba_ids.present? && waba_ids.all? { |value| value.is_a?(String) && value.present? }
-    return false unless waba_ids.uniq == waba_ids
-
-    available = Current.account.whatsapp_channels.where(provider: 'whatsapp_cloud')
-                       .pluck(Arel.sql("provider_config ->> 'business_account_id'")).compact.uniq
-    (waba_ids - available).empty?
+    Calendar::TemplateDrafts::SubmissionInput.new(Current.account, params[:functions], params[:waba_ids]).valid?
   end
 
-  def prepared_draft_exists?(function)
-    draft_id = Current.account.calendar_template_preparation&.dig('results', function, 'draft_id')
-    draft_id && Current.account.whatsapp_template_drafts.active.exists?(id: draft_id)
+  def submission_payloads(submissions)
+    submissions.map { |submission| submission.attributes.slice(*WhatsappTemplateDraftSerializer::SUBMISSION_FIELDS) }
   end
 
   def invalid_submission_input

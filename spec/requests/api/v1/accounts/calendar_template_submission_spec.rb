@@ -13,6 +13,7 @@ RSpec.describe 'Calendar template submission API', type: :request do
 
   before do
     channel
+    channel.update!(provider_config: channel.provider_config.merge('business_account_id' => 'waba-1'))
     Calendar::TemplateDrafts::Provisioner.new(account: account).perform
   end
 
@@ -21,7 +22,12 @@ RSpec.describe 'Calendar template submission API', type: :request do
       .to have_enqueued_job(Whatsapp::SubmitTemplateDraftJob)
     expect(response).to have_http_status(:accepted)
     expect(response.parsed_body['submissions'].sole).to include('status' => 'submitting', 'waba_id' => 'waba-1')
+    expect(response.parsed_body).to include('skipped' => [], 'failed' => [])
     expect(Message.count).to eq(0)
+
+    expect { post path, headers: admin.create_new_auth_token, params: params, as: :json }
+      .not_to have_enqueued_job(Whatsapp::SubmitTemplateDraftJob)
+    expect(response.parsed_body['skipped']).to include(hash_including('reason' => 'already_submitted'))
   end
 
   it 'rejects an agent and invalid function or destination selections' do
@@ -36,5 +42,16 @@ RSpec.describe 'Calendar template submission API', type: :request do
     account.update!(calendar_template_preparation: account.calendar_template_preparation.deep_dup.deep_merge('results' => {}))
     post path, headers: admin.create_new_auth_token, params: params, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  it 'returns per-destination failures without exposing the exception message' do
+    allow(Whatsapp::SubmitTemplateDraftService).to receive(:new).and_raise('secret queue details')
+
+    post path, headers: admin.create_new_auth_token, params: params, as: :json
+
+    expect(response).to have_http_status(:accepted)
+    expect(response.parsed_body['submissions'].sole.dig('error_details', 'code')).to eq('submission_failed')
+    expect(response.parsed_body['failed']).to include(hash_including('reason' => 'submission_failed'))
+    expect(response.body).not_to include('secret queue details')
   end
 end
