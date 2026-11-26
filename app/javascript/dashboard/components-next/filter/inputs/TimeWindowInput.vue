@@ -117,41 +117,75 @@ const setDays = nextDays => {
 
 <template>
   <div
-    class="flex min-w-0 flex-col gap-2 rounded-xl bg-n-alpha-2 p-2"
+    class="flex w-full min-w-0 flex-col gap-2 p-0"
     :class="{ 'pointer-events-none opacity-50': disabled }"
     :aria-disabled="disabled"
   >
-    <div class="grid min-w-0 grid-cols-2 gap-2">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
       <label
         dir="ltr"
-        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 text-xs text-n-slate-11"
+        class="flex min-w-0 flex-1 items-center gap-2 text-xs text-n-slate-11"
       >
-        <span class="min-w-0">{{ t('AUTOMATION.TIME_WINDOW.FROM') }}</span>
+        <span>{{ t('AUTOMATION.TIME_WINDOW.FROM') }}</span>
         <TimeField
           v-model="from"
-          class="min-w-0"
+          class="min-w-28 flex-1"
           :disabled="disabled"
           :message-type="state === 'same' ? 'error' : 'info'"
         />
       </label>
       <label
         dir="ltr"
-        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 text-xs text-n-slate-11"
+        class="flex min-w-0 flex-1 items-center gap-2 text-xs text-n-slate-11"
       >
-        <span class="min-w-0">{{ t('AUTOMATION.TIME_WINDOW.TO') }}</span>
+        <span>{{ t('AUTOMATION.TIME_WINDOW.TO') }}</span>
         <TimeField
           v-model="to"
-          class="min-w-0"
+          class="min-w-28 flex-1"
           :disabled="disabled"
           :message-type="state === 'same' ? 'error' : 'info'"
         />
       </label>
+      <div
+        class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2"
+        role="group"
+        :aria-label="t('AUTOMATION.TIME_WINDOW.DAYS')"
+      >
+        <span class="text-xs font-medium text-n-slate-11">
+          {{ t('AUTOMATION.TIME_WINDOW.DAYS_LABEL') }}
+        </span>
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            v-for="day in dayOptions"
+            :key="day.key"
+            type="button"
+            class="size-8 shrink-0 rounded-md p-0 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand"
+            :class="
+              selectedDays.includes(day.key)
+                ? hasRestrictedDays
+                  ? 'bg-n-brand text-white outline-n-brand'
+                  : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak'
+                : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak hover:bg-n-alpha-3'
+            "
+            :aria-pressed="selectedDays.includes(day.key)"
+            :aria-disabled="
+              selectedDays.length === 1 && selectedDays.includes(day.key)
+            "
+            :aria-label="day.name"
+            :title="
+              selectedDays.length === 1 && selectedDays.includes(day.key)
+                ? t('AUTOMATION.TIME_WINDOW.MIN_DAY')
+                : day.name
+            "
+            @click="toggleDay(day.key)"
+          >
+            {{ day.short }}
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="flex min-w-0 flex-wrap items-center gap-2">
-      <span class="text-xs font-medium text-n-slate-11">
-        {{ t('AUTOMATION.TIME_WINDOW.DAYS_LABEL') }}
-      </span>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
       <Button
         type="button"
         variant="link"
@@ -178,53 +212,19 @@ const setDays = nextDays => {
         "
         @click="setDays([])"
       />
-    </div>
-
-    <div
-      class="grid min-w-0 grid-cols-7 gap-1"
-      role="group"
-      :aria-label="t('AUTOMATION.TIME_WINDOW.DAYS')"
-    >
-      <button
-        v-for="day in dayOptions"
-        :key="day.key"
-        type="button"
-        class="h-7 min-w-0 rounded-md px-0.5 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand sm:px-1"
+      <p
+        class="m-0 min-w-0 whitespace-normal break-words text-xs leading-4"
         :class="
-          selectedDays.includes(day.key)
-            ? hasRestrictedDays
-              ? 'bg-n-brand text-white outline-n-brand'
-              : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak'
-            : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak hover:bg-n-alpha-3'
+          state === 'same'
+            ? 'text-n-ruby-11'
+            : state === 'empty'
+              ? 'text-n-slate-11'
+              : 'text-n-slate-12'
         "
-        :aria-pressed="selectedDays.includes(day.key)"
-        :aria-disabled="
-          selectedDays.length === 1 && selectedDays.includes(day.key)
-        "
-        :aria-label="day.name"
-        :title="
-          selectedDays.length === 1 && selectedDays.includes(day.key)
-            ? t('AUTOMATION.TIME_WINDOW.MIN_DAY')
-            : day.name
-        "
-        @click="toggleDay(day.key)"
+        aria-live="polite"
       >
-        {{ day.short }}
-      </button>
+        {{ summary }}
+      </p>
     </div>
-
-    <p
-      class="m-0 min-w-0 whitespace-normal break-words text-xs leading-4"
-      :class="
-        state === 'same'
-          ? 'text-n-ruby-11'
-          : state === 'empty'
-            ? 'text-n-slate-11'
-            : 'text-n-slate-12'
-      "
-      aria-live="polite"
-    >
-      {{ summary }}
-    </p>
   </div>
 </template>

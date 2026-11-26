@@ -259,7 +259,7 @@ defineExpose({ validate, resetValidation });
             v-else-if="inputType === 'timeWindow'"
             v-model="values"
             :operator="filterOperator"
-            class="order-2 w-full min-w-0 basis-full"
+            class="order-2 w-full min-w-0"
           />
           <MultiTextInput
             v-else-if="inputType === 'multiText'"

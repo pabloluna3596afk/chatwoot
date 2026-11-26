@@ -55,7 +55,7 @@ describe('ConditionRow time window layout', () => {
     expect(wrapper.get('li').classes()).toContain('min-w-0');
     expect(wrapper.get('li > div').classes()).toContain('flex-wrap');
     expect(input.classes()).toEqual(
-      expect.arrayContaining(['basis-full', 'order-2', 'w-full', 'min-w-0'])
+      expect.arrayContaining(['order-2', 'w-full', 'min-w-0'])
     );
     expect(removeButton.classes()).toEqual(
       expect.arrayContaining(['order-1', 'ms-auto'])

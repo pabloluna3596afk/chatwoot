@@ -147,27 +147,35 @@ describe('TimeWindowInput', () => {
     wrapper.unmount();
   });
 
-  it('keeps compact time pairs and seven equal weekday buttons within flexible grids', () => {
+  it('keeps hours flexible beside fixed-size weekdays on a full-width row', () => {
     const wrapper = mountInput('09:00-18:00');
-    const container = wrapper.find('.rounded-xl');
-    expect(container.classes()).toEqual(
-      expect.arrayContaining(['p-2', 'gap-2', 'min-w-0'])
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining(['w-full', 'min-w-0', 'p-0'])
     );
     const timePairs = wrapper.findAll('label');
     expect(timePairs).toHaveLength(2);
     expect(timePairs.map(pair => pair.text())).toEqual(['Desde', 'Hasta']);
-    expect(timePairs.every(pair => pair.classes().includes('min-w-0'))).toBe(
-      true
-    );
+    expect(
+      timePairs.every(
+        pair =>
+          pair.classes().includes('flex-1') &&
+          pair
+            .findComponent({ name: 'TimeField' })
+            .classes()
+            .includes('flex-1') &&
+          pair
+            .findComponent({ name: 'TimeField' })
+            .classes()
+            .includes('min-w-28')
+      )
+    ).toBe(true);
     const days = wrapper.find('[role="group"]');
-    expect(days.classes()).toEqual(
-      expect.arrayContaining(['grid-cols-7', 'min-w-0'])
-    );
+    expect(days.classes()).toEqual(expect.arrayContaining(['shrink-0']));
     expect(
       wrapper
         .findAll('button[aria-pressed]')
         .every(button =>
-          button.classes().some(className => className === 'h-7')
+          button.classes().some(className => className === 'size-8')
         )
     ).toBe(true);
     expect(
@@ -180,12 +188,12 @@ describe('TimeWindowInput', () => {
         .findAll('button[aria-pressed]')
         .every(button => button.classes().includes('focus-visible:outline-2'))
     ).toBe(true);
-    expect(wrapper.find('p[aria-live="polite"]').classes()).toContain(
-      'whitespace-normal'
+    const details = wrapper.find('p[aria-live="polite"]');
+    expect(details.classes()).toEqual(
+      expect.arrayContaining(['whitespace-normal', 'text-xs', 'min-w-0'])
     );
-    expect(wrapper.find('p[aria-live="polite"]').classes()).toContain(
-      'text-xs'
-    );
+    expect(details.element.parentElement.className).toContain('flex-wrap');
+    expect(details.element.parentElement.children).toHaveLength(3);
     wrapper.unmount();
   });
 
