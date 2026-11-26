@@ -12,6 +12,7 @@ import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { buildCaptainMenu } from './captainMenu';
 import { buildCitasMenu } from './citasMenu';
 import { useAlert } from 'dashboard/composables';
+import ActivityButton from 'dashboard/components-next/BackgroundTasks/ActivityButton.vue';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -1207,6 +1208,7 @@ const menuItems = computed(() => {
           isEffectivelyCollapsed
         "
       />
+      <ActivityButton :collapsed="isEffectivelyCollapsed" class="w-full" />
       <div
         class="px-1 py-1.5 flex-shrink-0 flex w-full z-50 gap-2 items-center border-t border-n-weak shadow-[0px_-2px_4px_0px_rgba(27,28,29,0.02)]"
         :class="isEffectivelyCollapsed ? 'justify-center' : 'justify-between'"

@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
+import ActivityButton from 'dashboard/components-next/BackgroundTasks/ActivityButton.vue';
 
 defineProps({
   isMobileSidebarOpen: {
@@ -56,6 +57,11 @@ const toggleSidebar = () => {
         class="!rounded-full !bg-n-solid-3 dark:!bg-n-alpha-2 !text-n-slate-12 text-xl transition-all duration-200 ease-out hover:brightness-110"
         lg
         @click="toggleSidebar"
+      />
+      <ActivityButton
+        mobile
+        mobile-label
+        class="!mx-0 !w-auto !rounded-full !px-3"
       />
     </ButtonGroup>
   </div>

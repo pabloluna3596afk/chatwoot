@@ -1,30 +1,23 @@
-const SUCCESS_DURATION = 10000;
-const timers = new WeakMap();
-
-const clearTimer = (state, id) => {
-  const pending = timers.get(state);
-  clearTimeout(pending?.get(id));
-  pending?.delete(id);
-};
-
 export default {
   namespaced: true,
-  state: () => ({ tasks: {}, order: [] }),
+  state: () => ({ tasks: {}, order: [], loading: false, failed: false }),
   getters: {
-    ordered: state =>
-      state.order
-        .map(id => state.tasks[id])
-        .sort(
-          (a, b) =>
-            Number(a.status === 'running') - Number(b.status === 'running')
-        ),
+    ordered: state => state.order.map(id => state.tasks[id]).filter(Boolean),
   },
   mutations: {
     upsert(state, task) {
-      if (state.tasks[task.id]?.status !== task.status) {
+      const previous = state.tasks[task.id];
+      if (!previous || previous.status !== task.status) {
         state.order = [task.id, ...state.order.filter(id => id !== task.id)];
       }
       state.tasks[task.id] = task;
+      const results = state.order.filter(
+        id => state.tasks[id]?.status !== 'running'
+      );
+      results.slice(20).forEach(id => {
+        delete state.tasks[id];
+        state.order = state.order.filter(taskId => taskId !== id);
+      });
     },
     dismiss(state, id) {
       delete state.tasks[id];
@@ -33,6 +26,14 @@ export default {
     reset(state) {
       state.tasks = {};
       state.order = [];
+      state.failed = false;
+      state.loading = false;
+    },
+    setLoading(state, value) {
+      state.loading = value;
+    },
+    setFailed(state, value) {
+      state.failed = value;
     },
   },
   actions: {
@@ -40,24 +41,13 @@ export default {
       if (!state.tasks[task.id]) return dispatch('upsert', task);
       return undefined;
     },
-    upsert({ state, commit, dispatch }, task) {
-      clearTimer(state, task.id);
+    upsert({ commit }, task) {
       commit('upsert', task);
-      if (task.status === 'success') {
-        if (!timers.has(state)) timers.set(state, new Map());
-        timers.get(state).set(
-          task.id,
-          setTimeout(() => dispatch('dismiss', task.id), SUCCESS_DURATION)
-        );
-      }
     },
-    dismiss({ state, commit }, id) {
-      clearTimer(state, id);
+    dismiss({ commit }, id) {
       commit('dismiss', id);
     },
-    reset({ state, commit }) {
-      timers.get(state)?.forEach(clearTimeout);
-      timers.delete(state);
+    reset({ commit }) {
       commit('reset');
     },
   },

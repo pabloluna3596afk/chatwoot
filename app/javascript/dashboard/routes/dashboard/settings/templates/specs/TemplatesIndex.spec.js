@@ -132,7 +132,7 @@ describe('Templates page', () => {
     return wrapper;
   };
 
-  it('restores background tasks from the loaded drafts without another endpoint', async () => {
+  it('leaves task recovery to the global tray instead of the templates list', async () => {
     DraftsAPI.get.mockResolvedValue({
       data: {
         payload: [
@@ -155,13 +155,9 @@ describe('Templates page', () => {
       },
     });
     const wrapper = await render([]);
-    expect(backgroundDispatch).toHaveBeenCalledWith(
+    expect(backgroundDispatch).not.toHaveBeenCalledWith(
       'backgroundTasks/track',
-      expect.objectContaining({
-        id: 'whatsapp_template_submission:99',
-        status: 'running',
-        title: 'welcome',
-      })
+      expect.anything()
     );
     wrapper.unmount();
   });

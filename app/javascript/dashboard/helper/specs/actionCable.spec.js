@@ -68,6 +68,25 @@ describe('ActionCableConnector - Copilot Tests', () => {
     expect(mockDispatch).toHaveBeenCalledWith('backgroundTasks/upsert', task);
   });
 
+  it('announces a live completion but not a phase or progress update', () => {
+    const task = { id: 'template:1', status: 'running', phase: 'waiting' };
+    store.$store.state = { backgroundTasks: { tasks: { [task.id]: task } } };
+    actionCable.onBackgroundTaskUpdated({
+      task: { ...task, detail: '320/800' },
+    });
+    expect(emitter.emit).not.toHaveBeenCalledWith(
+      'backgroundTask:completed',
+      expect.anything()
+    );
+    actionCable.onBackgroundTaskUpdated({
+      task: { ...task, status: 'success', phase: null },
+    });
+    expect(emitter.emit).toHaveBeenCalledWith(
+      'backgroundTask:completed',
+      expect.objectContaining({ status: 'success' })
+    );
+  });
+
   it('expires Captain typing after 30 seconds if no typing_off event arrives', () => {
     vi.useFakeTimers();
     const conversation = { id: 42 };

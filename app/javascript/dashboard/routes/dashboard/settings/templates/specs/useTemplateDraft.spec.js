@@ -62,7 +62,7 @@ describe('template background tasks', () => {
     expect(DraftsAPI.submit).toHaveBeenCalledWith(7, 0);
   });
 
-  it('restores pending submissions on reload, excluding final or failed attempts', async () => {
+  it('leaves recovery to the global tray when loading a draft', async () => {
     DraftsAPI.show.mockResolvedValue({
       data: {
         ...draft,
@@ -85,10 +85,7 @@ describe('template background tasks', () => {
       },
     });
     await session.load(7);
-    expect(store.getters['backgroundTasks/ordered']).toHaveLength(1);
-    expect(store.getters['backgroundTasks/ordered'][0].detail).toBe(
-      'BACKGROUND_TASKS.REVIEW'
-    );
+    expect(store.getters['backgroundTasks/ordered']).toEqual([]);
   });
 
   it('does not register a task when the submit request is denied', async () => {

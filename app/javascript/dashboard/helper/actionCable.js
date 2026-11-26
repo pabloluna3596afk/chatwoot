@@ -98,7 +98,15 @@ class ActionCableConnector extends BaseActionCableConnector {
   };
 
   onBackgroundTaskUpdated = data => {
+    const previous =
+      this.app.$store.state?.backgroundTasks?.tasks?.[data.task.id];
     this.app.$store.dispatch('backgroundTasks/upsert', data.task);
+    if (
+      (!previous || previous.status === 'running') &&
+      ['success', 'error'].includes(data.task.status)
+    ) {
+      emitter.emit('backgroundTask:completed', data.task);
+    }
   };
 
   onPresenceUpdate = data => {

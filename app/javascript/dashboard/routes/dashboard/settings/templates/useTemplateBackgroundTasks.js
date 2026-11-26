@@ -33,7 +33,5 @@ export const useTemplateBackgroundTasks = () => {
       },
     });
   };
-  const restore = drafts =>
-    drafts.forEach(draft => draft.submissions?.forEach(register));
-  return { register, restore };
+  return { register };
 };

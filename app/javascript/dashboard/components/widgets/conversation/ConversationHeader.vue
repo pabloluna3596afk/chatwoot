@@ -16,6 +16,7 @@ import { useInbox } from 'dashboard/composables/useInbox';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useI18n } from 'vue-i18n';
 import CampaignCardBadge from 'dashboard/components-next/Conversation/ConversationCard/CampaignCardBadge.vue';
+import ActivityButton from 'dashboard/components-next/BackgroundTasks/ActivityButton.vue';
 
 const props = defineProps({
   chat: {
@@ -173,6 +174,7 @@ const toggleContactSidebar = () => {
     <div
       class="flex flex-row items-center justify-end flex-shrink-0 gap-2 w-auto header-actions-wrap"
     >
+      <ActivityButton mobile class="!mx-0 !w-auto !px-2 md:hidden" />
       <SLACardLabel
         v-if="hasSlaPolicyId"
         :chat="chat"

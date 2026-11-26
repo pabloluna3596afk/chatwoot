@@ -2,7 +2,6 @@
 import { defineAsyncComponent, ref, computed } from 'vue';
 
 import NextSidebar from 'next/sidebar/Sidebar.vue';
-import BackgroundTaskTray from 'dashboard/components-next/BackgroundTasks/BackgroundTaskTray.vue';
 import WootKeyShortcutModal from 'dashboard/components/widgets/modal/WootKeyShortcutModal.vue';
 import AddAccountModal from 'dashboard/components/app/AddAccountModal.vue';
 import UpgradePage from 'dashboard/routes/dashboard/upgrade/UpgradePage.vue';
@@ -27,10 +26,10 @@ import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue'
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { useBackgroundTaskRecovery } from 'dashboard/composables/useBackgroundTaskRecovery';
 
 export default {
   components: {
-    BackgroundTaskTray,
     NextSidebar,
     CommandBar,
     WootKeyShortcutModal,
@@ -47,6 +46,7 @@ export default {
     const { accountId } = useAccount();
     const { width: windowWidth } = useWindowSize();
     const callsStore = useCallsStore();
+    useBackgroundTaskRecovery();
 
     return {
       uiSettings,
@@ -132,7 +132,6 @@ export default {
 
 <template>
   <div class="flex flex-grow overflow-hidden text-n-slate-12">
-    <BackgroundTaskTray />
     <NextSidebar
       :is-mobile-sidebar-open="isMobileSidebarOpen"
       @toggle-account-modal="toggleAccountModal"
