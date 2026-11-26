@@ -25,7 +25,7 @@
   },
   "CALENDAR_TEMPLATES": {
     "TITLE": "Appointment templates",
-    "DESCRIPTION": "Templates are prepared when you connect Google. Review and submit them from Templates.",
+    "DESCRIPTION": "Review appointment templates and send them to Meta for approval.",
     "ADMIN_ONLY": "An administrator can prepare and manage appointment templates.",
     "CONNECT_GOOGLE": "Connect Google to prepare your templates.",
     "NOT_PREPARED": "Your templates have not been prepared yet. Retry preparation to create the missing drafts.",
@@ -38,6 +38,40 @@
       "conflict": "Conflict"
     },
     "NOT_SENT": "Not sent",
+    "DESCRIPTIONS": {
+      "confirmation": "Sent when an appointment is booked.",
+      "cancellation": "Sent when an appointment is cancelled.",
+      "reminder": "Sent before an appointment."
+    },
+    "SUBMISSION": {
+      "OPEN": "Send for approval",
+      "TITLE": "Send templates to Meta for approval",
+      "DESCRIPTION": "Meta reviews each template. It usually takes a few minutes to 24 hours.",
+      "ACCOUNTS": "1 · Active WhatsApp accounts",
+      "TEMPLATES": "2 · Templates to send",
+      "SEND": "Send for approval",
+      "CANCEL": "Cancel",
+      "SUMMARY": "Send {templates} {templateLabel} to {accounts} {accountLabel}. No messages will be sent to customers.",
+      "TEMPLATE_ONE": "template",
+      "TEMPLATE_MANY": "templates",
+      "ACCOUNT_ONE": "account",
+      "ACCOUNT_MANY": "accounts",
+      "SELECT_REQUIRED": "Select at least one account and one template.",
+      "NO_ACCOUNTS": "No active WhatsApp accounts are available.",
+      "ALREADY_SENT": "Already sent",
+      "STATUS": "Meta status:",
+      "ERROR": "The templates could not be submitted. Refresh to see the current status.",
+      "STATES": {
+        "pending": "In review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "error": "Error",
+        "paused": "Paused",
+        "disabled": "Disabled",
+        "in_appeal": "In appeal",
+        "flagged": "Flagged"
+      }
+    },
     "OPEN": "Open in Templates",
     "RETRY": "Retry preparation",
     "REMINDER_TOGGLE": "Send reminder to the customer",

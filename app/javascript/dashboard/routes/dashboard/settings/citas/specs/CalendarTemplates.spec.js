@@ -87,6 +87,7 @@ const render = async (
           },
         }),
       ],
+      stubs: { TemplateSubmissionDialog: true },
     },
   });
   await flushPromises();

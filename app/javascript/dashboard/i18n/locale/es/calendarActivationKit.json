@@ -25,7 +25,7 @@
   },
   "CALENDAR_TEMPLATES": {
     "TITLE": "Plantillas de Citas",
-    "DESCRIPTION": "Las plantillas se preparan al conectar Google. Revísalas y envíalas desde Plantillas.",
+    "DESCRIPTION": "Revisa las plantillas de Citas y envíalas a Meta para su aprobación.",
     "ADMIN_ONLY": "Un administrador puede preparar y gestionar las plantillas de Citas.",
     "CONNECT_GOOGLE": "Conecta Google para preparar tus plantillas.",
     "NOT_PREPARED": "Tus plantillas aún no están preparadas. Reintenta la preparación para crear los borradores faltantes.",
@@ -38,6 +38,40 @@
       "conflict": "Conflicto"
     },
     "NOT_SENT": "No enviada",
+    "DESCRIPTIONS": {
+      "confirmation": "Se envía al agendar una cita.",
+      "cancellation": "Se envía al cancelar una cita.",
+      "reminder": "Se envía antes de la cita."
+    },
+    "SUBMISSION": {
+      "OPEN": "Enviar a aprobación",
+      "TITLE": "Enviar plantillas a aprobación de Meta",
+      "DESCRIPTION": "Meta revisa cada plantilla. Suele tardar de unos minutos a 24 horas.",
+      "ACCOUNTS": "1 · Cuentas de WhatsApp activas",
+      "TEMPLATES": "2 · Plantillas a enviar",
+      "SEND": "Enviar a aprobación",
+      "CANCEL": "Cancelar",
+      "SUMMARY": "Se enviarán {templates} {templateLabel} a {accounts} {accountLabel}. No se manda ningún mensaje a clientes.",
+      "TEMPLATE_ONE": "plantilla",
+      "TEMPLATE_MANY": "plantillas",
+      "ACCOUNT_ONE": "cuenta",
+      "ACCOUNT_MANY": "cuentas",
+      "SELECT_REQUIRED": "Elige al menos una cuenta y una plantilla.",
+      "NO_ACCOUNTS": "No hay cuentas activas de WhatsApp disponibles.",
+      "ALREADY_SENT": "Ya enviada",
+      "STATUS": "Estado de Meta:",
+      "ERROR": "No se pudieron enviar las plantillas. Actualiza para ver el estado actual.",
+      "STATES": {
+        "pending": "En revisión de Meta",
+        "approved": "Aprobada",
+        "rejected": "Rechazada",
+        "error": "Error",
+        "paused": "Pausada",
+        "disabled": "Desactivada",
+        "in_appeal": "En apelación",
+        "flagged": "Marcada"
+      }
+    },
     "OPEN": "Abrir en Plantillas",
     "RETRY": "Reintentar preparación",
     "REMINDER_TOGGLE": "Enviar recordatorio al cliente",

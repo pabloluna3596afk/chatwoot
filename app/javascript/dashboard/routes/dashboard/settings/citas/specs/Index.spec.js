@@ -122,6 +122,7 @@ const render = async (query = {}, locale = 'en', realPanels = false) => {
       ],
       stubs: {
         CalendarHours: true,
+        TemplateSubmissionDialog: true,
         CalendarTemplates: realPanels
           ? false
           : {

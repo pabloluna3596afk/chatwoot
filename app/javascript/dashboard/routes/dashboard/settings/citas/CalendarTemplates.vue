@@ -11,6 +11,7 @@ import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
+import TemplateSubmissionDialog from './TemplateSubmissionDialog.vue';
 import { fillExamples, exampleSegments } from './calendarTemplatePreview';
 
 const props = defineProps({ connected: { type: Boolean, default: false } });
@@ -44,6 +45,9 @@ const languageState = ref({});
 const linking = ref('');
 const linkErrors = ref({});
 const loading = ref(true);
+const submitting = ref(false);
+const submissionError = ref(false);
+const submissionDialog = ref(null);
 const loadFailed = ref(false);
 const preparing = ref(false);
 const savingReminder = ref(false);
@@ -53,6 +57,21 @@ const localStatus = result => {
   return result.draft_exists ? 'draft' : 'pending';
 };
 const metaStatus = result => {
+  const submissions = (result.destinations || [])
+    .map(destination => destination.submission)
+    .filter(Boolean);
+  const remoteStatus = submissions.find(
+    submission => submission.remote_status
+  )?.remote_status;
+  if (remoteStatus) return remoteStatus;
+  if (submissions.some(submission => submission.status === 'failed'))
+    return 'REJECTED';
+  if (
+    submissions.some(submission =>
+      ['submitting', 'reconciling', 'submitted'].includes(submission.status)
+    )
+  )
+    return 'PENDING';
   if (result.remote_status) return result.remote_status;
   return result.submitted ||
     ['submitting', 'reconciling'].includes(result.submission_status)
@@ -72,8 +91,66 @@ const rows = computed(() =>
     };
   })
 );
+const submissionTemplateName = key => {
+  if (key === 'confirmation') return t('CALENDAR_ACTIVATION_KIT.CONFIRMATION');
+  if (key === 'cancellation') return t('CALENDAR_ACTIVATION_KIT.CANCELLATION');
+  return t('CALENDAR_ACTIVATION_KIT.REMINDER');
+};
+const submissionTemplateDescription = key => {
+  if (key === 'confirmation')
+    return t('CALENDAR_TEMPLATES.DESCRIPTIONS.confirmation');
+  if (key === 'cancellation')
+    return t('CALENDAR_TEMPLATES.DESCRIPTIONS.cancellation');
+  return t('CALENDAR_TEMPLATES.DESCRIPTIONS.reminder');
+};
+const submissionStatusLabel = submission => {
+  const status = submission.remote_status?.toLowerCase();
+  if (status === 'approved')
+    return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.approved');
+  if (status === 'rejected')
+    return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.rejected');
+  if (status === 'paused')
+    return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.paused');
+  if (status === 'disabled')
+    return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.disabled');
+  if (status === 'in_appeal')
+    return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.in_appeal');
+  if (status === 'flagged')
+    return t('CALENDAR_TEMPLATES.SUBMISSION.STATES.flagged');
+  return submission.status === 'failed'
+    ? t('CALENDAR_TEMPLATES.SUBMISSION.STATES.error')
+    : t('CALENDAR_TEMPLATES.SUBMISSION.STATES.pending');
+};
 const reminderDestinations = computed(
   () => results.value.reminder?.destinations || []
+);
+const accounts = computed(() => {
+  const destinations = rows.value.flatMap(row => row.result.destinations || []);
+  return [...new Map(destinations.map(item => [item.waba_id, item])).values()];
+});
+const hasUnsentTemplates = computed(() =>
+  rows.value.some(
+    row =>
+      row.result.draft_exists &&
+      (row.result.destinations || []).some(
+        destination => !destination.submission
+      )
+  )
+);
+const submissionTemplates = computed(() =>
+  rows.value
+    .filter(row => row.result.draft_exists)
+    .map(row => ({
+      key: row.key,
+      title: submissionTemplateName(row.key),
+      description: submissionTemplateDescription(row.key),
+      disabled: accounts.value.every(
+        account =>
+          (results.value[row.key]?.destinations || []).find(
+            destination => destination.waba_id === account.waba_id
+          )?.submission
+      ),
+    }))
 );
 const canEnableReminder = computed(
   () =>
@@ -105,7 +182,7 @@ const link = async (row, destination) => {
   try {
     const { data } = await CalendarAPI.linkTemplateDraft({
       function: row.key,
-      draft_id: row.result.draft_id,
+      draft_id: destination.draft_id || row.result.draft_id,
       channel_id: destination.channels[0].id,
     });
     apply(data);
@@ -145,6 +222,20 @@ const load = async () => {
     loadFailed.value = true;
   } finally {
     loading.value = false;
+  }
+};
+const submitForReview = async selection => {
+  if (submitting.value) return;
+  submitting.value = true;
+  submissionError.value = false;
+  try {
+    await CalendarAPI.submitTemplateDrafts(selection);
+    await load();
+    submissionDialog.value?.close();
+  } catch {
+    submissionError.value = true;
+  } finally {
+    submitting.value = false;
   }
 };
 const prepare = async () => {
@@ -360,6 +451,39 @@ onMounted(load);
                 />
               </div>
             </div>
+            <div
+              v-if="destination.submission"
+              class="flex flex-wrap items-center gap-2 text-body-main text-n-slate-11"
+              :data-testid="`submission-${row.key}-${destination.waba_id}`"
+            >
+              {{ $t('CALENDAR_TEMPLATES.SUBMISSION.STATUS') }}
+              <Label
+                :label="submissionStatusLabel(destination.submission)"
+                :color="
+                  destination.submission.remote_status === 'APPROVED'
+                    ? 'teal'
+                    : destination.submission.status === 'failed' ||
+                        destination.submission.remote_status === 'REJECTED'
+                      ? 'ruby'
+                      : 'amber'
+                "
+                compact
+                role="status"
+              />
+            </div>
+            <p
+              v-if="
+                destination.submission?.remote_reason ||
+                destination.submission?.error_details?.detail
+              "
+              class="m-0 break-words text-body-main text-n-ruby-11"
+              role="alert"
+            >
+              {{
+                destination.submission.remote_reason ||
+                destination.submission.error_details.detail
+              }}
+            </p>
             <p
               v-if="destination.via && destination.via !== 'none'"
               class="text-xs text-n-slate-11"
@@ -423,6 +547,13 @@ onMounted(load);
       </div>
       <div class="flex flex-wrap gap-2">
         <Button
+          v-if="hasUnsentTemplates"
+          intent="primary"
+          :label="$t('CALENDAR_TEMPLATES.SUBMISSION.OPEN')"
+          data-testid="open-template-submission"
+          @click="submissionDialog?.open()"
+        />
+        <Button
           intent="secondary"
           :label="$t('CALENDAR_TEMPLATES.RETRY')"
           :disabled="!connected || preparing"
@@ -437,6 +568,20 @@ onMounted(load);
           @click="load"
         />
       </div>
+      <p
+        v-if="submissionError"
+        role="alert"
+        class="text-body-main text-n-ruby-11"
+      >
+        {{ $t('CALENDAR_TEMPLATES.SUBMISSION.ERROR') }}
+      </p>
+      <TemplateSubmissionDialog
+        ref="submissionDialog"
+        :accounts="accounts"
+        :templates="submissionTemplates"
+        :is-loading="submitting"
+        @submit="submitForReview"
+      />
     </template>
   </section>
 </template>
