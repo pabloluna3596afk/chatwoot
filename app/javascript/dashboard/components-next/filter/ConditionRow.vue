@@ -183,7 +183,7 @@ defineExpose({ validate, resetValidation });
 </script>
 
 <template>
-  <li class="list-none">
+  <li class="list-none min-w-0">
     <div
       class="flex flex-wrap gap-2 rounded-md"
       :class="{
@@ -216,7 +216,13 @@ defineExpose({ validate, resetValidation });
       <div
         :class="
           currentOperator?.hasInput
-            ? 'flex items-start gap-2 min-w-0'
+            ? [
+                'flex items-start gap-2 min-w-0',
+                currentOperator.inputLayout === 'stacked' && 'contents',
+                inputType === 'timeWindow' &&
+                  currentOperator.inputLayout !== 'stacked' &&
+                  'flex-1',
+              ]
             : 'contents'
         "
       >
@@ -252,6 +258,7 @@ defineExpose({ validate, resetValidation });
           <TimeWindowInput
             v-else-if="inputType === 'timeWindow'"
             v-model="values"
+            class="order-2 w-full min-w-0"
           />
           <MultiTextInput
             v-else-if="inputType === 'multiText'"
@@ -271,6 +278,7 @@ defineExpose({ validate, resetValidation });
           />
         </template>
         <Button
+          v-if="currentOperator?.inputLayout !== 'stacked'"
           type="button"
           sm
           solid
@@ -280,6 +288,16 @@ defineExpose({ validate, resetValidation });
           @click.stop="emit('remove')"
         />
       </div>
+      <Button
+        v-if="currentOperator?.inputLayout === 'stacked'"
+        type="button"
+        sm
+        solid
+        slate
+        icon="i-lucide-trash"
+        class="order-1 ms-auto flex-shrink-0"
+        @click.stop="emit('remove')"
+      />
     </div>
     <span v-if="showErrors && validationError" class="text-sm text-n-ruby-11">
       {{ t(`FILTER.ERRORS.${validationError}`) }}

@@ -4,6 +4,7 @@ import {
   OPERATOR_TYPES_3,
   OPERATOR_TYPES_6,
   OPERATOR_TYPES_8,
+  OPERATOR_TYPES_TIME_WINDOW,
 } from './operators';
 
 export const AUTOMATIONS = {
@@ -97,7 +98,7 @@ export const AUTOMATIONS = {
         key: 'message_time_window',
         name: 'MESSAGE_TIME_WINDOW',
         inputType: 'time_window',
-        filterOperators: OPERATOR_TYPES_1,
+        filterOperators: OPERATOR_TYPES_TIME_WINDOW,
       },
     ],
     actions: [
@@ -255,7 +256,7 @@ export const AUTOMATIONS = {
         key: 'message_time_window',
         name: 'MESSAGE_TIME_WINDOW',
         inputType: 'time_window',
-        filterOperators: OPERATOR_TYPES_1,
+        filterOperators: OPERATOR_TYPES_TIME_WINDOW,
       },
     ],
     actions: [
@@ -417,7 +418,7 @@ export const AUTOMATIONS = {
         key: 'message_time_window',
         name: 'MESSAGE_TIME_WINDOW',
         inputType: 'time_window',
-        filterOperators: OPERATOR_TYPES_1,
+        filterOperators: OPERATOR_TYPES_TIME_WINDOW,
       },
     ],
     actions: [
@@ -573,7 +574,7 @@ export const AUTOMATIONS = {
         key: 'message_time_window',
         name: 'MESSAGE_TIME_WINDOW',
         inputType: 'time_window',
-        filterOperators: OPERATOR_TYPES_1,
+        filterOperators: OPERATOR_TYPES_TIME_WINDOW,
       },
     ],
     actions: [
@@ -719,7 +720,7 @@ export const AUTOMATIONS = {
         key: 'message_time_window',
         name: 'MESSAGE_TIME_WINDOW',
         inputType: 'time_window',
-        filterOperators: OPERATOR_TYPES_1,
+        filterOperators: OPERATOR_TYPES_TIME_WINDOW,
       },
     ],
     actions: [

@@ -61,6 +61,10 @@ const selectTime = value => {
   open.value = false;
 };
 const validate = () => {
+  if (!draft.value) {
+    invalid.value = false;
+    return;
+  }
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(draft.value)) {
     invalid.value = true;
     draft.value = props.modelValue;
@@ -92,7 +96,7 @@ const validate = () => {
           :message-type="invalid ? 'error' : messageType"
           custom-input-class="!ps-9"
           @click.stop="toggle"
-          @blur="validate"
+          @blur="!open && validate()"
           @enter="validate"
         >
           <template #prefix>
@@ -124,6 +128,7 @@ const validate = () => {
               ? 'bg-n-brand text-white'
               : 'text-n-slate-12 hover:bg-n-alpha-2'
           "
+          @mousedown.prevent
           @click="selectTime(value)"
         >
           {{ value }}

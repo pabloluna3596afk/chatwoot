@@ -9,6 +9,14 @@ export const OPERATOR_TYPES_1 = [
   },
 ];
 
+export const OPERATOR_TYPES_TIME_WINDOW = [
+  { value: 'equal_to', label: 'AUTOMATION.TIME_WINDOW.OPERATOR_INSIDE' },
+  {
+    value: 'not_equal_to',
+    label: 'AUTOMATION.TIME_WINDOW.OPERATOR_OUTSIDE',
+  },
+];
+
 export const OPERATOR_TYPES_2 = [
   {
     value: 'equal_to',

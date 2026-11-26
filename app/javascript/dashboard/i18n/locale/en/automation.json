@@ -318,10 +318,32 @@
       "URGENT": "Urgent"
     },
     "TIME_WINDOW": {
+      "OPERATOR_INSIDE": "Within",
+      "OPERATOR_OUTSIDE": "Outside",
       "FROM": "From",
       "TO": "To",
       "DAYS": "Days of the week",
-      "HINT": "Uses the inbox time zone. With no days selected it applies every day. If the end is earlier than the start, the range crosses midnight."
+      "DAYS_LABEL": "Days",
+      "WEEKDAYS": "Mon–Fri",
+      "ALL": "Every day",
+      "SUMMARY_EMPTY": "Choose a start and end time.",
+      "SUMMARY_IN": "Applies {from}–{to} · {days}",
+      "SUMMARY_OUT": "Applies outside {from}–{to} · {days}",
+      "INBOX_TIME_ZONE": "inbox time zone",
+      "OVERNIGHT": "overnight",
+      "ERROR_SAME": "End time must differ from start time.",
+      "MIN_DAY": "Choose at least one day.",
+      "DAY_SHORT_SUN": "Sun",
+      "DAY_SHORT_MON": "Mon",
+      "DAY_SHORT_TUE": "Tue",
+      "DAY_SHORT_WED": "Wed",
+      "DAY_SHORT_THU": "Thu",
+      "DAY_SHORT_FRI": "Fri",
+      "DAY_SHORT_SAT": "Sat",
+      "SUMMARY_ALL_DAYS": "Every day",
+      "SUMMARY_WEEKDAYS": "Mon\u2013Fri",
+      "SUMMARY_ROW_IN": "Message time: within {summary}",
+      "SUMMARY_ROW_OUT": "Message time: outside {summary}"
     },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Message Type",
