@@ -1,7 +1,16 @@
 import { mount } from '@vue/test-utils';
 import TimeWindowInput from '../TimeWindowInput.vue';
 
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: key =>
+      ({
+        'AUTOMATION.TIME_WINDOW.SUMMARY_ALL_DAYS': 'Todos los días',
+        'AUTOMATION.TIME_WINDOW.SUMMARY_WEEKDAYS': 'Lun a vie',
+        'DAYS_OF_WEEK.MONDAY': 'Lunes',
+      })[key] || key,
+  }),
+}));
 
 const mountInput = (modelValue = '') =>
   mount(TimeWindowInput, {
@@ -60,6 +69,12 @@ describe('TimeWindowInput', () => {
     expect(wrapper.findAll('input')[0].element.value).toBe('');
     await wrapper.setProps({ modelValue: '20:00-07:30|sun' });
     expect(wrapper.findAll('input')[1].element.value).toBe('07:30');
+    wrapper.unmount();
+  });
+
+  it('shows a readable summary for an overnight window and its selected days', () => {
+    const wrapper = mountInput('22:00-06:00|mon,tue,wed,thu,fri');
+    expect(wrapper.text()).toContain('22:00–06:00 · Lun a vie');
     wrapper.unmount();
   });
 });

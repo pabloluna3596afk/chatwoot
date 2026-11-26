@@ -6,21 +6,12 @@ import {
   TIME_WINDOW_DAYS,
   buildTimeWindow,
   parseTimeWindow,
+  summarizeTimeWindow,
 } from 'dashboard/helper/timeWindow';
 
 const modelValue = defineModel({ type: String, default: '' });
 
 const { t } = useI18n();
-
-const DAY_LABEL_KEYS = {
-  sun: 'SUNDAY',
-  mon: 'MONDAY',
-  tue: 'TUESDAY',
-  wed: 'WEDNESDAY',
-  thu: 'THURSDAY',
-  fri: 'FRIDAY',
-  sat: 'SATURDAY',
-};
 
 const initial = parseTimeWindow(modelValue.value);
 const from = ref(initial?.from || '');
@@ -30,6 +21,7 @@ const days = ref(initial?.days || []);
 const composed = computed(() =>
   buildTimeWindow({ from: from.value, to: to.value, days: days.value })
 );
+const summary = computed(() => summarizeTimeWindow(composed.value, t));
 
 // Only resync from outside when the parent really changed the value (loading a saved rule,
 // switching attribute); echoing our own output back would erase half-filled fields.
@@ -46,8 +38,16 @@ watch(composed, value => {
 });
 
 const dayOptions = computed(() =>
-  TIME_WINDOW_DAYS.map(key => {
-    const name = t(`DAYS_OF_WEEK.${DAY_LABEL_KEYS[key]}`);
+  TIME_WINDOW_DAYS.map((key, index) => {
+    const name = [
+      t('DAYS_OF_WEEK.SUNDAY'),
+      t('DAYS_OF_WEEK.MONDAY'),
+      t('DAYS_OF_WEEK.TUESDAY'),
+      t('DAYS_OF_WEEK.WEDNESDAY'),
+      t('DAYS_OF_WEEK.THURSDAY'),
+      t('DAYS_OF_WEEK.FRIDAY'),
+      t('DAYS_OF_WEEK.SATURDAY'),
+    ][index];
     return { key, name, short: name.slice(0, 3) };
   })
 );
@@ -94,6 +94,9 @@ const toggleDay = key => {
     </div>
     <p class="m-0 text-xs text-n-slate-11">
       {{ t('AUTOMATION.TIME_WINDOW.HINT') }}
+    </p>
+    <p v-if="summary" class="m-0 text-sm text-n-slate-12" aria-live="polite">
+      {{ summary }}
     </p>
   </div>
 </template>

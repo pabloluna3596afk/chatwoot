@@ -2,6 +2,7 @@ import {
   buildTimeWindow,
   isValidTimeWindow,
   parseTimeWindow,
+  summarizeTimeWindow,
 } from '../timeWindow';
 
 describe('parseTimeWindow', () => {
@@ -58,5 +59,39 @@ describe('isValidTimeWindow', () => {
     expect(isValidTimeWindow(['18:00-08:00|fri'])).toBe(true);
     expect(isValidTimeWindow('18:00-18:00')).toBe(false);
     expect(isValidTimeWindow([])).toBe(false);
+  });
+});
+
+describe('summarizeTimeWindow', () => {
+  const translate = key =>
+    ({
+      'AUTOMATION.TIME_WINDOW.SUMMARY_ALL_DAYS': 'Every day',
+      'AUTOMATION.TIME_WINDOW.SUMMARY_WEEKDAYS': 'Mon–Fri',
+      'DAYS_OF_WEEK.MONDAY': 'Monday',
+      'DAYS_OF_WEEK.TUESDAY': 'Tuesday',
+      'DAYS_OF_WEEK.FRIDAY': 'Friday',
+      'DAYS_OF_WEEK.SATURDAY': 'Saturday',
+    })[key] || key;
+
+  it('summarizes empty and fully selected days as every day', () => {
+    expect(summarizeTimeWindow('18:00-08:00', translate)).toBe(
+      '18:00–08:00 · Every day'
+    );
+    expect(
+      summarizeTimeWindow('18:00-08:00|sun,mon,tue,wed,thu,fri,sat', translate)
+    ).toBe('18:00–08:00 · Every day');
+  });
+
+  it('summarizes weekdays and selected days in calendar order', () => {
+    expect(
+      summarizeTimeWindow('09:00-17:00|fri,mon,tue,wed,thu', translate)
+    ).toBe('09:00–17:00 · Mon–Fri');
+    expect(summarizeTimeWindow('09:00-17:00|sat,fri', translate)).toBe(
+      '09:00–17:00 · Fri, Sat'
+    );
+  });
+
+  it('does not render an invalid saved value', () => {
+    expect(summarizeTimeWindow('09:00-09:00', translate)).toBe('');
   });
 });

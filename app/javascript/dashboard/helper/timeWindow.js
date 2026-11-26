@@ -33,3 +33,34 @@ export const buildTimeWindow = ({ from = '', to = '', days = [] } = {}) => {
 
 export const isValidTimeWindow = value =>
   parseTimeWindow(Array.isArray(value) ? value[0] : value) !== null;
+
+export const summarizeTimeWindow = (value, t) => {
+  const parsed = parseTimeWindow(value);
+  if (!parsed) return '';
+  const selectedDays = TIME_WINDOW_DAYS.filter(day =>
+    parsed.days.includes(day)
+  );
+
+  let days;
+  if (
+    selectedDays.length === 0 ||
+    selectedDays.length === TIME_WINDOW_DAYS.length
+  ) {
+    days = t('AUTOMATION.TIME_WINDOW.SUMMARY_ALL_DAYS');
+  } else if (selectedDays.join(',') === 'mon,tue,wed,thu,fri') {
+    days = t('AUTOMATION.TIME_WINDOW.SUMMARY_WEEKDAYS');
+  } else {
+    const dayLabels = {
+      sun: t('DAYS_OF_WEEK.SUNDAY'),
+      mon: t('DAYS_OF_WEEK.MONDAY'),
+      tue: t('DAYS_OF_WEEK.TUESDAY'),
+      wed: t('DAYS_OF_WEEK.WEDNESDAY'),
+      thu: t('DAYS_OF_WEEK.THURSDAY'),
+      fri: t('DAYS_OF_WEEK.FRIDAY'),
+      sat: t('DAYS_OF_WEEK.SATURDAY'),
+    };
+    days = selectedDays.map(day => dayLabels[day].slice(0, 3)).join(', ');
+  }
+
+  return `${parsed.from}–${parsed.to} · ${days}`;
+};

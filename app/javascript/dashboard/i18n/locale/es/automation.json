@@ -321,7 +321,10 @@
       "FROM": "Desde",
       "TO": "Hasta",
       "DAYS": "Días de la semana",
-      "HINT": "Usa la zona horaria de la bandeja. Sin días seleccionados se aplica todos los días. Si la hora final es anterior a la inicial, el rango cruza la medianoche."
+      "HINT": "Usa la zona horaria de la bandeja. Sin días seleccionados se aplica todos los días. Si la hora final es anterior a la inicial, el rango cruza la medianoche.",
+      "SUMMARY_ALL_DAYS": "Todos los d\u00edas",
+      "SUMMARY_WEEKDAYS": "Lun a vie",
+      "SUMMARY_ROW": "Hora del mensaje: {summary}"
     },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Tipo de mensaje",

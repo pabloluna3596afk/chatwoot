@@ -321,7 +321,10 @@
       "FROM": "From",
       "TO": "To",
       "DAYS": "Days of the week",
-      "HINT": "Uses the inbox time zone. With no days selected it applies every day. If the end is earlier than the start, the range crosses midnight."
+      "HINT": "Uses the inbox time zone. With no days selected it applies every day. If the end is earlier than the start, the range crosses midnight.",
+      "SUMMARY_ALL_DAYS": "Every day",
+      "SUMMARY_WEEKDAYS": "Mon\u2013Fri",
+      "SUMMARY_ROW": "Message time: {summary}"
     },
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Message Type",
