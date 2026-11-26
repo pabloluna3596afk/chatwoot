@@ -39,7 +39,7 @@ RSpec.describe 'Calendar template submission API', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
     post path, headers: admin.create_new_auth_token, params: { functions: ['confirmation'], waba_ids: ['other'] }, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
-    account.update!(calendar_template_preparation: account.calendar_template_preparation.deep_dup.deep_merge('results' => {}))
+    account.update!(calendar_template_preparation: account.calendar_template_preparation.deep_dup.merge('results' => {}))
     post path, headers: admin.create_new_auth_token, params: params, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
   end

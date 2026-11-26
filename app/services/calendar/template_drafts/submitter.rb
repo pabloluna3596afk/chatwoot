@@ -97,7 +97,7 @@ class Calendar::TemplateDrafts::Submitter
     attributes = source.attributes.except('id', 'created_at', 'updated_at', 'source_remote_id')
     draft = @account.whatsapp_template_drafts.active.create_or_find_by!(name: source.name, language: source.language, waba_id: waba_id) do |copy|
       copy.assign_attributes(attributes)
-      copy.assign_attributes(account: @account, preferred_channel: channel, created_by: @actor, updated_by: @actor,
+      copy.assign_attributes(account: @account, waba_id: waba_id, preferred_channel: channel, created_by: @actor, updated_by: @actor,
                              source_draft: source, source_remote_id: nil, lock_version: 0)
     end
     draft.media.attach(source.media.blob) if source.media.attached? && !draft.media.attached?
