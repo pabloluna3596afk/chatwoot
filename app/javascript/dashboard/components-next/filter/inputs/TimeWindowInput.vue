@@ -2,17 +2,14 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import TimeField from 'next/time-field/TimeField.vue';
-import Button from 'next/button/Button.vue';
 import {
   TIME_WINDOW_DAYS,
   buildTimeWindow,
   getTimeWindowState,
   parseTimeWindow,
-  summarizeTimeWindow,
 } from 'dashboard/helper/timeWindow';
 
-const props = defineProps({
-  operator: { type: String, default: 'equal_to' },
+defineProps({
   disabled: { type: Boolean, default: false },
 });
 const modelValue = defineModel({ type: [String, Array], default: '' });
@@ -35,14 +32,6 @@ const state = computed(() =>
 const composed = computed(() =>
   buildTimeWindow({ from: from.value, to: to.value, days: days.value })
 );
-const summary = computed(() => {
-  if (state.value === 'empty') return t('AUTOMATION.TIME_WINDOW.SUMMARY_EMPTY');
-  if (state.value === 'same') return t('AUTOMATION.TIME_WINDOW.ERROR_SAME');
-  return summarizeTimeWindow(composed.value, t, {
-    negate: props.operator === 'not_equal_to',
-    withZone: true,
-  });
-});
 
 // Only resync from outside when the parent really changed the value (loading a saved rule,
 // switching attribute); echoing our own output back would erase half-filled fields.
@@ -96,11 +85,6 @@ const dayOptions = computed(() => [
   },
 ]);
 
-const isShortcutActive = shortcut => {
-  if (shortcut === 'all') return selectedDays.value.length === 7;
-  return selectedDays.value.join(',') === 'mon,tue,wed,thu,fri';
-};
-
 const toggleDay = key => {
   if (selectedDays.value.length === 1 && selectedDays.value.includes(key)) {
     return;
@@ -108,10 +92,6 @@ const toggleDay = key => {
   days.value = selectedDays.value.includes(key)
     ? selectedDays.value.filter(day => day !== key)
     : [...selectedDays.value, key];
-};
-
-const setDays = nextDays => {
-  days.value = nextDays;
 };
 </script>
 
@@ -124,24 +104,24 @@ const setDays = nextDays => {
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
       <label
         dir="ltr"
-        class="flex min-w-0 flex-1 items-center gap-2 text-xs text-n-slate-11"
+        class="flex min-w-0 flex-none items-center gap-2 text-xs text-n-slate-11"
       >
         <span>{{ t('AUTOMATION.TIME_WINDOW.FROM') }}</span>
         <TimeField
           v-model="from"
-          class="min-w-28 flex-1"
+          class="w-28 flex-none"
           :disabled="disabled"
           :message-type="state === 'same' ? 'error' : 'info'"
         />
       </label>
       <label
         dir="ltr"
-        class="flex min-w-0 flex-1 items-center gap-2 text-xs text-n-slate-11"
+        class="flex min-w-0 flex-none items-center gap-2 text-xs text-n-slate-11"
       >
         <span>{{ t('AUTOMATION.TIME_WINDOW.TO') }}</span>
         <TimeField
           v-model="to"
-          class="min-w-28 flex-1"
+          class="w-28 flex-none"
           :disabled="disabled"
           :message-type="state === 'same' ? 'error' : 'info'"
         />
@@ -185,46 +165,12 @@ const setDays = nextDays => {
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <Button
-        type="button"
-        variant="link"
-        size="sm"
-        class="!px-0 !text-xs"
-        :label="t('AUTOMATION.TIME_WINDOW.WEEKDAYS')"
-        :class="
-          isShortcutActive('weekdays')
-            ? 'font-medium text-n-brand'
-            : 'text-n-slate-11'
-        "
-        @click="setDays(['mon', 'tue', 'wed', 'thu', 'fri'])"
-      />
-      <Button
-        type="button"
-        variant="link"
-        size="sm"
-        class="!px-0 !text-xs"
-        :label="t('AUTOMATION.TIME_WINDOW.ALL')"
-        :class="
-          isShortcutActive('all')
-            ? 'font-medium text-n-brand'
-            : 'text-n-slate-11'
-        "
-        @click="setDays([])"
-      />
-      <p
-        class="m-0 min-w-0 whitespace-normal break-words text-xs leading-4"
-        :class="
-          state === 'same'
-            ? 'text-n-ruby-11'
-            : state === 'empty'
-              ? 'text-n-slate-11'
-              : 'text-n-slate-12'
-        "
-        aria-live="polite"
-      >
-        {{ summary }}
-      </p>
-    </div>
+    <p
+      v-if="state === 'same'"
+      class="m-0 text-xs leading-4 text-n-ruby-11"
+      aria-live="polite"
+    >
+      {{ t('AUTOMATION.TIME_WINDOW.ERROR_SAME') }}
+    </p>
   </div>
 </template>

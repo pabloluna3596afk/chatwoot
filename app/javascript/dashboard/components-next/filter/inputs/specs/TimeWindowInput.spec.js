@@ -71,9 +71,6 @@ describe('TimeWindowInput', () => {
   it('rehydrates an array payload and shows no suffix as every day', () => {
     const wrapper = mountInput(['18:00-08:00']);
     expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(7);
-    expect(wrapper.text()).toContain(
-      'Se cumple de 18:00 a 08:00 · Todos los días'
-    );
     wrapper.unmount();
   });
 
@@ -111,43 +108,7 @@ describe('TimeWindowInput', () => {
     wrapper.unmount();
   });
 
-  it('provides weekday and all-day shortcuts', async () => {
-    const wrapper = mountInput('09:00-18:00|sat');
-    const shortcuts = wrapper
-      .findAll('button')
-      .filter(button => ['Lun a vie', 'Todos'].includes(button.text()));
-    await shortcuts[0].trigger('click');
-    expect(lastEmitted(wrapper)).toBe('09:00-18:00|mon,tue,wed,thu,fri');
-    const weekdays = wrapper.findAll('button[aria-pressed="true"]');
-    expect(weekdays.map(button => button.attributes('aria-label'))).toEqual([
-      'Lunes',
-      'Martes',
-      'Mi\u00e9rcoles',
-      'Jueves',
-      'Viernes',
-    ]);
-    expect(wrapper.find('p[aria-live="polite"]').text()).toBe(
-      'Se cumple de 09:00 a 18:00 \u00b7 Lun a vie \u00b7 hora de la bandeja'
-    );
-    expect(
-      wrapper
-        .find('button[aria-label="S\u00e1bado"]')
-        .attributes('aria-pressed')
-    ).toBe('false');
-
-    await wrapper.setProps({ modelValue: [lastEmitted(wrapper)] });
-    expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(5);
-
-    await shortcuts[1].trigger('click');
-    expect(lastEmitted(wrapper)).toBe('09:00-18:00');
-    expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(7);
-    expect(wrapper.find('p[aria-live="polite"]').text()).toBe(
-      'Se cumple de 09:00 a 18:00 \u00b7 Todos los d\u00edas \u00b7 hora de la bandeja'
-    );
-    wrapper.unmount();
-  });
-
-  it('keeps hours flexible beside fixed-size weekdays on a full-width row', () => {
+  it('keeps compact hours beside fixed-size weekdays on one row', () => {
     const wrapper = mountInput('09:00-18:00');
     expect(wrapper.classes()).toEqual(
       expect.arrayContaining(['w-full', 'min-w-0', 'p-0'])
@@ -158,15 +119,8 @@ describe('TimeWindowInput', () => {
     expect(
       timePairs.every(
         pair =>
-          pair.classes().includes('flex-1') &&
-          pair
-            .findComponent({ name: 'TimeField' })
-            .classes()
-            .includes('flex-1') &&
-          pair
-            .findComponent({ name: 'TimeField' })
-            .classes()
-            .includes('min-w-28')
+          pair.classes().includes('flex-none') &&
+          pair.findComponent({ name: 'TimeField' }).classes().includes('w-28')
       )
     ).toBe(true);
     const days = wrapper.find('[role="group"]');
@@ -188,12 +142,7 @@ describe('TimeWindowInput', () => {
         .findAll('button[aria-pressed]')
         .every(button => button.classes().includes('focus-visible:outline-2'))
     ).toBe(true);
-    const details = wrapper.find('p[aria-live="polite"]');
-    expect(details.classes()).toEqual(
-      expect.arrayContaining(['whitespace-normal', 'text-xs', 'min-w-0'])
-    );
-    expect(details.element.parentElement.className).toContain('flex-wrap');
-    expect(details.element.parentElement.children).toHaveLength(3);
+    expect(wrapper.find('p[aria-live="polite"]').exists()).toBe(false);
     wrapper.unmount();
   });
 
@@ -206,14 +155,11 @@ describe('TimeWindowInput', () => {
     expect(monday.classes()).toContain('text-n-slate-11');
     expect(monday.classes()).not.toContain('bg-n-brand');
 
-    await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'Lun a vie')
-      .trigger('click');
-    expect(monday.classes()).toContain('bg-n-brand');
-    expect(monday.classes()).toContain('text-white');
-    expect(sunday.classes()).toContain('bg-n-alpha-2');
-    expect(sunday.classes()).toContain('text-n-slate-11');
+    await monday.trigger('click');
+    expect(sunday.classes()).toContain('bg-n-brand');
+    expect(sunday.classes()).toContain('text-white');
+    expect(monday.classes()).toContain('bg-n-alpha-2');
+    expect(monday.classes()).toContain('text-n-slate-11');
     wrapper.unmount();
   });
 
@@ -226,17 +172,9 @@ describe('TimeWindowInput', () => {
     wrapper.unmount();
   });
 
-  it('shows a readable summary for an overnight window and its selected days', () => {
-    const wrapper = mountInput('22:00-06:00|mon,tue,wed,thu,fri');
-    expect(wrapper.text()).toContain(
-      'Se cumple de 22:00 a 06:00 · Lun a vie · cruza la medianoche · hora de la bandeja'
-    );
-    wrapper.unmount();
-  });
-
-  it('always shows one summary line, including empty and same-time states', async () => {
+  it('shows a message only when both times are the same', async () => {
     const wrapper = mountInput();
-    expect(wrapper.text()).toContain('Elige la hora de inicio y de fin.');
+    expect(wrapper.find('p[aria-live="polite"]').exists()).toBe(false);
     await typeTime(wrapper, 0, '09:00');
     await typeTime(wrapper, 1, '09:00');
     expect(wrapper.text()).toContain(
