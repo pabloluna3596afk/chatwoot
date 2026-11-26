@@ -162,6 +162,26 @@ describe('TimeWindowInput', () => {
     wrapper.unmount();
   });
 
+  it('uses a quiet day style by default and a solid brand style for restrictions', async () => {
+    const wrapper = mountInput('09:00-18:00');
+    const monday = wrapper.find('button[aria-label="Lunes"]');
+    const sunday = wrapper.find('button[aria-label="Domingo"]');
+
+    expect(monday.classes()).toContain('bg-n-alpha-2');
+    expect(monday.classes()).toContain('text-n-slate-11');
+    expect(monday.classes()).not.toContain('bg-n-brand');
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === 'Lun a vie')
+      .trigger('click');
+    expect(monday.classes()).toContain('bg-n-brand');
+    expect(monday.classes()).toContain('text-white');
+    expect(sunday.classes()).toContain('bg-n-alpha-2');
+    expect(sunday.classes()).toContain('text-n-slate-11');
+    wrapper.unmount();
+  });
+
   it('follows a value changed from outside', async () => {
     const wrapper = mountInput('09:00-13:00');
     await wrapper.setProps({ modelValue: '' });

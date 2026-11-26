@@ -24,6 +24,8 @@ const initial = parseTimeWindow(getModelString(modelValue.value));
 const from = ref(initial?.from || '');
 const to = ref(initial?.to || '');
 const days = ref(initial?.days || []);
+// An empty day list means every day is allowed; explicit days are a restriction.
+const hasRestrictedDays = computed(() => days.value.length > 0);
 const selectedDays = computed(() =>
   days.value.length ? days.value : TIME_WINDOW_DAYS
 );
@@ -177,10 +179,10 @@ const setDays = nextDays => {
         class="h-11 min-w-0 rounded-lg px-0.5 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand sm:px-1 sm:text-sm"
         :class="
           selectedDays.includes(day.key)
-            ? isShortcutActive('all')
-              ? 'bg-n-brand/15 text-n-brand outline-n-brand/30'
-              : 'bg-n-brand text-white outline-n-brand'
-            : 'bg-n-solid-1 text-n-slate-11 outline-n-weak hover:bg-n-alpha-3'
+            ? hasRestrictedDays
+              ? 'bg-n-brand text-white outline-n-brand'
+              : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak'
+            : 'bg-n-alpha-2 text-n-slate-11 outline-n-weak hover:bg-n-alpha-3'
         "
         :aria-pressed="selectedDays.includes(day.key)"
         :aria-disabled="

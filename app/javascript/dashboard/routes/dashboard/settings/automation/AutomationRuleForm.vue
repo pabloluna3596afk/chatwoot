@@ -383,6 +383,7 @@ const filterTypes = computed(() => {
               : t('AUTOMATION.TIME_WINDOW.OPERATOR_OUTSIDE'),
           hasInput: true,
           inputOverride: 'timeWindow',
+          inputLayout: 'stacked',
         };
       }
       const enriched = operators.value[op.value];
@@ -565,7 +566,11 @@ defineExpose({ open, close, setLintFindings });
 
 <template>
   <SidePanel ref="panelRef" width="3xl" :title="$t(titleKey)">
-    <div v-if="automation" ref="formRef" class="flex flex-col w-full gap-6">
+    <div
+      v-if="automation"
+      ref="formRef"
+      class="flex flex-col w-full min-w-0 gap-6"
+    >
       <div class="flex flex-col gap-4">
         <Input
           v-model="automation.name"
