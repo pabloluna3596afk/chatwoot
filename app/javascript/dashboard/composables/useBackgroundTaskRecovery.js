@@ -6,6 +6,10 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import BackgroundTasksAPI from 'dashboard/api/backgroundTasks';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
+import {
+  isActivityTaskSeen,
+  seenActivity,
+} from 'dashboard/components-next/BackgroundTasks/activitySeen';
 
 export let activityPanelOpen = false;
 export const setActivityPanelOpen = value => {
@@ -25,18 +29,28 @@ let groupingTimer;
 let nextToastAt = 0;
 const pendingToastTimers = new Set();
 
-const flushCompletions = t => {
+const flushCompletions = (t, store) => {
   const batch = completed;
   completed = [];
   if (!batch.length || activityPanelOpen) return;
-  const errors = batch.filter(task => task.status === 'error').length;
-  const message = errors
-    ? t('BACKGROUND_TASKS.NOTICE.MIXED', { count: batch.length, errors })
-    : t('BACKGROUND_TASKS.NOTICE.SUCCESS', { count: batch.length });
   const delay = Math.max(0, nextToastAt - Date.now());
   const timer = setTimeout(() => {
     pendingToastTimers.delete(timer);
     if (activityPanelOpen) return;
+    const userId = store.getters.getCurrentUser?.id;
+    const accountId = store.getters.getCurrentAccountId;
+    const seenKey = `activity-seen:${userId || ''}:${accountId || ''}`;
+    const unseenBatch = batch.filter(
+      task => !isActivityTaskSeen(seenKey, task, seenActivity.value)
+    );
+    if (!unseenBatch.length) return;
+    const errors = unseenBatch.filter(task => task.status === 'error').length;
+    const message = errors
+      ? t('BACKGROUND_TASKS.NOTICE.MIXED', {
+          count: unseenBatch.length,
+          errors,
+        })
+      : t('BACKGROUND_TASKS.NOTICE.SUCCESS', { count: unseenBatch.length });
     useAlert(message, {
       type: 'callback',
       message: t('BACKGROUND_TASKS.VIEW_ACTIVITY'),
@@ -56,7 +70,6 @@ export const useBackgroundTaskRecovery = () => {
     const accountId = store.getters.getCurrentAccountId;
     if (!accountId) return;
     store.commit('backgroundTasks/setLoading', true);
-    store.commit('backgroundTasks/setFailed', false);
     const initial = { ...store.state.backgroundTasks.tasks };
     try {
       const response = await run(signal =>
@@ -64,6 +77,7 @@ export const useBackgroundTaskRecovery = () => {
       );
       if (!response) return;
       const recoveredIds = new Set(response.data.map(task => task.id));
+      store.commit('backgroundTasks/setFailed', false);
       response.data
         .slice()
         .reverse()
@@ -92,9 +106,13 @@ export const useBackgroundTaskRecovery = () => {
   const onReconnect = () => recover();
   const onReload = () => recover();
   const onCompleted = task => {
+    const userId = store.getters.getCurrentUser?.id;
+    const accountId = store.getters.getCurrentAccountId;
+    const seenKey = `activity-seen:${userId || ''}:${accountId || ''}`;
+    if (isActivityTaskSeen(seenKey, task)) return;
     completed.push(task);
     clearTimeout(groupingTimer);
-    groupingTimer = setTimeout(() => flushCompletions(t), 1000);
+    groupingTimer = setTimeout(() => flushCompletions(t, store), 1000);
   };
   watch(
     () => store.getters.getCurrentAccountId,

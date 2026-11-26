@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
-import ActivityButton from 'dashboard/components-next/BackgroundTasks/ActivityButton.vue';
+import { useActivityIndicator } from 'dashboard/components-next/BackgroundTasks/useActivityIndicator';
 
 defineProps({
   isMobileSidebarOpen: {
@@ -13,6 +13,7 @@ defineProps({
 });
 
 const emit = defineEmits(['toggle']);
+const { visible: activityVisible, statusTone } = useActivityIndicator();
 
 const route = useRoute();
 
@@ -51,18 +52,26 @@ const toggleSidebar = () => {
     <ButtonGroup
       class="rounded-full bg-n-alpha-2 backdrop-blur-lg p-1 shadow hover:shadow-md"
     >
-      <Button
-        icon="i-lucide-menu"
-        no-animation
-        class="!rounded-full !bg-n-solid-3 dark:!bg-n-alpha-2 !text-n-slate-12 text-xl transition-all duration-200 ease-out hover:brightness-110"
-        lg
-        @click="toggleSidebar"
-      />
-      <ActivityButton
-        mobile
-        mobile-label
-        class="!mx-0 !w-auto !rounded-full !px-3"
-      />
+      <span class="relative flex">
+        <Button
+          icon="i-lucide-menu"
+          no-animation
+          class="!rounded-full !bg-n-solid-3 dark:!bg-n-alpha-2 !text-n-slate-12 text-xl transition-all duration-200 ease-out hover:brightness-110"
+          lg
+          @click="toggleSidebar"
+        />
+        <span
+          v-if="activityVisible"
+          class="absolute end-1 top-1 size-[9px] rounded-full border-2 border-n-background"
+          :class="{
+            'bg-n-brand': statusTone === 'active',
+            'bg-n-slate-10': statusTone === 'waiting',
+            'bg-n-teal-11': statusTone === 'success',
+            'bg-n-ruby-11': statusTone === 'error',
+          }"
+          aria-hidden="true"
+        />
+      </span>
     </ButtonGroup>
   </div>
   <template v-else />

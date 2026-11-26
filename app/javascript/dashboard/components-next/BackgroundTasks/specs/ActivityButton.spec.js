@@ -22,10 +22,23 @@ vi.mock('dashboard/components-next/popover/Popover.vue', () => ({
       const toggle = () => (visible.value ? hide() : show());
       expose({ show, hide });
       return () =>
-        h('div', { onClick: toggle }, [
-          slots.default?.(),
-          visible.value ? slots.content?.({ hide, isMobile: false }) : null,
-        ]);
+        h(
+          'div',
+          {
+            onClick: event => {
+              if (
+                event.target.closest(
+                  '[aria-controls="background-activity-panel"]'
+                )
+              )
+                toggle();
+            },
+          },
+          [
+            slots.default?.(),
+            visible.value ? slots.content?.({ hide, isMobile: false }) : null,
+          ]
+        );
     },
   }),
 }));
@@ -69,47 +82,71 @@ describe('ActivityButton', () => {
     });
   };
 
-  it('shows a stable activity entry at rest and reflects task priority', async () => {
+  it('does not render an activity strip at rest', () => {
+    render();
+    expect(wrapper.find('button').exists()).toBe(false);
+  });
+
+  it('shows one compact trigger with status priority and accessible text', async () => {
+    await store.dispatch(
+      'backgroundTasks/upsert',
+      task('waiting', 'running', 'waiting')
+    );
     render();
     const button = wrapper.get('button');
     expect(button.attributes('aria-haspopup')).toBe('dialog');
-    expect(button.attributes('aria-label')).toContain('No recent activity');
-    await store.dispatch(
-      'backgroundTasks/upsert',
-      task('wait', 'running', 'waiting')
-    );
-    expect(button.text()).toContain('1');
+    expect(button.attributes('aria-expanded')).toBe('false');
+    expect(button.attributes('aria-label')).toContain('1 waiting');
     await store.dispatch('backgroundTasks/upsert', task('error', 'error'));
-    expect(button.attributes('aria-label')).toContain('1 new errors');
+    expect(button.attributes('aria-label')).toContain('1 new error');
     expect(wrapper.find('.text-n-ruby-11').exists()).toBe(true);
   });
 
-  it('marks recovered results as seen on open without dismissing them', async () => {
+  it('summarizes ten new errors in a collapsed icon trigger', async () => {
+    await Promise.all(
+      Array.from({ length: 10 }, (_, index) =>
+        store.dispatch(
+          'backgroundTasks/upsert',
+          task(`error-${index}`, 'error')
+        )
+      )
+    );
+    const i18n = createI18n({ legacy: false, locale: 'en', messages });
+    wrapper = mount(ActivityButton, {
+      props: { collapsed: true },
+      global: {
+        plugins: [store, i18n],
+        stubs: { RouterLink: { template: '<a><slot /></a>' } },
+      },
+    });
+    const button = wrapper.get('button');
+    expect(button.text()).toBe('');
+    expect(button.attributes('title')).toContain('10 new errors');
+  });
+
+  it('marks result rows seen on open and removes them after close', async () => {
     await store.dispatch('backgroundTasks/upsert', task('done', 'success'));
     render();
     await wrapper.get('button').trigger('click');
     expect(wrapper.text()).toContain('done');
     expect(localStorage.getItem('activity-seen:9:1')).toContain('"done":"1"');
     expect(store.getters['backgroundTasks/ordered']).toHaveLength(1);
+    await wrapper.get('button').trigger('click');
+    expect(wrapper.find('a').exists()).toBe(false);
+    expect(wrapper.find('button').exists()).toBe(false);
   });
 
-  it('shows loading, empty, and recovery failure as distinct states', async () => {
-    store.commit('backgroundTasks/setLoading', true);
-    render();
-    await wrapper.get('button').trigger('click');
-    expect(wrapper.text()).toContain('Checking activity');
-    await wrapper.get('button').trigger('click');
-    store.commit('backgroundTasks/setLoading', false);
+  it('keeps failed recovery visible and distinguishes empty panel state', async () => {
     store.commit('backgroundTasks/setFailed', true);
+    render();
+    expect(wrapper.get('button').attributes('aria-label')).toContain(
+      'Activity unavailable'
+    );
     await wrapper.get('button').trigger('click');
     expect(wrapper.text()).toContain("We couldn't update activity.");
-    expect(wrapper.get('button').attributes('aria-label')).toContain(
-      "We couldn't update activity."
-    );
     store.commit('backgroundTasks/setFailed', false);
     await wrapper.get('button').trigger('click');
-    await wrapper.get('button').trigger('click');
-    expect(wrapper.text()).toContain('No recent tasks.');
+    expect(wrapper.find('button').exists()).toBe(false);
   });
 
   it('keeps activity usable when local storage is blocked', async () => {

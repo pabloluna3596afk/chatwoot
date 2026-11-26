@@ -1,207 +1,75 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, useId, watch } from 'vue';
-import { useStore } from 'dashboard/composables/store';
-import { useMapGetter } from 'dashboard/composables/store';
-import { useI18n } from 'vue-i18n';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { emitter } from 'shared/helpers/mitt';
+import {
+  isActivityPanelOpen,
+  activityIndicatorSnapshot,
+  persistSeenActivity,
+  seenActivity,
+  taskVersion,
+} from './activitySeen';
+import { useActivityIndicator } from './useActivityIndicator';
 import {
   reserveActivityPanel,
   releaseActivityPanel,
   setActivityPanelOpen,
 } from 'dashboard/composables/useBackgroundTaskRecovery';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
-import SidebarUnreadBadge from 'dashboard/components-next/sidebar/SidebarUnreadBadge.vue';
 
 const props = defineProps({
   collapsed: { type: Boolean, default: false },
-  mobile: { type: Boolean, default: false },
-  mobileLabel: { type: Boolean, default: false },
+  triggerOnly: { type: Boolean, default: false },
 });
-const store = useStore();
-const { t } = useI18n();
+
+const {
+  store,
+  t,
+  tasks,
+  seenKey,
+  visible,
+  summary,
+  iconName,
+  iconTone,
+  statusTone: indicatorStatusTone,
+  active,
+  failed,
+} = useActivityIndicator();
 const panel = ref(null);
 const open = ref(false);
-const panelId = useId();
-const tasks = computed(() => store.getters['backgroundTasks/ordered']);
-const accountId = useMapGetter('getCurrentAccountId');
-const currentUser = useMapGetter('getCurrentUser');
-const userId = computed(() => currentUser.value?.id || '');
-const seenKey = computed(
-  () => `activity-seen:${userId.value}:${accountId.value}`
-);
-const seen = ref({});
-const taskVersion = task => String(task.version || task.updated_at || '0');
-const readSeen = () => {
-  try {
-    seen.value = JSON.parse(localStorage.getItem(seenKey.value) || '{}');
-  } catch {
-    seen.value = {};
-  }
-};
-readSeen();
-watch(seenKey, readSeen);
-const results = computed(() =>
-  tasks.value.filter(task => task.status !== 'running')
-);
-const unseen = computed(() =>
-  results.value.filter(task => seen.value[task.id] !== taskVersion(task))
-);
-const errors = computed(
-  () => unseen.value.filter(task => task.status === 'error').length
-);
-const active = computed(
-  () =>
-    tasks.value.filter(
-      task => task.status === 'running' && task.phase !== 'waiting'
-    ).length
-);
-const waiting = computed(
-  () =>
-    tasks.value.filter(
-      task => task.status === 'running' && task.phase === 'waiting'
-    ).length
-);
-const successes = computed(
-  () => unseen.value.filter(task => task.status === 'success').length
-);
-const indicatorSnapshot = ref(null);
-const indicatorErrors = computed(
-  () => indicatorSnapshot.value?.errors ?? errors.value
-);
-const indicatorActive = computed(
-  () => indicatorSnapshot.value?.active ?? active.value
-);
-const indicatorWaiting = computed(
-  () => indicatorSnapshot.value?.waiting ?? waiting.value
-);
-const indicatorSuccesses = computed(
-  () => indicatorSnapshot.value?.successes ?? successes.value
-);
-const indicatorLoading = computed(
-  () => indicatorSnapshot.value?.loading ?? store.state.backgroundTasks.loading
-);
-const indicatorFailed = computed(
-  () => indicatorSnapshot.value?.failed ?? store.state.backgroundTasks.failed
-);
-const badgeCount = computed(
-  () =>
-    [
-      indicatorErrors.value,
-      indicatorActive.value,
-      indicatorWaiting.value,
-      indicatorSuccesses.value,
-    ].find(Boolean) || 0
-);
-const badgeTone = computed(() => {
-  if (indicatorErrors.value) return 'urgent';
-  if (indicatorSuccesses.value) return 'success';
-  return 'default';
-});
-const iconName = computed(() => {
-  if (indicatorFailed.value) return 'i-lucide-triangle-alert';
-  if (indicatorErrors.value) return 'i-lucide-circle-alert';
-  if (indicatorActive.value) return '';
-  if (indicatorWaiting.value) return 'i-lucide-clock-3';
-  if (indicatorSuccesses.value) return 'i-lucide-check';
-  return 'i-lucide-list-check';
-});
-const iconTone = computed(() => {
-  if (indicatorErrors.value) return 'text-n-ruby-11';
-  if (indicatorActive.value) return 'text-n-brand';
-  if (indicatorSuccesses.value) return 'text-n-teal-11';
-  return 'text-n-slate-11';
-});
-const summary = computed(() => {
-  if (indicatorFailed.value) return t('BACKGROUND_TASKS.LOAD_ERROR');
-  if (indicatorLoading.value && !tasks.value.length)
-    return t('BACKGROUND_TASKS.LOADING');
-  const values = [];
-  if (indicatorActive.value)
-    values.push(
-      t('BACKGROUND_TASKS.ACTIVE_COUNT', { count: indicatorActive.value })
-    );
-  if (indicatorWaiting.value)
-    values.push(
-      t('BACKGROUND_TASKS.WAITING_COUNT', { count: indicatorWaiting.value })
-    );
-  if (indicatorErrors.value)
-    values.push(
-      t('BACKGROUND_TASKS.NEW_ERRORS', { count: indicatorErrors.value })
-    );
-  if (indicatorSuccesses.value)
-    values.push(
-      t('BACKGROUND_TASKS.NEW_SUCCESSES', { count: indicatorSuccesses.value })
-    );
-  return (
-    values.join(t('BACKGROUND_TASKS.SEPARATOR')) || t('BACKGROUND_TASKS.IDLE')
-  );
-});
+const panelId = 'background-activity-panel';
+const panelTaskIds = ref([]);
 const triggerLabel = computed(
   () => `${t('BACKGROUND_TASKS.ACTIVITY')}: ${summary.value}`
 );
-const orderedTasks = computed(() =>
-  [...tasks.value].sort((a, b) => {
-    const priority = task => {
-      if (task.status === 'error' && seen.value[task.id] !== taskVersion(task))
-        return 0;
-      if (task.status === 'running' && task.phase !== 'waiting') return 1;
-      if (task.status === 'running') return 2;
-      return 3;
-    };
-    return priority(a) - priority(b);
-  })
+const resultIsUnseen = task =>
+  seenActivity.value[task.id] !== taskVersion(task);
+const eligibleTasks = computed(() =>
+  tasks.value.filter(task => task.status === 'running' || resultIsUnseen(task))
 );
-const onShow = () => {
-  if (!reserveActivityPanel(panel.value)) {
-    panel.value?.hide();
-    return;
-  }
-  open.value = true;
-  setActivityPanelOpen(true);
-  emitter.emit('backgroundTask:opened');
-  indicatorSnapshot.value = {
-    errors: errors.value,
-    active: active.value,
-    waiting: waiting.value,
-    successes: successes.value,
-    loading: store.state.backgroundTasks.loading,
-    failed: store.state.backgroundTasks.failed,
+const displayedTasks = computed(() => {
+  const visibleTasks = open.value
+    ? tasks.value.filter(task => panelTaskIds.value.includes(task.id))
+    : eligibleTasks.value;
+  const priority = task => {
+    if (task.status === 'error') return 0;
+    if (task.status === 'running' && task.phase !== 'waiting') return 1;
+    if (task.status === 'running') return 2;
+    return 3;
   };
-  results.value.forEach(task => {
-    seen.value[task.id] = taskVersion(task);
-  });
-  try {
-    localStorage.setItem(seenKey.value, JSON.stringify(seen.value));
-  } catch {
-    /* Results remain visible; live alerts still work. */
-  }
-};
-const onHide = () => {
-  open.value = false;
-  setActivityPanelOpen(false);
-  indicatorSnapshot.value = null;
-  releaseActivityPanel(panel.value);
-};
-const openPanel = () => {
-  const bounds = panel.value?.$el?.getBoundingClientRect();
-  if (
-    bounds &&
-    bounds.bottom > 0 &&
-    bounds.top < window.innerHeight &&
-    bounds.right > 0 &&
-    bounds.left < window.innerWidth
-  ) {
-    if (reserveActivityPanel(panel.value)) panel.value?.show();
-  }
-};
-const openListener = () => openPanel();
-emitter.on('backgroundTask:open', openListener);
-onBeforeUnmount(() => {
-  emitter.off('backgroundTask:open', openListener);
-  if (open.value) setActivityPanelOpen(false);
-  releaseActivityPanel(panel.value);
+  return [...visibleTasks].sort((a, b) => priority(a) - priority(b));
 });
+
+watch(
+  tasks,
+  () => {
+    if (!open.value) return;
+    const ids = new Set(panelTaskIds.value);
+    eligibleTasks.value.forEach(task => ids.add(task.id));
+    panelTaskIds.value = [...ids];
+  },
+  { deep: true }
+);
+
 const statusText = task => {
   if (task.status === 'error')
     return task.detail || t('BACKGROUND_TASKS.STATUS.ERROR');
@@ -223,19 +91,90 @@ const statusTone = task => {
   if (task.phase === 'waiting') return 'text-n-slate-11';
   return 'text-n-brand';
 };
-const triggerClass = computed(() => {
-  if (props.mobile && props.mobileLabel)
-    return '!mx-0 !w-auto !rounded-full !px-3';
-  if (props.mobile) return '!mx-0 !size-11 !rounded-full !p-0';
-  if (props.collapsed) return 'mx-auto size-11 justify-center p-0';
-  return 'mx-2 w-[calc(100%-1rem)] px-2';
+
+const onShow = () => {
+  if (!reserveActivityPanel(panel.value)) {
+    panel.value?.hide();
+    return;
+  }
+  panelTaskIds.value = eligibleTasks.value.map(task => task.id);
+  open.value = true;
+  isActivityPanelOpen.value = true;
+  activityIndicatorSnapshot.value = {
+    summary: summary.value,
+    iconName: iconName.value,
+    iconTone: iconTone.value,
+    statusTone: indicatorStatusTone.value,
+  };
+  setActivityPanelOpen(true);
+  emitter.emit('backgroundTask:opened');
+  const nextSeen = { ...seenActivity.value };
+  panelTaskIds.value.forEach(id => {
+    const task = tasks.value.find(item => item.id === id);
+    if (task && task.status !== 'running') nextSeen[id] = taskVersion(task);
+  });
+  seenActivity.value = nextSeen;
+  persistSeenActivity(seenKey.value, nextSeen);
+};
+const onHide = () => {
+  const nextSeen = { ...seenActivity.value };
+  panelTaskIds.value.forEach(id => {
+    const task = tasks.value.find(item => item.id === id);
+    if (task && task.status !== 'running') nextSeen[id] = taskVersion(task);
+  });
+  seenActivity.value = nextSeen;
+  persistSeenActivity(seenKey.value, nextSeen);
+  open.value = false;
+  isActivityPanelOpen.value = false;
+  activityIndicatorSnapshot.value = null;
+  panelTaskIds.value = [];
+  setActivityPanelOpen(false);
+  releaseActivityPanel(panel.value);
+};
+const openPanel = () => {
+  if (reserveActivityPanel(panel.value)) panel.value?.show();
+};
+const openListener = () => openPanel();
+if (!props.triggerOnly) emitter.on('backgroundTask:open', openListener);
+onBeforeUnmount(() => {
+  emitter.off('backgroundTask:open', openListener);
+  if (open.value) setActivityPanelOpen(false);
+  if (open.value) isActivityPanelOpen.value = false;
+  if (open.value) activityIndicatorSnapshot.value = null;
+  releaseActivityPanel(panel.value);
 });
+
+const openFromHeader = () => emitter.emit('backgroundTask:open');
 </script>
 
 <template>
+  <button
+    v-if="triggerOnly && visible"
+    type="button"
+    :aria-label="triggerLabel"
+    :title="triggerLabel"
+    :aria-expanded="isActivityPanelOpen"
+    aria-controls="background-activity-panel"
+    aria-haspopup="dialog"
+    class="relative flex size-8 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none md:hidden"
+    @click="openFromHeader"
+  >
+    <span
+      class="size-3"
+      :class="[
+        iconName,
+        iconTone,
+        { 'motion-safe:animate-spin': active && !failed },
+      ]"
+      aria-hidden="true"
+    />
+  </button>
   <Popover
+    v-else-if="!triggerOnly"
     ref="panel"
+    class="w-full"
     align="start"
+    side="top"
     mobile-sheet
     focus-content
     labelledby="activity-title"
@@ -244,43 +183,34 @@ const triggerClass = computed(() => {
   >
     <template #default>
       <button
+        v-if="visible"
         type="button"
         :aria-expanded="open"
         :aria-controls="panelId"
         aria-haspopup="dialog"
         :aria-label="triggerLabel"
         :title="collapsed ? triggerLabel : undefined"
-        class="relative flex min-h-11 items-center gap-2 rounded-lg bg-transparent text-sm hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
-        :class="triggerClass"
-        @focus="readSeen"
+        class="relative flex h-5 min-h-5 w-full items-center gap-1.5 overflow-hidden bg-n-alpha-1 text-start text-[11px] text-n-slate-11 hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none motion-reduce:transition-none"
+        :class="collapsed ? 'justify-center px-0' : 'justify-start px-3'"
       >
-        <Spinner
-          v-if="(indicatorActive && !indicatorFailed) || indicatorLoading"
-          class="size-4 text-n-brand motion-reduce:animate-none"
-        />
         <span
-          v-else
-          class="size-4 shrink-0"
-          :class="[iconName, iconTone]"
+          class="size-3 shrink-0"
+          :class="[
+            iconName,
+            iconTone,
+            { 'motion-safe:animate-spin': active && !failed },
+          ]"
           aria-hidden="true"
         />
-        <span
-          v-if="!collapsed || mobileLabel"
-          class="min-w-0 flex-1 truncate text-start text-n-slate-12"
-        >
-          {{ t('BACKGROUND_TASKS.ACTIVITY') }}
+        <span v-if="!collapsed" class="truncate whitespace-nowrap">
+          {{ summary }}
         </span>
-        <SidebarUnreadBadge
-          v-if="badgeCount"
-          :count="badgeCount"
-          :tone="badgeTone"
-        />
       </button>
     </template>
     <template #content="{ hide, isMobile }">
       <section
         :id="panelId"
-        class="flex w-[24rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl bg-n-solid-1 text-n-slate-12 shadow-lg"
+        class="flex w-[21rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-[10px] bg-n-solid-1 text-n-slate-12 shadow-lg"
         :class="
           isMobile
             ? 'w-screen max-w-none max-h-[82dvh]'
@@ -290,27 +220,21 @@ const triggerClass = computed(() => {
         role="dialog"
       >
         <header
-          class="flex shrink-0 items-start justify-between gap-3 border-b border-n-weak px-4 py-3"
+          class="flex shrink-0 items-start justify-between gap-2 pe-1.5 pb-1 ps-3 pt-2"
         >
           <div class="min-w-0">
-            <h2 id="activity-title" class="m-0 text-sm font-semibold">
+            <h2 id="activity-title" class="m-0 text-[13px] font-semibold">
               {{ t('BACKGROUND_TASKS.TITLE') }}
             </h2>
-            <p class="m-0 mt-1 text-xs text-n-slate-11">
-              {{ t('BACKGROUND_TASKS.PANEL_SUMMARY', { count: tasks.length })
-              }}<template v-if="active">
-                {{ t('BACKGROUND_TASKS.SEPARATOR') }}
-                {{ t('BACKGROUND_TASKS.ACTIVE_COUNT', { count: active }) }}
-              </template>
-              <template v-if="errors">
-                {{ t('BACKGROUND_TASKS.SEPARATOR') }}
-                {{ t('BACKGROUND_TASKS.NEW_ERRORS', { count: errors }) }}
-              </template>
+            <p
+              class="m-0 truncate whitespace-nowrap text-[11px] text-n-slate-11"
+            >
+              {{ summary }}
             </p>
           </div>
           <button
             type="button"
-            class="flex size-11 shrink-0 items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+            class="flex size-6 shrink-0 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none"
             :aria-label="t('BACKGROUND_TASKS.CLOSE')"
             @click="hide"
           >
@@ -319,71 +243,67 @@ const triggerClass = computed(() => {
         </header>
         <p
           v-if="store.state.backgroundTasks.loading"
-          class="m-0 p-4 text-sm text-n-slate-11"
-          role="status"
+          class="m-0 px-3 py-2 text-xs text-n-slate-11"
         >
           {{ t('BACKGROUND_TASKS.LOADING') }}
         </p>
-        <div
-          v-else-if="store.state.backgroundTasks.failed"
-          class="p-4 text-sm"
-          role="alert"
-        >
+        <div v-else-if="failed" class="px-3 py-2 text-xs">
           <p class="m-0 text-n-slate-11">
             {{ t('BACKGROUND_TASKS.LOAD_ERROR') }}
           </p>
           <button
-            class="mt-3 min-h-11 text-n-brand underline"
+            class="mt-2 text-n-brand underline"
             type="button"
             @click="emitter.emit('backgroundTask:reload')"
           >
             {{ t('BACKGROUND_TASKS.RELOAD') }}
           </button>
         </div>
-        <p v-else-if="!tasks.length" class="m-0 p-4 text-sm text-n-slate-11">
+        <p
+          v-else-if="!displayedTasks.length"
+          class="m-0 px-3 py-2 text-xs text-n-slate-11"
+        >
           {{ t('BACKGROUND_TASKS.EMPTY') }}
         </p>
         <ul
           v-else
-          class="m-0 min-h-0 list-none overflow-y-auto overflow-x-hidden p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="m-0 min-h-0 list-none overflow-y-auto overflow-x-hidden p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           :aria-label="t('BACKGROUND_TASKS.TITLE')"
         >
-          <li v-for="task in orderedTasks" :key="task.id">
+          <li v-for="task in displayedTasks" :key="task.id">
             <RouterLink
               v-if="task.link?.route"
               :to="task.link.route"
-              class="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+              class="flex min-h-8 items-center gap-2 px-2 text-[13px] hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none"
+              :class="{ 'min-h-11': isMobile }"
               :aria-label="`${task.title}. ${statusText(task)}`"
               @click="hide"
             >
               <span
-                class="size-4 shrink-0"
+                class="size-3 shrink-0"
                 :class="[statusIcon(task), statusTone(task)]"
                 aria-hidden="true"
               />
               <span class="min-w-0 flex-1 truncate">{{ task.title }}</span>
-              <span class="max-w-[40%] truncate text-xs text-n-slate-11">{{
+              <span class="max-w-[40%] truncate text-[11px] text-n-slate-11">{{
                 statusText(task)
               }}</span>
-              <span
-                class="i-lucide-chevron-right size-4 shrink-0 text-n-slate-10"
-                aria-hidden="true"
-              />
             </RouterLink>
             <div
               v-else
-              class="flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm"
+              class="flex min-h-8 items-center gap-2 px-2 text-[13px]"
+              :class="{ 'min-h-11': isMobile }"
               :aria-label="`${task.title}. ${statusText(task)}`"
             >
               <span
-                class="size-4 shrink-0"
-                :class="statusIcon(task)"
+                class="size-3 shrink-0"
+                :class="[statusIcon(task), statusTone(task)]"
                 aria-hidden="true"
               />
               <span class="min-w-0 flex-1 truncate">{{ task.title }}</span>
-              <span class="max-w-[40%] truncate text-xs text-n-slate-11">
-                {{ statusText(task) }}
-              </span>
+              <span class="max-w-[40%] truncate text-[11px] text-n-slate-11">{{
+                statusText(task)
+              }}</span>
             </div>
           </li>
         </ul>

@@ -174,7 +174,7 @@ const toggleContactSidebar = () => {
     <div
       class="flex flex-row items-center justify-end flex-shrink-0 gap-2 w-auto header-actions-wrap"
     >
-      <ActivityButton mobile class="!mx-0 !w-auto !px-2 md:hidden" />
+      <ActivityButton trigger-only />
       <SLACardLabel
         v-if="hasSlaPolicyId"
         :chat="chat"
