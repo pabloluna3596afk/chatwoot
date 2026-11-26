@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import Base from '../bubbles/Base.vue';
+import { MESSAGE_VARIANTS } from '../constants';
 
 const context = {};
 vi.mock('../provider.js', () => ({ useMessageContext: () => context }));
@@ -32,6 +33,7 @@ describe('bubble metadata composition', () => {
       inReplyTo: ref(null),
       shouldGroupWithNext: ref(false),
       contentAttributes: ref({}),
+      contentType: ref('text'),
       sender: ref({ type: 'User' }),
     })
   );
@@ -104,6 +106,22 @@ describe('bubble metadata composition', () => {
       ])
     );
     expect(meta.classes()).not.toContain('absolute');
+  });
+
+  it.each(Object.values(MESSAGE_VARIANTS))(
+    'provides an explicit background for the %s variant',
+    variant => {
+      context.variant.value = variant;
+      const classes = render().classes();
+      expect(classes.some(className => className.startsWith('bg-'))).toBe(true);
+    }
+  );
+
+  it('keeps the sticker variant transparent by design', () => {
+    context.contentType.value = 'sticker';
+    const wrapper = render();
+    expect(wrapper.classes()).toContain('bg-transparent');
+    expect(wrapper.classes()).toContain('shadow-none');
   });
 
   it('does not create a meta row for activities or an explicit hideMeta', async () => {

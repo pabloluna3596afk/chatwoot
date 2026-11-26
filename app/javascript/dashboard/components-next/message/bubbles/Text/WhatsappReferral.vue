@@ -47,7 +47,7 @@ const handleMediaError = () => {
 
 <template>
   <div
-    class="w-full max-w-lg overflow-hidden border rounded-lg border-n-weak bg-n-alpha-1"
+    class="w-full max-w-lg overflow-hidden rounded-lg bg-n-alpha-black1"
     data-testid="whatsapp-referral"
   >
     <a
@@ -59,7 +59,7 @@ const handleMediaError = () => {
     >
       <div
         v-if="showMedia"
-        class="relative overflow-hidden bg-n-alpha-2 aspect-video"
+        class="relative overflow-hidden bg-n-alpha-black1 aspect-video"
       >
         <video
           v-if="renderVideo"

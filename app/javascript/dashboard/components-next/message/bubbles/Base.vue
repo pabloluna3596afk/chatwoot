@@ -23,6 +23,7 @@ const {
   sender,
   senderType,
   contentAttributes,
+  contentType,
   variant,
   orientation,
   inReplyTo,
@@ -36,6 +37,7 @@ const showCaptain = computed(() =>
     contentAttributes: contentAttributes?.value,
   })
 );
+const isSticker = computed(() => contentType?.value === 'sticker');
 
 const varaintBaseMap = {
   [MESSAGE_VARIANTS.AGENT]: CHAT_SKIN.bubble.outgoing,
@@ -47,9 +49,9 @@ const varaintBaseMap = {
   [MESSAGE_VARIANTS.BOT]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.TEMPLATE]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.ERROR]: 'bg-n-ruby-4 text-n-ruby-12',
-  [MESSAGE_VARIANTS.EMAIL]: 'w-full',
+  [MESSAGE_VARIANTS.EMAIL]: 'w-full bg-n-slate-4',
   [MESSAGE_VARIANTS.UNSUPPORTED]:
-    'bg-n-solid-amber/70 border border-dashed border-n-amber-12 text-n-amber-12',
+    'bg-n-solid-amber border border-dashed border-n-amber-12 text-n-amber-12',
 };
 
 const orientationMap = {
@@ -61,6 +63,7 @@ const orientationMap = {
 };
 
 const messageClass = computed(() => {
+  if (isSticker.value) return ['bg-transparent shadow-none', 'rounded-md'];
   const classToApply = [varaintBaseMap[variant.value]];
 
   if (variant.value !== MESSAGE_VARIANTS.ACTIVITY) {
@@ -80,8 +83,10 @@ const shouldShowMeta = computed(
 );
 const MESSAGE_META_SPACING = 'mt-1 px-3 pb-2';
 const metaClass = computed(() => [
-  MESSAGE_META_SPACING,
-  'justify-end text-n-slate-11',
+  isSticker.value
+    ? 'mt-1 ms-auto w-fit rounded-full bg-n-alpha-black2 px-2 py-1 text-white'
+    : MESSAGE_META_SPACING,
+  isSticker.value ? 'justify-end' : 'justify-end text-n-slate-11',
 ]);
 </script>
 
@@ -107,7 +112,8 @@ const metaClass = computed(() => [
             props.contentClass &&
             !shouldShowMeta &&
             !props.hideMeta &&
-            variant !== MESSAGE_VARIANTS.ACTIVITY,
+            variant !== MESSAGE_VARIANTS.ACTIVITY &&
+            !isSticker,
         },
       ]"
     >
