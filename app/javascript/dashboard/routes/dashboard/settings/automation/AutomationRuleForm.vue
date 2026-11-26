@@ -373,6 +373,18 @@ const filterTypes = computed(() => {
     const options = props.getConditionDropdownValues(attr.key) || [];
 
     const filterOperators = (attr.filterOperators || []).map(op => {
+      if (attr.key === 'message_time_window') {
+        return {
+          ...(operators.value[op.value] || {}),
+          value: op.value,
+          label:
+            op.value === 'equal_to'
+              ? t('AUTOMATION.TIME_WINDOW.OPERATOR_INSIDE')
+              : t('AUTOMATION.TIME_WINDOW.OPERATOR_OUTSIDE'),
+          hasInput: true,
+          inputOverride: 'timeWindow',
+        };
+      }
       const enriched = operators.value[op.value];
       if (enriched) return enriched;
       return {

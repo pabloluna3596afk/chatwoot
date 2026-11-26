@@ -29,6 +29,20 @@ const timeWindowSummary = computed(() => {
   if (!condition) return '';
   return summarizeTimeWindow(condition.values?.[0] ?? condition.values, t);
 });
+const timeWindowNegated = computed(
+  () =>
+    props.automation.conditions?.find(
+      item => item.attribute_key === 'message_time_window'
+    )?.filter_operator === 'not_equal_to'
+);
+const timeWindowRowSummary = computed(() => {
+  if (!timeWindowSummary.value) return '';
+  const params = { summary: timeWindowSummary.value };
+  if (timeWindowNegated.value) {
+    return t('AUTOMATION.TIME_WINDOW.SUMMARY_ROW_OUT', params);
+  }
+  return t('AUTOMATION.TIME_WINDOW.SUMMARY_ROW_IN', params);
+});
 
 const readableDate = date => messageStamp(new Date(date), 'LLL d, yyyy');
 const readableDateWithTime = date =>
@@ -76,11 +90,7 @@ const automationActive = computed({
             class="text-xs text-n-slate-11"
             :title="$t('AUTOMATION.ATTRIBUTES.MESSAGE_TIME_WINDOW')"
           >
-            {{
-              $t('AUTOMATION.TIME_WINDOW.SUMMARY_ROW', {
-                summary: timeWindowSummary,
-              })
-            }}
+            {{ timeWindowRowSummary }}
           </span>
         </div>
       </BaseTableCell>
