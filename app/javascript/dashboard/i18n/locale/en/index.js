@@ -1,3 +1,4 @@
+import backgroundTasks from './backgroundTasks.json';
 import dateField from './dateField.json';
 import planCatalog from './planCatalog.json';
 import advancedFilters from './advancedFilters.json';
@@ -58,6 +59,7 @@ import sessionLimit from './sessionLimit.json';
 import yearInReview from './yearInReview.json';
 
 export default {
+  ...backgroundTasks,
   ...dateField,
   ...planCatalog,
   ...advancedFilters,

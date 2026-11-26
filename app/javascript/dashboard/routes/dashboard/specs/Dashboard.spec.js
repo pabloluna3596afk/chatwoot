@@ -3,6 +3,10 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { flushPromises, mount } from '@vue/test-utils';
 import Dashboard from '../Dashboard.vue';
 
+vi.mock('dashboard/composables/useBackgroundTaskRecovery', () => ({
+  useBackgroundTaskRecovery: vi.fn(),
+}));
+
 vi.mock('dashboard/composables/useUISettings', async () => {
   const { ref: createRef } = await import('vue');
   return {

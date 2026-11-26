@@ -25,6 +25,7 @@ const closeMenu = () => {
 
 // A teleported menu sits outside the container, so clicks inside it read as clicks outside.
 const clickOutsideHandler = [closeMenu, { ignore: ['[data-dropdown-menu]'] }];
+defineExpose({ close: closeMenu });
 
 provideDropdownContext({
   isOpen,

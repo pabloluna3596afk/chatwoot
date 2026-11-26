@@ -1,0 +1,31 @@
+{
+  "BACKGROUND_TASKS": {
+    "ACTIVITY": "Activity",
+    "TITLE": "Background tasks",
+    "CLOSE": "Close",
+    "SEPARATOR": " · ",
+    "ACTIVE_COUNT": "{count} in progress",
+    "WAITING_COUNT": "{count} waiting",
+    "NEW_ERRORS": "{count} new error | {count} new errors",
+    "NEW_SUCCESSES": "{count} new results",
+    "LOADING": "Checking activity…",
+    "EMPTY": "No recent tasks. Operations you start will appear here.",
+    "LOAD_ERROR": "We couldn't update activity.",
+    "UNAVAILABLE": "Activity unavailable",
+    "RELOAD": "Reload",
+    "VIEW_ACTIVITY": "View activity",
+    "NOTICE": {
+      "SUCCESS": "{count} tasks finished",
+      "MIXED": "{count} tasks finished; {errors} need attention"
+    },
+    "STATUS": {
+      "ERROR": "Needs attention",
+      "SUCCESS": "Completed",
+      "WAITING": "Waiting for review",
+      "RUNNING": "In progress"
+    },
+    "SENDING": "Sending to Meta…",
+    "REVIEW": "Under Meta review",
+    "VIEW_TEMPLATE": "View template"
+  }
+}

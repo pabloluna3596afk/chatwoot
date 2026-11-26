@@ -1,0 +1,9 @@
+en:
+  background_tasks:
+    whatsapp_template:
+      sending: Sending to Meta…
+      review: Under Meta review
+      approved: Meta approved the template
+      rejected: Meta rejected the template
+      failed: Could not send the template to Meta
+      link: View template

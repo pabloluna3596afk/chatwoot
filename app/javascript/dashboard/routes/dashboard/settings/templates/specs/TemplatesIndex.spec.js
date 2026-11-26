@@ -34,9 +34,10 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false, locale: { value: 'en' } }),
 }));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+const backgroundDispatch = vi.hoisted(() => vi.fn());
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => ({ value: false }),
-  useStore: () => ({ dispatch: vi.fn().mockResolvedValue(true) }),
+  useStore: () => ({ dispatch: backgroundDispatch.mockResolvedValue(true) }),
 }));
 const role = ref(true);
 vi.mock('dashboard/composables/usePolicy', () => ({
@@ -130,6 +131,36 @@ describe('Templates page', () => {
     await flushPromises();
     return wrapper;
   };
+
+  it('leaves task recovery to the global tray instead of the templates list', async () => {
+    DraftsAPI.get.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            ...draftFromForm(emptyForm(), []),
+            id: 31,
+            status: 'submitted',
+            submissions: [
+              {
+                id: 99,
+                revision: 0,
+                name: 'welcome',
+                status: 'submitted',
+                remote_status: 'PENDING',
+              },
+            ],
+          },
+        ],
+        meta: { total_count: 1 },
+      },
+    });
+    const wrapper = await render([]);
+    expect(backgroundDispatch).not.toHaveBeenCalledWith(
+      'backgroundTasks/track',
+      expect.anything()
+    );
+    wrapper.unmount();
+  });
 
   it.each([
     ['31', true, true],

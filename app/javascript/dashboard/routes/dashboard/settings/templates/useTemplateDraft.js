@@ -1,9 +1,11 @@
 import { ref } from 'vue';
 import DraftsAPI from 'dashboard/api/whatsappTemplateDrafts';
+import { useTemplateBackgroundTasks } from './useTemplateBackgroundTasks';
 
 // Owns the server revision; the drawer owns the user's unsaved form. On a conflict
 // only the server record is refreshed, until the user chooses how to resolve it.
 export const useTemplateDraft = () => {
+  const { register } = useTemplateBackgroundTasks();
   const draft = ref(null);
   const conflict = ref(false);
   const conflictLoaded = ref(false);
@@ -63,6 +65,7 @@ export const useTemplateDraft = () => {
       draft.value.id,
       draft.value.lock_version
     );
+    register(data);
     draft.value = {
       ...draft.value,
       status: data.status,

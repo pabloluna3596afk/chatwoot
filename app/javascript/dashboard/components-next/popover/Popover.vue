@@ -30,6 +30,11 @@ const props = defineProps({
     default: 'end',
     validator: v => ['start', 'end'].includes(v),
   },
+  side: {
+    type: String,
+    default: 'bottom',
+    validator: value => ['top', 'bottom'].includes(value),
+  },
   disableMobileView: {
     type: Boolean,
     default: false,
@@ -67,7 +72,11 @@ const { fixedPosition, updatePosition } = useDropdownPosition(
   triggerRef,
   popoverRef,
   showPopover,
-  { align: props.align, measureNaturalHeight: props.repositionOnScroll }
+  {
+    align: props.align,
+    side: props.side,
+    measureNaturalHeight: props.repositionOnScroll,
+  }
 );
 
 const SCROLL_CLOSE_THRESHOLD = 24;

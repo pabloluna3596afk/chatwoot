@@ -26,6 +26,7 @@ import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue'
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { useBackgroundTaskRecovery } from 'dashboard/composables/useBackgroundTaskRecovery';
 
 export default {
   components: {
@@ -45,6 +46,7 @@ export default {
     const { accountId } = useAccount();
     const { width: windowWidth } = useWindowSize();
     const callsStore = useCallsStore();
+    useBackgroundTaskRecovery();
 
     return {
       uiSettings,

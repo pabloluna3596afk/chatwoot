@@ -4,11 +4,16 @@ class Whatsapp::TemplateSubmissionService
 
   def initialize(submission)
     @submission = submission
+    @preloaded = %i[account actor whatsapp_template_draft].filter_map do |name|
+      [name, submission.public_send(name)] if submission.association(name).loaded?
+    end.to_h
   end
 
   def perform(refresh: false)
     with_submission_lock do
       @submission.reload
+      # Reload mutable intent without discarding the recurring job's batched associations.
+      @preloaded.each { |name, record| @submission.public_send("#{name}=", record) }
       process(refresh)
     rescue Whatsapp::TemplateManagementService::Error => e
       handle_meta_error(e)
@@ -50,10 +55,11 @@ class Whatsapp::TemplateSubmissionService
   end
 
   def destination_channel
-    channels = @submission.account.whatsapp_channels.where(provider: 'whatsapp_cloud')
-                          .where("provider_config ->> 'business_account_id' = ?", @submission.waba_id)
+    channels = @submission.account.whatsapp_channels.select do |channel|
+      channel.provider == 'whatsapp_cloud' && channel.provider_config['business_account_id'] == @submission.waba_id
+    end
     preferred_id = @submission.snapshot['preferred_channel_id']
-    channels.find_by(id: preferred_id) || channels.order(:id).first
+    channels.find { |channel| channel.id == preferred_id } || channels.min_by(&:id)
   end
 
   def create_initial
@@ -90,9 +96,20 @@ class Whatsapp::TemplateSubmissionService
   end
 
   def refresh_remote
+    previous_status = @submission.remote_status
     result = @client.fetch(@submission.remote_id)
-    @submission.update!(remote_status: result.fetch(:status), remote_category: result.fetch(:category),
-                        remote_reason: result[:rejected_reason], error_details: {})
+    @submission.with_lock do
+      # A webhook received during HTTP is newer than the refresh we started.
+      return if @submission.remote_status != previous_status
+
+      @preloaded.each { |name, record| @submission.public_send("#{name}=", record) }
+      @submission.update!(remote_status: result.fetch(:status), remote_category: result.fetch(:category),
+                          remote_reason: result[:rejected_reason], error_details: {})
+      if previous_status != @submission.remote_status
+        Whatsapp::TemplateBackgroundTask.publish(@submission)
+        Whatsapp::SyncTemplateWabaJob.perform_later(@submission.account_id, @submission.waba_id)
+      end
+    end
   end
 
   def post_template
@@ -123,9 +140,12 @@ class Whatsapp::TemplateSubmissionService
   def complete(result)
     return defer('invalid_meta_response', retry_permitted: false) unless result.values_at(:id, :status, :category).all?(&:present?)
 
-    @submission.update!(status: 'submitted', remote_id: result.fetch(:id), remote_status: result.fetch(:status),
-                        remote_category: result.fetch(:category), remote_reason: result[:rejected_reason], submitted_at: Time.current,
-                        next_retry_at: nil, retry_permitted: false, error_details: {})
+    @submission.with_lock do
+      @submission.update!(status: 'submitted', remote_id: result.fetch(:id), remote_status: result.fetch(:status),
+                          remote_category: result.fetch(:category), remote_reason: result[:rejected_reason], submitted_at: Time.current,
+                          next_retry_at: nil, retry_permitted: false, error_details: {})
+      Whatsapp::TemplateBackgroundTask.publish(@submission)
+    end
     Whatsapp::SyncTemplateWabaJob.perform_later(@submission.account_id, @submission.waba_id)
   end
 
@@ -155,5 +175,6 @@ class Whatsapp::TemplateSubmissionService
     return @submission.update!(error_details: details) if @submission.status == 'submitted'
 
     @submission.update!(status: 'failed', error_details: details, retry_permitted: false, next_retry_at: nil)
+    Whatsapp::TemplateBackgroundTask.publish(@submission)
   end
 end

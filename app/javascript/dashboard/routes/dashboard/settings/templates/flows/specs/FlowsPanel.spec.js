@@ -31,6 +31,7 @@ vi.mock('../../TemplatePreviewDrawer.vue', () => ({
 vi.mock('../../PresetsPanel.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: vi.fn().mockResolvedValue(true) }),
+  useMapGetter: () => ({ value: 1 }),
 }));
 vi.mock('dashboard/composables/useWhatsAppTemplateSync', () => ({
   useWhatsAppTemplateSync: () => ({
