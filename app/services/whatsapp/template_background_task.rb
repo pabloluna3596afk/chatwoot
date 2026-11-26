@@ -5,7 +5,7 @@ class Whatsapp::TemplateBackgroundTask
                     'PAUSED' => %w[error rejected], 'FLAGGED' => %w[error rejected] }.freeze
 
   def self.publish(submission)
-    BackgroundTasks::Notifier.publish(account: submission.account, **task_payload(submission))
+    BackgroundTasks::Notifier.publish(account: submission.account, **task_payload(submission).except(:updated_at, :version))
   end
 
   # Draft creator/updater and submission actor are audit attribution. Since live events go
