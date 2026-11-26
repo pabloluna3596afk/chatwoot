@@ -126,6 +126,7 @@ const INPUT_TYPE_MAP = {
   search_select: 'searchSelect',
   plain_text: 'plainText',
   multi_text: 'multiText',
+  time_window: 'timeWindow',
   date: 'date',
   datetime: 'datetime',
 };

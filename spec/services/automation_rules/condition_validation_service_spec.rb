@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe AutomationRules::ConditionValidationService do
+  let(:time_windows) { ['18:00-08:00', '09:00-13:00|mon,tue'] }
   let(:probe_operators) { %w[equal_to not_equal_to contains is_present is_not_present attribute_changed unsupported] }
 
   let(:account) { create(:account) }
@@ -17,7 +18,7 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions_attributes.each do |key|
           probe_operators.each do |operator|
             filter = described_class::FILTERS['conversations'][key]
-            values = filter&.fetch('allowed_values', nil) || ['whatsapp']
+            values = filter&.fetch('allowed_values', nil) || [filter&.dig('value_format') == 'time_window' ? '18:00-08:00' : 'whatsapp']
             rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [values.first] }]
             rule.conditions.first['values'] = described_class::EQUALITY_OPERATORS.include?(operator) ? [campaign.id] : [] if key == 'campaign_id'
             supported = described_class.new(rule).perform
@@ -33,13 +34,14 @@ RSpec.describe AutomationRules::ConditionValidationService do
 
     it 'registers every computed filter in the model and evaluator for every supported event' do
       catalog = described_class::FILTERS.fetch('conversations').select { |_key, filter| filter['automation_only'] }
-      expect(catalog.keys).to contain_exactly('channel_type', 'within_business_hours', 'captain_state')
+      expect(catalog.keys).to contain_exactly('channel_type', 'within_business_hours', 'captain_state', 'message_time_window')
       expect(rule.conditions_attributes).to include(*catalog.keys)
 
       described_class::EVENTS.each do |event|
         rule.event_name = event
         catalog.each do |key, filter|
-          values = filter['allowed_values'] || Conversations::ChannelType::AUTOMATION_VALUES
+          default_values = filter['value_format'] == 'time_window' ? time_windows : Conversations::ChannelType::AUTOMATION_VALUES
+          values = filter['allowed_values'] || default_values
           values.each do |value|
             filter['filter_operators'].each do |operator|
               rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [value] }]
@@ -99,6 +101,50 @@ RSpec.describe AutomationRules::ConditionValidationService do
           rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [value] }]
           expect(rule).not_to be_valid
           expect(rule.errors[:conditions].join).to include(key)
+        end
+      end
+    end
+
+    describe 'message_time_window' do
+      let(:conversation_events) { described_class::EVENTS - ['time_triggered'] }
+
+      def window_rule(values, operator: 'equal_to')
+        rule.conditions = [{ 'attribute_key' => 'message_time_window', 'filter_operator' => operator, 'values' => values }]
+        rule
+      end
+
+      windows = ['18:00-08:00', '09:00-13:00|mon,tue']
+      window_operators = %w[equal_to not_equal_to]
+      windows.each do |value|
+        window_operators.each do |operator|
+          it "accepts #{value} with #{operator} on every event that takes conversation conditions" do
+            conversation_events.each do |event|
+              rule.event_name = event
+              expect(window_rule([value], operator: operator)).to be_valid
+            end
+          end
+        end
+      end
+
+      [nil, [], '18:00-08:00', ['18:00-08:00', '09:00-13:00'], [18], ['18:00'], ['09:00-09:00'], ['25:00-08:00'], ['18:00-08:00|mon,mon'],
+       ['18:00-08:00|lun'], [{}]].each do |values|
+        it "rejects malformed values #{values.inspect} with a clear message" do
+          expect(window_rule(values)).not_to be_valid
+          expect(rule.errors[:conditions].join).to include('message_time_window')
+        end
+      end
+
+      it 'explains the expected format when the window is invalid' do
+        window_rule(['9-5'])
+
+        rule.valid?
+        expect(rule.errors[:conditions].join).to include('HH:MM-HH:MM')
+      end
+
+      %w[is_present is_not_present contains attribute_changed].each do |operator|
+        it "rejects #{operator}" do
+          expect(window_rule(['18:00-08:00'], operator: operator)).not_to be_valid
+          expect(rule.errors[:conditions].join).to include('message_time_window')
         end
       end
     end

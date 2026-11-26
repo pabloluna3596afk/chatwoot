@@ -272,6 +272,7 @@ export const getConditionOptions = ({
     country_code: countries,
     message_type: messageTypeOptions,
     private_note: booleanFilterOptions,
+    within_business_hours: booleanFilterOptions,
     priority: priorityOptions,
     labels: generateLabelOptions(labels),
   };

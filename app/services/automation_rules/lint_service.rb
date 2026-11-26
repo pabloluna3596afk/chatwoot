@@ -18,6 +18,7 @@ class AutomationRules::LintService
   Finding = Struct.new(:rule_id, :rule_name, :code, :message_key, :meta, keyword_init: true)
 
   EQUALITY_OPS = %w[equal_to not_equal_to].freeze
+  OVERLAPPING_VALUE_KEYS = %w[message_time_window].freeze
 
   # @param account [Account]
   # @param rules [Array<AutomationRule>] rules to lint (usually all of the account's)
@@ -92,13 +93,14 @@ class AutomationRules::LintService
       EQUALITY_OPS.include?(right['filter_operator'].to_s)
   end
 
-  # equal_to + equal_to with disjoint sets is impossible.
+  # equal_to + equal_to with disjoint sets is impossible, except for conditions whose different
+  # values can still overlap (two time windows share their common hours).
   # equal_to + not_equal_to over the same single value is impossible too.
   def unsatisfiable?(left, right, left_vals, right_vals)
     operator = left['filter_operator'].to_s
     return left_vals.intersect?(right_vals) unless operator == right['filter_operator'].to_s
 
-    operator == 'equal_to' && !left_vals.intersect?(right_vals)
+    operator == 'equal_to' && !left_vals.intersect?(right_vals) && OVERLAPPING_VALUE_KEYS.exclude?(left['attribute_key'].to_s)
   end
 
   def unknown_attribute_errors(rule, conditions)

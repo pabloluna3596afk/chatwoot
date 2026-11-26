@@ -143,3 +143,11 @@ export const OPERATOR_TYPES_7 = [
     label: 'Is not present',
   },
 ];
+
+/** Computed yes/no conditions: only a single "equal to" comparison makes sense */
+export const OPERATOR_TYPES_8 = [
+  {
+    value: 'equal_to',
+    label: 'Equal to',
+  },
+];

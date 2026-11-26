@@ -29,6 +29,28 @@ RSpec.describe AutomationRules::SimulationService do
       end
     end
 
+    context 'with message_time_window' do
+      let(:event_name) { 'message_created' }
+      let(:condition) { { 'attribute_key' => 'message_time_window', 'filter_operator' => 'equal_to', 'values' => ['18:00-08:00'] } }
+
+      before { conversation.inbox.update!(timezone: 'America/Guayaquil') }
+
+      it 'uses the latest message time and the inbox timezone without executing actions' do
+        create(:message, account: account, conversation: conversation, inbox: conversation.inbox, created_at: Time.utc(2026, 10, 26, 23, 30))
+        allow(AutomationRules::ActionService).to receive(:new)
+
+        expect(simulation.perform.matches.map(&:rule_id)).to eq([rule.id])
+        expect(simulation.perform.diagnostics).to be_empty
+        expect(AutomationRules::ActionService).not_to have_received(:new)
+      end
+
+      it 'excludes a latest message outside the window' do
+        create(:message, account: account, conversation: conversation, inbox: conversation.inbox, created_at: Time.utc(2026, 10, 26, 17, 0))
+
+        expect(simulation.perform.matches).to be_empty
+      end
+    end
+
     context 'with campaign conditions' do
       let(:campaign) { create(:campaign, account: account) }
       let(:condition) do

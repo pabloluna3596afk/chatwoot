@@ -1,8 +1,11 @@
+import { isValidTimeWindow } from './timeWindow';
+
 export const ATTRIBUTE_KEY_REQUIRED = 'ATTRIBUTE_KEY_REQUIRED';
 export const FILTER_OPERATOR_REQUIRED = 'FILTER_OPERATOR_REQUIRED';
 export const VALUE_REQUIRED = 'VALUE_REQUIRED';
 export const VALUE_MUST_BE_BETWEEN_1_AND_998 =
   'VALUE_MUST_BE_BETWEEN_1_AND_998';
+export const TIME_WINDOW_INVALID = 'TIME_WINDOW_INVALID';
 export const ACTION_PARAMETERS_REQUIRED = 'ACTION_PARAMETERS_REQUIRED';
 export const ATLEAST_ONE_CONDITION_REQUIRED = 'ATLEAST_ONE_CONDITION_REQUIRED';
 export const ATLEAST_ONE_ACTION_REQUIRED = 'ATLEAST_ONE_ACTION_REQUIRED';
@@ -53,6 +56,14 @@ export const validateSingleFilter = filter => {
 
   if (operatorRequiresValue && isEmptyValue(filter.values)) {
     return VALUE_REQUIRED;
+  }
+
+  if (
+    filter.attribute_key === 'message_time_window' &&
+    operatorRequiresValue &&
+    !isValidTimeWindow(filter.values)
+  ) {
+    return TIME_WINDOW_INVALID;
   }
 
   if (
