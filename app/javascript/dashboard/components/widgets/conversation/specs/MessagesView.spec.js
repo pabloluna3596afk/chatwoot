@@ -314,6 +314,23 @@ describe('MessagesView list resizing', () => {
     expect(scrollToBottom).not.toHaveBeenCalled();
   });
 
+  it('does not mark messages read for quote jumps, while preserving it for other sources', async () => {
+    const jumpToMessage = vi
+      .spyOn(wrapper.vm.messageJump, 'jumpToMessage')
+      .mockResolvedValue('found');
+    const makeMessagesRead = vi.spyOn(wrapper.vm, 'makeMessagesRead');
+
+    await wrapper.vm.onScrollToMessage({ messageId: 4, source: 'reply' });
+    expect(jumpToMessage).toHaveBeenCalledWith({
+      messageId: 4,
+      source: 'reply',
+    });
+    expect(makeMessagesRead).not.toHaveBeenCalled();
+
+    await wrapper.vm.onScrollToMessage({ messageId: 4 });
+    expect(makeMessagesRead).toHaveBeenCalledOnce();
+  });
+
   it('disconnects its observer on unmount', () => {
     const observer = observers.find(
       item => item.observe.mock.calls[0]?.[0] === panel

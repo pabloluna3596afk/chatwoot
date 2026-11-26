@@ -7,18 +7,23 @@ defineProps({
     type: Object,
     required: true,
   },
+  currentUserId: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['dismiss']);
 </script>
 
 <template>
-  <div class="reply-editor relative w-full min-w-0 rounded-t-2xl bg-n-alpha-1">
+  <div
+    class="reply-editor m-2 mb-0 flex w-full min-w-0 items-center overflow-hidden rounded-lg bg-n-alpha-black1 pe-1"
+  >
     <ReplyPreview
       :message="message"
+      :current-user-id="currentUserId"
       composer
-      class="!rounded-t-2xl !rounded-b-none !bg-transparent !pe-10"
-      :aria-label="$t('CONVERSATION.REPLYBOX.REPLYING_TO')"
     />
     <Button
       v-tooltip="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
@@ -26,7 +31,7 @@ const emit = defineEmits(['dismiss']);
       intent="tertiary"
       size="xs"
       icon="i-lucide-x"
-      class="absolute top-2 end-2 !size-6 focus-visible:ring-2 focus-visible:ring-n-brand"
+      class="!size-6 shrink-0 focus-visible:ring-2 focus-visible:ring-n-brand"
       @click.stop="emit('dismiss')"
     />
   </div>

@@ -519,6 +519,12 @@
       }
     },
     "REPLY_PREVIEW": {
+      "YOU": "Tú",
+      "GO_TO_MESSAGE": "Ir al mensaje de {author}",
+      "REPLYING_TO_AUTHOR": "Respondiendo a {author}",
+      "UNKNOWN_AUTHOR": "Remitente desconocido",
+      "ORIGINAL_MESSAGE": "Mensaje original",
+      "ORIGINAL_UNAVAILABLE": "El mensaje original ya no está disponible.",
       "PHOTO": "Foto",
       "VIDEO": "Video",
       "PDF": "PDF",

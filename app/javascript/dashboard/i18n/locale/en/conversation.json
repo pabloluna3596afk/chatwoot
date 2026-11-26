@@ -519,6 +519,12 @@
       "GO_TO_CONVERSATION": "Go to conversation thread"
     },
     "REPLY_PREVIEW": {
+      "YOU": "You",
+      "GO_TO_MESSAGE": "Go to message from {author}",
+      "REPLYING_TO_AUTHOR": "Replying to {author}",
+      "UNKNOWN_AUTHOR": "Unknown sender",
+      "ORIGINAL_MESSAGE": "Original message",
+      "ORIGINAL_UNAVAILABLE": "The original message is no longer available.",
       "PHOTO": "Photo",
       "VIDEO": "Video",
       "PDF": "PDF",

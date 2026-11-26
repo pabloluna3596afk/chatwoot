@@ -169,7 +169,6 @@ describe('ReplyBox', () => {
       expect(quote.element.nextElementSibling).toBe(input.element);
       expect(input.classes()).toContain('!rounded-t-none');
       expect(input.props('disabled')).toBe(!isPrivate);
-      if (isPrivate) expect(quote.classes()).toContain('!bg-n-amber-12/5');
       await wrapper.vm.copilot.execute('reply_suggestion', '');
       await nextTick();
       expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(

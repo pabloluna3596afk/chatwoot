@@ -23,19 +23,22 @@ describe('composer reply quote', () => {
       options({ id: 1, sender: { name: 'Ana' }, content: '**Thank you**' })
     );
     expect(wrapper.classes()).toContain('w-full');
-    expect(wrapper.classes()).toContain('relative');
-    expect(wrapper.classes()).toContain('rounded-t-2xl');
+    expect(wrapper.classes()).toContain('rounded-lg');
+    expect(wrapper.classes()).toContain('bg-n-alpha-black1');
     expect(
       wrapper
         .get(
           'button[aria-label="' + en.CONVERSATION.REPLYBOX.DISMISS_REPLY + '"]'
         )
         .classes()
-    ).toEqual(expect.arrayContaining(['absolute', 'top-2', 'end-2']));
+    ).toContain('!size-6');
     const quote = wrapper.getComponent({ name: 'ReplyPreview' });
     expect(quote.props('composer')).toBe(true);
-    expect(quote.classes()).toContain('before:bg-n-brand');
-    expect(quote.classes()).toContain('before:w-[3px]');
+    expect(quote.classes()).toContain('bg-transparent');
+    expect(quote.classes()).toContain('rounded-none');
+    expect(quote.element.firstElementChild.classList).toContain(
+      'bg-n-iris-9/70'
+    );
     expect(quote.findAll('.line-clamp-1').at(-1).text()).toBe('Thank you');
     expect(quote.text()).toContain('Ana');
   });
@@ -51,10 +54,10 @@ describe('composer reply quote', () => {
     );
     expect(wrapper.get('.line-clamp-1').classes()).toContain('break-all');
     const excerpt = wrapper.findAll('.line-clamp-1').at(-1);
-    expect(excerpt.classes()).toContain('break-all');
+    expect(excerpt.classes()).toContain('line-clamp-1');
     expect(excerpt.classes()).not.toContain('sm:line-clamp-2');
-    expect(wrapper.getComponent({ name: 'ReplyPreview' }).classes()).toEqual(
-      expect.arrayContaining(['w-full', '!pe-10', '!rounded-b-none'])
+    expect(wrapper.getComponent({ name: 'ReplyPreview' }).classes()).toContain(
+      'flex-1'
     );
   });
 

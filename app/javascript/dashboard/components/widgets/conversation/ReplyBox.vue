@@ -1525,7 +1525,7 @@ export default {
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"
           :message="inReplyTo"
-          :class="{ '!bg-n-amber-12/5': isPrivate }"
+          :current-user-id="currentUser?.id"
           @dismiss="resetReplyToMessage"
         />
         <CopilotEditorSection

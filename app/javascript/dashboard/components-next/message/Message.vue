@@ -1,6 +1,5 @@
 <script setup>
-import { onMounted, computed, ref, toRefs } from 'vue';
-import { useTimeoutFn } from '@vueuse/core';
+import { onMounted, onBeforeUnmount, computed, ref, toRefs } from 'vue';
 import { provideMessageContext } from './provider.js';
 import { useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -47,7 +46,6 @@ import VoiceCallBubble from './bubbles/VoiceCall.vue';
 import WhatsappFlowSentBubble from './bubbles/WhatsappFlowSent.vue';
 import WhatsappTemplateBubble from './bubbles/WhatsappTemplate.vue';
 import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
-import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
@@ -149,7 +147,9 @@ const props = defineProps({
 const emit = defineEmits(['retry']);
 
 const contextMenuPosition = ref({});
-const showBackgroundHighlight = ref(false);
+const showReplyTargetFlash = ref(false);
+const replyTargetFading = ref(false);
+let replyFlashTimer = null;
 const showContextMenu = ref(false);
 const { t } = useI18n();
 const route = useRoute();
@@ -336,6 +336,13 @@ const componentToRender = computed(() => {
 
   if (props.contentAttributes?.isUnsupported) {
     return UnsupportedBubble;
+  }
+
+  if (
+    variant.value === MESSAGE_VARIANTS.USER &&
+    props.contentAttributes?.referral
+  ) {
+    return TextBubble;
   }
 
   if (props.contentAttributes.type === 'dyte') {
@@ -595,19 +602,33 @@ const avatarTooltip = computed(() => {
   return `${t('CONVERSATION.SENT_BY')} ${avatarInfo.value.name}`;
 });
 
-const setupHighlightTimer = () => {
-  if (Number(route.query.messageId) !== Number(props.id)) {
-    return;
-  }
-
-  showBackgroundHighlight.value = true;
-  const HIGHLIGHT_TIMER = 1000;
-  useTimeoutFn(() => {
-    showBackgroundHighlight.value = false;
-  }, HIGHLIGHT_TIMER);
+const showReplyFlash = () => {
+  showReplyTargetFlash.value = false;
+  clearTimeout(replyFlashTimer);
+  requestAnimationFrame(() => {
+    showReplyTargetFlash.value = true;
+    replyTargetFading.value = false;
+    replyFlashTimer = setTimeout(() => {
+      replyTargetFading.value = true;
+      replyFlashTimer = setTimeout(() => {
+        showReplyTargetFlash.value = false;
+      }, 1450);
+    }, 150);
+  });
 };
 
-onMounted(setupHighlightTimer);
+const onHighlightMessage = ({ messageId } = {}) => {
+  if (Number(messageId) === Number(props.id)) showReplyFlash();
+};
+
+onMounted(() => {
+  emitter.on(BUS_EVENTS.HIGHLIGHT_MESSAGE, onHighlightMessage);
+  if (Number(route.query.messageId) === Number(props.id)) showReplyFlash();
+});
+onBeforeUnmount(() => {
+  emitter.off(BUS_EVENTS.HIGHLIGHT_MESSAGE, onHighlightMessage);
+  clearTimeout(replyFlashTimer);
+});
 
 provideMessageContext({
   ...toRefs(props),
@@ -626,13 +647,7 @@ provideMessageContext({
     :id="`message${props.id}`"
     class="flex w-full min-w-0 overflow-x-clip message-bubble-container"
     :data-message-id="props.id"
-    :class="[
-      flexOrientationClass,
-      shouldGroupWithNext ? 'mb-0.5' : 'mb-2',
-      {
-        'bg-n-alpha-1': showBackgroundHighlight,
-      },
-    ]"
+    :class="[flexOrientationClass, shouldGroupWithNext ? 'mb-0.5' : 'mb-2']"
   >
     <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY" class="w-full">
       <ActivityBubble :content="content" />
@@ -663,27 +678,28 @@ provideMessageContext({
         :class="{
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
-          'flex-col items-start gap-2': shouldShowWhatsappReferral,
         }"
         @contextmenu="openContextMenu($event)"
       >
-        <WhatsappReferral
-          v-if="shouldShowWhatsappReferral"
-          :referral="contentAttributes.referral"
-        />
         <div
           class="relative flex min-w-0 max-w-full group/reply"
           :class="{ 'w-full': variant === MESSAGE_VARIANTS.EMAIL }"
         >
           <div
             data-reply-surface
-            class="flex min-w-0 max-w-full motion-reduce:transition-none"
+            class="relative flex min-w-0 max-w-full transition-[box-shadow,transform] motion-reduce:transition-none"
             :class="[
               swipeClass,
-              isSwiping
-                ? 'transition-none'
-                : 'transition-transform duration-150',
-              { 'w-full': variant === MESSAGE_VARIANTS.EMAIL },
+              showReplyTargetFlash
+                ? [
+                    'after:absolute after:inset-0 after:pointer-events-none after:rounded-[inherit] after:bg-n-teal-9/10 after:ring-2 after:ring-n-teal-9/50 after:transition-opacity motion-reduce:after:transition-none',
+                    replyTargetFading
+                      ? 'duration-[1450ms] after:opacity-0 after:duration-[1450ms]'
+                      : 'duration-150 after:opacity-100 after:duration-150',
+                  ]
+                : 'after:absolute after:inset-0 after:pointer-events-none after:rounded-[inherit] after:bg-n-teal-9/10 after:ring-2 after:ring-n-teal-9/50 after:opacity-0 after:transition-opacity after:duration-[1450ms] motion-reduce:after:transition-none',
+              isSwiping ? 'transition-none' : '',
+              variant === MESSAGE_VARIANTS.EMAIL ? 'w-full' : '',
             ]"
             @dblclick="replyOnDoubleClick"
             @touchstart="onTouchStart"
