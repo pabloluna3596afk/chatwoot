@@ -323,6 +323,7 @@
       "FROM": "From",
       "TO": "To",
       "DAYS": "Days of the week",
+      "DAYS_LABEL": "Days",
       "WEEKDAYS": "Mon–Fri",
       "ALL": "Every day",
       "SUMMARY_EMPTY": "Choose a start and end time.",

@@ -117,34 +117,46 @@ const setDays = nextDays => {
 
 <template>
   <div
-    class="flex min-w-0 flex-col gap-3 rounded-xl bg-n-alpha-2 p-3"
+    class="flex min-w-0 flex-col gap-2 rounded-xl bg-n-alpha-2 p-2"
     :class="{ 'pointer-events-none opacity-50': disabled }"
     :aria-disabled="disabled"
   >
     <div class="grid min-w-0 grid-cols-2 gap-2">
-      <div dir="ltr" class="min-w-0">
+      <label
+        dir="ltr"
+        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 text-xs text-n-slate-11"
+      >
+        <span class="min-w-0">{{ t('AUTOMATION.TIME_WINDOW.FROM') }}</span>
         <TimeField
           v-model="from"
-          :label="t('AUTOMATION.TIME_WINDOW.FROM')"
+          class="min-w-0"
           :disabled="disabled"
           :message-type="state === 'same' ? 'error' : 'info'"
         />
-      </div>
-      <div dir="ltr" class="min-w-0">
+      </label>
+      <label
+        dir="ltr"
+        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 text-xs text-n-slate-11"
+      >
+        <span class="min-w-0">{{ t('AUTOMATION.TIME_WINDOW.TO') }}</span>
         <TimeField
           v-model="to"
-          :label="t('AUTOMATION.TIME_WINDOW.TO')"
+          class="min-w-0"
           :disabled="disabled"
           :message-type="state === 'same' ? 'error' : 'info'"
         />
-      </div>
+      </label>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
+      <span class="text-xs font-medium text-n-slate-11">
+        {{ t('AUTOMATION.TIME_WINDOW.DAYS_LABEL') }}
+      </span>
       <Button
         type="button"
         variant="link"
         size="sm"
+        class="!px-0 !text-xs"
         :label="t('AUTOMATION.TIME_WINDOW.WEEKDAYS')"
         :class="
           isShortcutActive('weekdays')
@@ -157,6 +169,7 @@ const setDays = nextDays => {
         type="button"
         variant="link"
         size="sm"
+        class="!px-0 !text-xs"
         :label="t('AUTOMATION.TIME_WINDOW.ALL')"
         :class="
           isShortcutActive('all')
@@ -176,7 +189,7 @@ const setDays = nextDays => {
         v-for="day in dayOptions"
         :key="day.key"
         type="button"
-        class="h-11 min-w-0 rounded-lg px-0.5 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand sm:px-1 sm:text-sm"
+        class="h-7 min-w-0 rounded-md px-0.5 text-xs font-medium outline outline-1 -outline-offset-1 focus-visible:outline-2 focus-visible:outline-n-brand sm:px-1"
         :class="
           selectedDays.includes(day.key)
             ? hasRestrictedDays
@@ -201,7 +214,7 @@ const setDays = nextDays => {
     </div>
 
     <p
-      class="m-0 min-w-0 whitespace-normal break-words text-sm"
+      class="m-0 min-w-0 whitespace-normal break-words text-xs leading-4"
       :class="
         state === 'same'
           ? 'text-n-ruby-11'

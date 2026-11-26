@@ -323,6 +323,7 @@
       "FROM": "Desde",
       "TO": "Hasta",
       "DAYS": "Días de la semana",
+      "DAYS_LABEL": "Días",
       "WEEKDAYS": "Lun a vie",
       "ALL": "Todos",
       "SUMMARY_EMPTY": "Elige la hora de inicio y de fin.",

@@ -18,6 +18,7 @@ vi.mock('vue-i18n', () => ({
         'AUTOMATION.TIME_WINDOW.MIN_DAY': 'Elige al menos un día.',
         'AUTOMATION.TIME_WINDOW.WEEKDAYS': 'Lun a vie',
         'AUTOMATION.TIME_WINDOW.ALL': 'Todos',
+        'AUTOMATION.TIME_WINDOW.DAYS_LABEL': 'Días',
         'AUTOMATION.TIME_WINDOW.DAY_SHORT_SUN': 'Dom',
         'AUTOMATION.TIME_WINDOW.DAY_SHORT_MON': 'Lun',
         'AUTOMATION.TIME_WINDOW.DAY_SHORT_TUE': 'Mar',
@@ -144,20 +145,42 @@ describe('TimeWindowInput', () => {
     wrapper.unmount();
   });
 
-  it('keeps the two time fields and seven weekday buttons within flexible grids', () => {
+  it('keeps compact time pairs and seven equal weekday buttons within flexible grids', () => {
     const wrapper = mountInput('09:00-18:00');
-    expect(wrapper.find('.grid-cols-2').classes()).toContain('min-w-0');
+    const container = wrapper.find('.rounded-xl');
+    expect(container.classes()).toEqual(
+      expect.arrayContaining(['p-2', 'gap-2', 'min-w-0'])
+    );
+    const timePairs = wrapper.findAll('label');
+    expect(timePairs).toHaveLength(2);
+    expect(timePairs.map(pair => pair.text())).toEqual(['Desde', 'Hasta']);
+    expect(timePairs.every(pair => pair.classes().includes('min-w-0'))).toBe(
+      true
+    );
     const days = wrapper.find('[role="group"]');
     expect(days.classes()).toEqual(
       expect.arrayContaining(['grid-cols-7', 'min-w-0'])
     );
     expect(
+      wrapper.findAll('button[aria-pressed]').every(button =>
+        button.classes().some(className => className === 'h-7')
+      )
+    ).toBe(true);
+    expect(
       wrapper
         .findAll('button[aria-pressed]')
-        .every(button => button.classes().includes('min-w-0'))
+        .every(button => button.classes().includes('rounded-md'))
+    ).toBe(true);
+    expect(
+      wrapper
+        .findAll('button[aria-pressed]')
+        .every(button => button.classes().includes('focus-visible:outline-2'))
     ).toBe(true);
     expect(wrapper.find('p[aria-live="polite"]').classes()).toContain(
       'whitespace-normal'
+    );
+    expect(wrapper.find('p[aria-live="polite"]').classes()).toContain(
+      'text-xs'
     );
     wrapper.unmount();
   });
