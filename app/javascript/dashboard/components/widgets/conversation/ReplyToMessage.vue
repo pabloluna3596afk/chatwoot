@@ -1,6 +1,5 @@
 <script setup>
 import ReplyPreview from 'next/message/ReplyPreview.vue';
-import Button from 'dashboard/components-next/button/Button.vue';
 
 defineProps({
   message: {
@@ -29,14 +28,14 @@ const emit = defineEmits(['dismiss']);
       :inbox-id="inboxId"
       composer
     />
-    <Button
+    <button
       v-tooltip="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
+      type="button"
       :aria-label="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
-      intent="tertiary"
-      size="xs"
-      icon="i-lucide-x"
-      class="!size-6 shrink-0 focus-visible:ring-2 focus-visible:ring-n-brand"
+      class="grid size-6 shrink-0 place-items-center rounded-full bg-transparent text-n-slate-11 outline-none transition-colors hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
       @click.stop="emit('dismiss')"
-    />
+    >
+      <span class="i-lucide-x size-4" aria-hidden="true" />
+    </button>
   </div>
 </template>
