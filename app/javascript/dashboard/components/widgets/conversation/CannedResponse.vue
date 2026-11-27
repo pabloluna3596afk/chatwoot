@@ -10,6 +10,7 @@ import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import CaretAnchoredPicker from 'dashboard/components-next/preview-picker/CaretAnchoredPicker.vue';
 
 const props = defineProps({
+  focusSearch: { type: Boolean, default: true },
   caretPosition: {
     type: Object,
     default: null,
@@ -122,6 +123,7 @@ onMounted(fetchCannedResponses);
   <CaretAnchoredPicker
     v-model:search="searchQuery"
     :caret-position="caretPosition"
+    :focus-search="focusSearch"
     :items="items"
     :search-placeholder="t('COMBOBOX.SEARCH_PLACEHOLDER')"
     :is-loading="uiFlags.fetchingList"

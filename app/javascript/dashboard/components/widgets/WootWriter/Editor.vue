@@ -210,6 +210,7 @@ const cannedSearchKey = ref('');
 const variableSearchKey = ref('');
 const emojiSearchKey = ref('');
 const macroSearchKey = ref('');
+const macroOpenedFromToolbar = ref(false);
 const range = ref(null);
 const isTextSelected = ref(false); // Tracks text selection and prevents unnecessary re-renders on mouse selection
 const showSelectionMenu = ref(false);
@@ -272,9 +273,8 @@ const shouldShowUserMentions = computed(() => {
   return showUserMentions.value && props.isPrivate;
 });
 
-// The picker owns the search field, so it takes focus while open. Dismissing it hands
-// focus back; selecting one does so through the insert itself. The suggestion stays
-// active in the document, so the picker only reopens once the trigger is typed afresh.
+// Toolbar search returns focus on dismissal; typed suggestions retain editor focus.
+// The suggestion stays active until the trigger is typed afresh.
 const dismissPicker = showMenu => {
   showMenu.value = false;
   editorView?.focus();
@@ -315,6 +315,7 @@ function createSuggestionPlugin({
     suggestionClass: '',
     onEnter: args => {
       if (!isAllowed()) return false;
+      if (trigger === '#') macroOpenedFromToolbar.value = false;
       range.value = args.range;
       editorView = args.view;
       if (searchTerm) searchTerm.value = args.text || '';
@@ -968,6 +969,7 @@ function openMacros() {
   const { from } = editorView.state.selection;
   range.value = { from, to: from };
   macroSearchKey.value = '';
+  macroOpenedFromToolbar.value = true;
   showMacroMenu.value = true;
 }
 
@@ -1008,6 +1010,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       v-if="shouldShowCannedResponses"
       :caret-position="caretPosition"
       :search-key="cannedSearchKey"
+      :focus-search="false"
       :variables="variables"
       @close="dismissCannedResponses"
       @remove-trigger="removeSuggestionTrigger"
@@ -1027,6 +1030,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :variables="variables"
       :caret-position="caretPosition"
       :search-key="macroSearchKey"
+      :focus-search="macroOpenedFromToolbar"
       @close="dismissMacros"
       @remove-trigger="
         dismissMacros();

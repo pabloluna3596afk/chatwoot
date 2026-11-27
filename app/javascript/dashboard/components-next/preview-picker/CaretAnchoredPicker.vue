@@ -1,5 +1,12 @@
 <script setup>
-import { computed, ref, watch, useSlots, useTemplateRef } from 'vue';
+import {
+  computed,
+  ref,
+  watch,
+  useSlots,
+  useTemplateRef,
+  onUnmounted,
+} from 'vue';
 import {
   useElementBounding,
   useEventListener,
@@ -14,6 +21,7 @@ import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirecti
 import PreviewPicker from './PreviewPicker.vue';
 
 const props = defineProps({
+  focusSearch: { type: Boolean, default: true },
   caretPosition: {
     type: Object,
     default: null,
@@ -72,7 +80,19 @@ const updateViewport = () => {
   };
 };
 updateViewport();
-useEventListener(visualViewport, ['resize', 'scroll'], updateViewport);
+let viewportFrame = null;
+const scheduleViewportUpdate = () => {
+  if (viewportFrame !== null) return;
+  viewportFrame = requestAnimationFrame(() => {
+    viewportFrame = null;
+    updateViewport();
+    caretAnchor.update();
+  });
+};
+useEventListener(visualViewport, ['resize', 'scroll'], scheduleViewportUpdate);
+onUnmounted(() => {
+  if (viewportFrame !== null) cancelAnimationFrame(viewportFrame);
+});
 const viewport = computed(
   () =>
     viewportBounds.value || {
@@ -174,6 +194,34 @@ const { moveSelectionUp, moveSelectionDown } = useKeyboardNavigableList({
   selectedIndex,
 });
 
+// Consume suggestion keys before ProseMirror moves the caret or inserts a newline.
+// Escape must also bypass the document shortcuts that blur editable elements.
+const editorElement = document.activeElement;
+useEventListener(
+  document,
+  'keydown',
+  event => {
+    if (props.focusSearch || event.target !== editorElement) return;
+    if (event.isComposing || event.keyCode === 229) {
+      event.stopPropagation();
+      return;
+    }
+    const actions = {
+      ArrowUp: moveSelectionUp,
+      ArrowDown: moveSelectionDown,
+      Tab: event.shiftKey ? moveSelectionUp : moveSelectionDown,
+      Enter: onSelect,
+      Escape: () => emit('close'),
+    };
+    const action = actions[event.key];
+    if (!action || event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    action();
+  },
+  { capture: true }
+);
+
 const withPicker = action => ({
   action: event => {
     event.preventDefault();
@@ -188,7 +236,7 @@ useKeyboardEvents({
   Escape: withPicker(() => emit('close')),
   Backspace: {
     action: event => {
-      if (search.value) return;
+      if (!props.focusSearch || search.value) return;
       event.preventDefault();
       emit('removeTrigger');
     },
@@ -219,6 +267,7 @@ watch(items, () => {
       v-model:selected-index="selectedIndex"
       v-model:search="search"
       v-on-click-outside="() => emit('close')"
+      :focus-search="focusSearch"
       :items="items"
       :search-placeholder="searchPlaceholder"
       :empty-label="emptyLabel"

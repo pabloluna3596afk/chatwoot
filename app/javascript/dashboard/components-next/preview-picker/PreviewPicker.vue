@@ -4,6 +4,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 
 const props = defineProps({
+  focusSearch: { type: Boolean, default: true },
   items: {
     type: Array,
     required: true,
@@ -84,7 +85,9 @@ const scrollSelectedIntoView = () => {
   });
 };
 
-onMounted(() => searchRef.value?.focus());
+onMounted(() => {
+  if (props.focusSearch) searchRef.value?.focus({ preventScroll: true });
+});
 
 defineExpose({ scrollSelectedIntoView });
 </script>
@@ -96,6 +99,7 @@ defineExpose({ scrollSelectedIntoView });
   >
     <div class="flex flex-col min-h-0 min-w-0" :class="listClass">
       <div
+        v-if="focusSearch"
         class="relative flex items-center flex-shrink-0 h-11 px-3 border-b border-n-strong"
       >
         <Icon icon="i-lucide-search" class="size-4 text-n-slate-11" />
@@ -121,6 +125,7 @@ defineExpose({ scrollSelectedIntoView });
       <div
         v-if="$slots.filters"
         class="flex-shrink-0 min-w-0 px-1 pt-1 pb-1.5"
+        @pointerdown.prevent
         @mousedown.prevent
       >
         <slot name="filters" />
@@ -147,6 +152,7 @@ defineExpose({ scrollSelectedIntoView });
               class="flex items-center w-full min-h-11 sm:min-h-0 gap-2 px-2 py-1 overflow-hidden rounded-lg cursor-pointer text-start"
               :class="index === selectedIndex ? 'bg-n-alpha-black2' : ''"
               @mousemove="selectedIndex = index"
+              @pointerdown.prevent
               @mousedown.prevent
               @click="emit('select', index)"
             >

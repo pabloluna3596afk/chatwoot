@@ -8,6 +8,7 @@ import ShortcutPreview from 'dashboard/components-next/preview-picker/ShortcutPr
 import CaretAnchoredPicker from 'dashboard/components-next/preview-picker/CaretAnchoredPicker.vue';
 
 const props = defineProps({
+  focusSearch: { type: Boolean, default: true },
   variables: { type: Object, default: () => ({}) },
   caretPosition: {
     type: Object,
@@ -65,6 +66,7 @@ onMounted(() => {
   <CaretAnchoredPicker
     v-model:search="searchQuery"
     :caret-position="caretPosition"
+    :focus-search="focusSearch"
     :items="items"
     :search-placeholder="t('CONVERSATION.PICKER.MACRO.SEARCH_PLACEHOLDER')"
     :is-loading="uiFlags.isFetching"

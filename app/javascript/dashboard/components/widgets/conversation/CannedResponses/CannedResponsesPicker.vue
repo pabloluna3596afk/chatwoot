@@ -29,7 +29,7 @@ const searchInput = useTemplateRef('searchInput');
 const cannedResponses = useMapGetter('getCannedResponses');
 
 onMounted(() => {
-  searchInput.value.$el.querySelector('input').focus();
+  searchInput.value.$el.querySelector('input').focus({ preventScroll: true });
   store.dispatch('getCannedResponse', { usable: true });
 });
 

@@ -67,6 +67,7 @@ it('fits above the caret inside the visual viewport and tracks keyboard resizing
   expect(card.element.style.bottom).toBe('582px');
   viewport.offsetTop = 100;
   viewport.dispatchEvent(new Event('scroll'));
+  await new Promise(requestAnimationFrame);
   await flushPromises();
   expect(card.element.style.maxHeight).toBe('146px');
   expect(card.element.style.bottom).toBe('582px');
@@ -235,3 +236,30 @@ it.each(['Escape', 'backdrop'])(
     expect(wrapper.emitted('update:show')).toEqual([[false]]);
   }
 );
+
+it('coalesces viewport events into one animation frame and cancels on unmount', async () => {
+  const request = vi.fn().mockReturnValue(42);
+  const cancel = vi.fn();
+  vi.stubGlobal('requestAnimationFrame', request);
+  vi.stubGlobal('cancelAnimationFrame', cancel);
+  wrapper = mount(CaretAnchoredPicker, {
+    props: { items: [{ id: 1, title: 'Hello' }] },
+    global: { plugins: [store] },
+  });
+  await flushPromises();
+  request.mockClear();
+  const card = wrapper.getComponent(PreviewPicker);
+  viewport.offsetTop = 100;
+  viewport.dispatchEvent(new Event('resize'));
+  viewport.dispatchEvent(new Event('scroll'));
+  await flushPromises();
+  expect(card.element.style.maxHeight).toBe('196px');
+  expect(request).toHaveBeenCalledTimes(1);
+  request.mock.calls[0][0]();
+  await flushPromises();
+  expect(card.element.style.maxHeight).toBe('146px');
+  viewport.dispatchEvent(new Event('resize'));
+  wrapper.unmount();
+  wrapper = null;
+  expect(cancel).toHaveBeenCalledWith(42);
+});
