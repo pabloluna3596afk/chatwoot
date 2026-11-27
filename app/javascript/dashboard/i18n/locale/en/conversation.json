@@ -525,6 +525,7 @@
       "UNKNOWN_AUTHOR": "Unknown sender",
       "ORIGINAL_MESSAGE": "Original message",
       "ORIGINAL_UNAVAILABLE": "The original message is no longer available.",
+      "HISTORY_LIMIT": "This message is too far back. Load more history and try again.",
       "PHOTO": "Photo",
       "VIDEO": "Video",
       "PDF": "PDF",

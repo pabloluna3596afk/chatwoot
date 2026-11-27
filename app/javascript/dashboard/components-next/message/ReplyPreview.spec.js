@@ -5,7 +5,10 @@ import conversation from 'dashboard/i18n/locale/en/conversation.json';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import ReplyPreview from './ReplyPreview.vue';
-import { activeJumpMessageId } from './useJumpToMessage';
+import {
+  activeJumpMessageId,
+  unavailableJumpTargets,
+} from './useJumpToMessage';
 
 const inReplyTo = ref({});
 const currentUserId = ref(7);
@@ -37,6 +40,16 @@ const options = () => ({
 describe('reply attachment preview', () => {
   beforeEach(() => {
     activeJumpMessageId.value = null;
+    unavailableJumpTargets.value.clear();
+  });
+
+  it('disables every quote of a target after a missing lookup', async () => {
+    inReplyTo.value = { id: 14, conversation_id: 3, content: 'Old' };
+    const wrapper = mount(ReplyPreview, options());
+    unavailableJumpTargets.value.add('3:14');
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    wrapper.unmount();
   });
 
   it('shows the image thumbnail, type, caption and scrolls to its message', async () => {
@@ -79,6 +92,27 @@ describe('reply attachment preview', () => {
     expect(wrapper.findComponent({ name: 'FileIcon' }).exists()).toBe(true);
     expect(wrapper.find('img').exists()).toBe(false);
   });
+
+  it.each(['image', 'video', 'audio', 'file'])(
+    'navigates from a %s quote using the same reply contract',
+    async fileType => {
+      const emit = vi.spyOn(emitter, 'emit');
+      inReplyTo.value = {
+        id: 21,
+        conversationId: 3,
+        attachments: [{ fileType, dataUrl: '/attachment' }],
+      };
+      const wrapper = mount(ReplyPreview, options());
+      await wrapper.get('button').trigger('click');
+      expect(emit).toHaveBeenCalledWith(BUS_EVENTS.SCROLL_TO_MESSAGE, {
+        messageId: 21,
+        source: 'reply',
+        conversationId: 3,
+      });
+      wrapper.unmount();
+      emit.mockRestore();
+    }
+  );
 
   it('shows the sender name and a plain-text excerpt without markup', () => {
     inReplyTo.value = {

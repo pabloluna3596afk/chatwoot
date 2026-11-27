@@ -314,6 +314,16 @@ describe('MessagesView list resizing', () => {
     expect(scrollToBottom).not.toHaveBeenCalled();
   });
 
+  it('does not jump to the end when the composer resizes during a quote lookup', () => {
+    panel.scrollTop = 1400;
+    wrapper.vm.messageJump.isJumping = true;
+    height = 300;
+    observers
+      .find(observer => observer.observe.mock.calls[0]?.[0] === panel)
+      .callback();
+    expect(scrollToBottom).not.toHaveBeenCalled();
+  });
+
   it('does not mark messages read for quote jumps, while preserving it for other sources', async () => {
     const jumpToMessage = vi
       .spyOn(wrapper.vm.messageJump, 'jumpToMessage')
@@ -338,5 +348,88 @@ describe('MessagesView list resizing', () => {
     wrapper.unmount();
     wrapper = undefined;
     expect(observer.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('releases programmatic scrolling on manual input and resumes history loading', () => {
+    const fetchPrevious = vi.spyOn(wrapper.vm, 'fetchPreviousMessages');
+    wrapper.vm.markProgrammaticScroll();
+    wrapper.vm.handleScroll({ target: panel });
+    expect(fetchPrevious).not.toHaveBeenCalled();
+    panel.dispatchEvent(new Event('wheel'));
+    expect(wrapper.vm.isProgrammaticScroll).toBe(false);
+    wrapper.vm.handleScroll({ target: panel });
+    expect(fetchPrevious).toHaveBeenCalledOnce();
+  });
+
+  it('removes the old scrollend listener when a newer scroll starts', () => {
+    const remove = vi.spyOn(panel, 'removeEventListener');
+    wrapper.vm.markProgrammaticScroll();
+    const oldFinish = wrapper.vm.finishProgrammaticScroll;
+    wrapper.vm.markProgrammaticScroll();
+    expect(remove).toHaveBeenCalledWith('scrollend', oldFinish);
+    panel.dispatchEvent(new Event('scrollend'));
+    expect(wrapper.vm.isProgrammaticScroll).toBe(false);
+  });
+
+  it.each([true, false])(
+    'new incoming messages follow only a pinned reader: %s',
+    async pinned => {
+      wrapper.vm.currentChat.messages.push({ id: 10 });
+      await nextTick();
+      panel.scrollTop = pinned ? 1400 : 400;
+      scrollToBottom.mockClear();
+      wrapper.vm.currentChat.messages.push({ id: 11 });
+      await nextTick();
+      await nextTick();
+      expect(scrollToBottom).toHaveBeenCalledTimes(pinned ? 1 : 0);
+    }
+  );
+
+  it('does not follow incoming messages during a quote lookup', async () => {
+    wrapper.vm.currentChat.messages.push({ id: 10 });
+    await nextTick();
+    panel.scrollTop = 1400;
+    wrapper.vm.messageJump.isJumping = true;
+    scrollToBottom.mockClear();
+    wrapper.vm.currentChat.messages.push({ id: 11 });
+    await nextTick();
+    await nextTick();
+    expect(scrollToBottom).not.toHaveBeenCalled();
+  });
+
+  it('does not cancel the quote when the store announces an incoming message without a target', async () => {
+    const jump = vi.spyOn(wrapper.vm.messageJump, 'jumpToMessage');
+    wrapper.vm.hasUserScrolled = false;
+    await wrapper.vm.onScrollToMessage();
+    expect(jump).not.toHaveBeenCalled();
+    expect(wrapper.vm.hasUserScrolled).toBe(false);
+  });
+
+  it('does not restore an older manual-pagination anchor after a quote takes over', async () => {
+    wrapper.vm.currentChat.messages.push({ id: 100 });
+    wrapper.vm.currentChat.dataFetched = true;
+    wrapper.vm.isLoadingPrevious = false;
+    Object.defineProperty(wrapper.vm, 'listLoadingStatus', {
+      get: () => false,
+    });
+    let resolveHistory;
+    const dispatch = vi.spyOn(wrapper.vm.$store, 'dispatch').mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveHistory = resolve;
+        })
+    );
+    panel.scrollTop = 20;
+    const pending = wrapper.vm.fetchPreviousMessages(20);
+    const request = dispatch.mock.calls.at(-1)[1];
+    vi.spyOn(wrapper.vm.messageJump, 'jumpToMessage').mockResolvedValue(
+      'found'
+    );
+    await wrapper.vm.onScrollToMessage({ messageId: 100, source: 'reply' });
+    panel.scrollTop = 800;
+    expect(request.shouldApply()).toBe(false);
+    resolveHistory();
+    await pending;
+    expect(panel.scrollTop).toBe(800);
   });
 });

@@ -1,8 +1,11 @@
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 
 export const activeJumpMessageId = ref(null);
+export const unavailableJumpTargets = ref(new Set());
+export const jumpTargetKey = (conversationId, messageId) =>
+  `${conversationId}:${messageId}`;
 
 export function useJumpToMessage({
   getPanel,
@@ -12,13 +15,18 @@ export function useJumpToMessage({
   markProgrammaticScroll,
 }) {
   let requestToken = 0;
+  let stopScrolling = null;
+  const isJumping = ref(false);
 
-  const jumpToMessage = async ({ messageId, conversationId } = {}) => {
-    requestToken += 1;
-    const token = requestToken;
+  const performJump = async ({ messageId, conversationId }, token) => {
+    stopScrolling?.();
+    emitter.emit(BUS_EVENTS.HIGHLIGHT_MESSAGE, { messageId: null });
     activeJumpMessageId.value = null;
     const targetId = Number(messageId);
     const initialConversationId = getConversationId();
+    const isCurrent = () =>
+      token === requestToken &&
+      Number(getConversationId()) === Number(initialConversationId);
     const panel = getPanel();
     if (!targetId || !panel) return 'unavailable';
 
@@ -29,44 +37,69 @@ export function useJumpToMessage({
       return 'unavailable';
     }
 
-    let target = document.getElementById(`message${targetId}`);
+    await nextTick();
+    if (!isCurrent()) return 'cancelled';
+    let target = panel.querySelector(`#message${targetId}`);
     if (!target) {
       const messages = getMessages();
       const firstMessageId = Number(messages[0]?.id);
-      if (!firstMessageId || targetId >= firstMessageId) return 'unavailable';
+      if (!firstMessageId || targetId >= firstMessageId) {
+        unavailableJumpTargets.value.add(
+          jumpTargetKey(initialConversationId, targetId)
+        );
+        return 'unavailable';
+      }
 
       const heightBeforeLoad = panel.scrollHeight;
       const scrollTopBeforeLoad = panel.scrollTop;
       activeJumpMessageId.value = targetId;
       try {
-        await fetchPreviousMessages({
+        const result = await fetchPreviousMessages({
           conversationId: initialConversationId,
           after: targetId,
-          before: firstMessageId,
+          // Include a known visible anchor to prove the range is complete,
+          // even when private-note filtering hides the server's 1000-row cap.
+          before: firstMessageId + 1,
+          anchorId: firstMessageId,
+          shouldApply: isCurrent,
         });
+        if (isCurrent() && result?.limited) {
+          activeJumpMessageId.value = null;
+          return 'limited';
+        }
       } catch {
         if (token === requestToken) activeJumpMessageId.value = null;
-        return 'unavailable';
+        return isCurrent() ? 'error' : 'cancelled';
       }
 
       if (
         token !== requestToken ||
         Number(getConversationId()) !== Number(initialConversationId)
       ) {
+        if (token === requestToken) activeJumpMessageId.value = null;
         return 'cancelled';
       }
 
       await new Promise(resolve => {
         requestAnimationFrame(resolve);
       });
+      if (!isCurrent()) {
+        if (token === requestToken) activeJumpMessageId.value = null;
+        return 'cancelled';
+      }
       const heightDifference = panel.scrollHeight - heightBeforeLoad;
       if (heightDifference) {
         markProgrammaticScroll();
         panel.scrollTop = scrollTopBeforeLoad + heightDifference;
       }
-      target = document.getElementById(`message${targetId}`);
+      target = panel.querySelector(`#message${targetId}`);
       activeJumpMessageId.value = null;
-      if (!target) return 'unavailable';
+      if (!target) {
+        unavailableJumpTargets.value.add(
+          jumpTargetKey(initialConversationId, targetId)
+        );
+        return 'unavailable';
+      }
     }
 
     if (token !== requestToken) return 'cancelled';
@@ -91,10 +124,29 @@ export function useJumpToMessage({
         '(prefers-reduced-motion: reduce)'
       ).matches;
       markProgrammaticScroll();
+      const settled = reduceMotion
+        ? Promise.resolve()
+        : new Promise(resolve => {
+            let timer;
+            const finish = () => {
+              clearTimeout(timer);
+              panel.removeEventListener('scrollend', finish);
+              stopScrolling = null;
+              resolve();
+            };
+            timer = setTimeout(finish, 600);
+            panel.addEventListener('scrollend', finish, { once: true });
+            stopScrolling = () => {
+              panel.scrollTo({ top: panel.scrollTop, behavior: 'instant' });
+              finish();
+            };
+          });
       panel.scrollTo({
         top: nextTop,
         behavior: reduceMotion ? 'auto' : 'smooth',
       });
+      await settled;
+      if (!isCurrent()) return 'cancelled';
     }
 
     emitter.emit(BUS_EVENTS.HIGHLIGHT_MESSAGE, { messageId: targetId });
@@ -112,8 +164,21 @@ export function useJumpToMessage({
 
   const cancel = () => {
     requestToken += 1;
+    stopScrolling?.();
     activeJumpMessageId.value = null;
+    isJumping.value = false;
   };
 
-  return { jumpToMessage, cancel };
+  const jumpToMessage = async (payload = {}) => {
+    requestToken += 1;
+    const token = requestToken;
+    isJumping.value = true;
+    try {
+      return await performJump(payload, token);
+    } finally {
+      if (token === requestToken) isJumping.value = false;
+    }
+  };
+
+  return { jumpToMessage, cancel, isJumping };
 }

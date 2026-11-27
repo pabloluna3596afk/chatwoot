@@ -1526,6 +1526,7 @@ export default {
           v-if="shouldShowReplyToMessage"
           :message="inReplyTo"
           :current-user-id="currentUser?.id"
+          :conversation-id="conversationId"
           @dismiss="resetReplyToMessage"
         />
         <CopilotEditorSection

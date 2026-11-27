@@ -176,32 +176,40 @@ const actions = {
       data.before,
       data.after,
     ]);
-    if (pendingHistoryRequests.has(requestKey)) {
-      return pendingHistoryRequests.get(requestKey);
+    let request = pendingHistoryRequests.get(requestKey);
+    if (!request) {
+      request = MessageApi.getPreviousMessages(data).finally(() =>
+        pendingHistoryRequests.delete(requestKey)
+      );
+      pendingHistoryRequests.set(requestKey, request);
     }
 
-    const request = MessageApi.getPreviousMessages(data)
-      .then(({ data: { meta, payload } }) => {
-        commit(`conversationMetadata/${types.SET_CONVERSATION_METADATA}`, {
-          id: data.conversationId,
-          data: meta,
-        });
-        commit(types.SET_PREVIOUS_CONVERSATIONS, {
-          id: data.conversationId,
-          data: payload,
-        });
-        // A short backward page means the start is reached; `after` requests only prove it when empty.
-        const hasReachedFirstMessage = data.after
-          ? !payload.length
-          : payload.length < MESSAGES_PER_PAGE;
-        if (hasReachedFirstMessage) {
-          commit(types.SET_ALL_MESSAGES_LOADED, data.conversationId);
-        }
-      })
-      .finally(() => pendingHistoryRequests.delete(requestKey));
-
-    pendingHistoryRequests.set(requestKey, request);
-    return request;
+    return request.then(({ data: { meta, payload } }) => {
+      if (data.shouldApply && !data.shouldApply()) return null;
+      // The visible anchor must be present before merging a bounded quote
+      // lookup. Row count cannot detect truncation after private-note filtering.
+      if (
+        data.anchorId &&
+        !payload.some(message => message.id === data.anchorId)
+      ) {
+        return { limited: true };
+      }
+      commit(`conversationMetadata/${types.SET_CONVERSATION_METADATA}`, {
+        id: data.conversationId,
+        data: meta,
+      });
+      commit(types.SET_PREVIOUS_CONVERSATIONS, {
+        id: data.conversationId,
+        data: payload,
+      });
+      // A bounded lookup says nothing about history before its lower bound.
+      const hasReachedFirstMessage =
+        !data.after && payload.length < MESSAGES_PER_PAGE;
+      if (hasReachedFirstMessage) {
+        commit(types.SET_ALL_MESSAGES_LOADED, data.conversationId);
+      }
+      return null;
+    });
   },
 
   fetchAllAttachments: async ({ commit }, conversationId) => {

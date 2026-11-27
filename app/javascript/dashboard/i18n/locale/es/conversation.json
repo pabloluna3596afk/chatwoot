@@ -525,6 +525,7 @@
       "UNKNOWN_AUTHOR": "Remitente desconocido",
       "ORIGINAL_MESSAGE": "Mensaje original",
       "ORIGINAL_UNAVAILABLE": "El mensaje original ya no está disponible.",
+      "HISTORY_LIMIT": "Este mensaje está demasiado atrás. Carga más historial e inténtalo de nuevo.",
       "PHOTO": "Foto",
       "VIDEO": "Video",
       "PDF": "PDF",

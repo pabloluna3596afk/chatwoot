@@ -150,6 +150,7 @@ const contextMenuPosition = ref({});
 const showReplyTargetFlash = ref(false);
 const replyTargetFading = ref(false);
 let replyFlashTimer = null;
+let replyFlashFrame = null;
 const showContextMenu = ref(false);
 const { t } = useI18n();
 const route = useRoute();
@@ -605,9 +606,16 @@ const avatarTooltip = computed(() => {
 const showReplyFlash = () => {
   showReplyTargetFlash.value = false;
   clearTimeout(replyFlashTimer);
-  requestAnimationFrame(() => {
+  cancelAnimationFrame(replyFlashFrame);
+  replyFlashFrame = requestAnimationFrame(() => {
     showReplyTargetFlash.value = true;
     replyTargetFading.value = false;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      replyFlashTimer = setTimeout(() => {
+        showReplyTargetFlash.value = false;
+      }, 1600);
+      return;
+    }
     replyFlashTimer = setTimeout(() => {
       replyTargetFading.value = true;
       replyFlashTimer = setTimeout(() => {
@@ -618,6 +626,9 @@ const showReplyFlash = () => {
 };
 
 const onHighlightMessage = ({ messageId } = {}) => {
+  clearTimeout(replyFlashTimer);
+  cancelAnimationFrame(replyFlashFrame);
+  showReplyTargetFlash.value = false;
   if (Number(messageId) === Number(props.id)) showReplyFlash();
 };
 
@@ -628,6 +639,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   emitter.off(BUS_EVENTS.HIGHLIGHT_MESSAGE, onHighlightMessage);
   clearTimeout(replyFlashTimer);
+  cancelAnimationFrame(replyFlashFrame);
 });
 
 provideMessageContext({
@@ -676,8 +688,8 @@ provideMessageContext({
       <div
         class="[grid-area:bubble] flex min-w-0"
         :class="{
-          'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
+          'ms-8 justify-end': orientation === ORIENTATION.RIGHT,
+          'me-8': orientation === ORIENTATION.LEFT,
         }"
         @contextmenu="openContextMenu($event)"
       >
@@ -687,7 +699,7 @@ provideMessageContext({
         >
           <div
             data-reply-surface
-            class="relative flex min-w-0 max-w-full transition-[box-shadow,transform] motion-reduce:transition-none"
+            class="relative flex min-w-0 max-w-full rounded-[0.875rem] transition-[box-shadow,transform] motion-reduce:transition-none"
             :class="[
               swipeClass,
               showReplyTargetFlash

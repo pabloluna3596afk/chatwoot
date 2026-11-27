@@ -11,6 +11,7 @@ defineProps({
     type: Number,
     default: null,
   },
+  conversationId: { type: Number, default: null },
 });
 
 const emit = defineEmits(['dismiss']);
@@ -18,11 +19,12 @@ const emit = defineEmits(['dismiss']);
 
 <template>
   <div
-    class="reply-editor m-2 mb-0 flex w-full min-w-0 items-center overflow-hidden rounded-lg bg-n-alpha-black1 pe-1"
+    class="reply-editor m-2 mb-0 flex min-w-0 items-center overflow-hidden rounded-lg bg-n-alpha-black1 pe-1"
   >
     <ReplyPreview
       :message="message"
       :current-user-id="currentUserId"
+      :conversation-id="conversationId"
       composer
     />
     <Button

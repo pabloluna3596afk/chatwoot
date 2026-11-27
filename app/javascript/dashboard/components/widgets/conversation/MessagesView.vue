@@ -193,14 +193,19 @@ export default {
       showScrollToLatest: false,
       isProgrammaticScroll: false,
       programmaticScrollTimer: null,
+      finishProgrammaticScroll: null,
       messageJump: null,
       jumpAnnouncement: '',
+      historyScrollVersion: 0,
       messageSentSinceOpened: false,
       labelSuggestions: [],
     };
   },
 
   computed: {
+    latestMessageId() {
+      return this.currentChat.messages?.at(-1)?.id;
+    },
     ...mapGetters({
       currentChat: 'getSelectedChat',
       currentUserId: 'getCurrentUserID',
@@ -378,11 +383,33 @@ export default {
   },
 
   watch: {
+    latestMessageId: {
+      handler(latest, previous) {
+        const panel = this.conversationPanel;
+        if (!panel || this.messageJump.isJumping || !previous || !latest)
+          return;
+        const isNearBottom =
+          panel.scrollHeight - panel.scrollTop - panel.clientHeight <=
+          BOTTOM_PIN_THRESHOLD;
+        if (!isNearBottom) return;
+        const conversationId = this.currentChat.id;
+        this.$nextTick(() => {
+          if (
+            this.currentChat.id === conversationId &&
+            !this.messageJump.isJumping
+          ) {
+            this.scrollToBottom();
+          }
+        });
+      },
+    },
     currentChat(newChat, oldChat) {
       if (newChat.id === oldChat.id) {
         return;
       }
       this.messageJump.cancel();
+      this.historyScrollVersion += 1;
+      this.finishProgrammaticScroll?.();
       this.fetchAllAttachmentsFromCurrentChat();
       this.fetchSuggestions();
       this.messageSentSinceOpened = false;
@@ -416,6 +443,7 @@ export default {
 
   unmounted() {
     this.messageJump.cancel();
+    this.finishProgrammaticScroll?.();
     clearTimeout(this.programmaticScrollTimer);
     this.messageListResizeObserver.disconnect();
     this.removeBusListeners();
@@ -436,7 +464,7 @@ export default {
           panel.scrollHeight - panel.scrollTop - previousHeight <=
           BOTTOM_PIN_THRESHOLD;
         previousHeight = height;
-        if (wasNearBottom) this.scrollToBottom();
+        if (wasNearBottom && !this.messageJump.isJumping) this.scrollToBottom();
       });
       this.messageListResizeObserver.observe(panel);
     },
@@ -488,10 +516,24 @@ export default {
       emitter.off(BUS_EVENTS.SCROLL_TO_MESSAGE, this.onScrollToMessage);
     },
     async onScrollToMessage(payload = {}) {
+      // New messages emit this event without a target. The pinned-reader watcher
+      // handles their scroll without cancelling an in-flight quote lookup.
+      if (!payload.messageId) {
+        if (payload.source !== 'reply') this.makeMessagesRead();
+        return;
+      }
       this.hasUserScrolled = true;
+      this.historyScrollVersion += 1;
       const result = await this.messageJump.jumpToMessage(payload);
       if (payload.source !== 'reply') this.makeMessagesRead();
-      if (result === 'unavailable' && payload.source === 'reply') {
+      if (result === 'limited') {
+        useAlert(this.$t('CONVERSATION.REPLY_PREVIEW.HISTORY_LIMIT'));
+        return;
+      }
+      if (
+        ['unavailable', 'error'].includes(result) &&
+        payload.source === 'reply'
+      ) {
         useAlert(this.$t('CONVERSATION.REPLY_PREVIEW.ORIGINAL_UNAVAILABLE'));
         this.jumpAnnouncement = '';
       } else if (result === 'found') {
@@ -564,11 +606,18 @@ export default {
         shouldLoadMoreMessages
       ) {
         this.isLoadingPrevious = true;
+        const version = this.historyScrollVersion;
+        const conversationId = this.currentChat.id;
+        const shouldApply = () =>
+          version === this.historyScrollVersion &&
+          conversationId === this.currentChat.id;
         try {
           await this.$store.dispatch('fetchPreviousMessages', {
-            conversationId: this.currentChat.id,
+            conversationId,
             before: this.currentChat.messages[0].id,
+            shouldApply,
           });
+          if (!shouldApply()) return;
           const heightDifference =
             this.conversationPanel.scrollHeight - this.heightBeforeLoad;
           this.conversationPanel.scrollTop =
@@ -590,17 +639,30 @@ export default {
       if (!this.isProgrammaticScroll) this.fetchPreviousMessages(scrollTop);
     },
     markProgrammaticScroll() {
+      this.finishProgrammaticScroll?.();
       this.isProgrammaticScroll = true;
       clearTimeout(this.programmaticScrollTimer);
       const panel = this.conversationPanel;
       const finish = () => {
         this.isProgrammaticScroll = false;
         clearTimeout(this.programmaticScrollTimer);
+        panel?.removeEventListener('scrollend', finish);
+        panel?.removeEventListener('wheel', finish);
+        panel?.removeEventListener('touchstart', finish);
+        this.finishProgrammaticScroll = null;
       };
+      this.finishProgrammaticScroll = finish;
       panel?.addEventListener('scrollend', finish, { once: true });
+      panel?.addEventListener('wheel', finish, { once: true, passive: true });
+      panel?.addEventListener('touchstart', finish, {
+        once: true,
+        passive: true,
+      });
       this.programmaticScrollTimer = setTimeout(finish, 600);
     },
     scrollToLatest() {
+      this.messageJump.cancel();
+      this.historyScrollVersion += 1;
       const panel = this.conversationPanel;
       if (!panel) return;
       this.markProgrammaticScroll();

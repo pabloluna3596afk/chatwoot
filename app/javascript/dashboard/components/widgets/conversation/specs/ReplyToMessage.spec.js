@@ -3,6 +3,8 @@ import { createI18n } from 'vue-i18n';
 import en from 'dashboard/i18n/locale/en/conversation.json';
 import es from 'dashboard/i18n/locale/es/conversation.json';
 import ReplyToMessage from '../ReplyToMessage.vue';
+import { emitter } from 'shared/helpers/mitt';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
 
 const options = (message, locale = 'en') => ({
   props: { message },
@@ -17,12 +19,37 @@ const options = (message, locale = 'en') => ({
 });
 
 describe('composer reply quote', () => {
+  it('jumps from its body, keeps dismiss independent, and disables cross-conversation quotes', async () => {
+    const emit = vi.spyOn(emitter, 'emit');
+    const wrapper = mount(
+      ReplyToMessage,
+      options({ id: 12, conversation_id: 3, content: 'Original' })
+    );
+    await wrapper.setProps({ conversationId: 3 });
+    await wrapper.getComponent({ name: 'ReplyPreview' }).trigger('click');
+    expect(emit).toHaveBeenCalledWith(BUS_EVENTS.SCROLL_TO_MESSAGE, {
+      messageId: 12,
+      conversationId: 3,
+      source: 'reply',
+    });
+    emit.mockClear();
+    await wrapper.get('button[aria-label="Dismiss reply"]').trigger('click');
+    expect(emit).not.toHaveBeenCalled();
+    expect(wrapper.emitted('dismiss')).toHaveLength(1);
+    await wrapper.setProps({ conversationId: 4 });
+    expect(
+      wrapper.getComponent({ name: 'ReplyPreview' }).attributes('disabled')
+    ).toBeDefined();
+    wrapper.unmount();
+    emit.mockRestore();
+  });
   it('reuses the bubble quote, author and two-line excerpt across the composer width', () => {
     const wrapper = mount(
       ReplyToMessage,
       options({ id: 1, sender: { name: 'Ana' }, content: '**Thank you**' })
     );
-    expect(wrapper.classes()).toContain('w-full');
+    expect(wrapper.classes()).not.toContain('w-full');
+    expect(wrapper.classes()).toContain('m-2');
     expect(wrapper.classes()).toContain('rounded-lg');
     expect(wrapper.classes()).toContain('bg-n-alpha-black1');
     expect(

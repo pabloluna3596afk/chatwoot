@@ -14,13 +14,18 @@ import {
   middleEllipsis,
 } from './media/attachment';
 import { useMediaState } from './media/useMediaState';
-import { activeJumpMessageId } from './useJumpToMessage';
+import {
+  activeJumpMessageId,
+  unavailableJumpTargets,
+  jumpTargetKey,
+} from './useJumpToMessage';
 import { MESSAGE_TYPES } from './constants';
 
 const props = defineProps({
   message: { type: Object, default: null },
   composer: { type: Boolean, default: false },
   currentUserId: { type: Number, default: null },
+  conversationId: { type: Number, default: null },
 });
 const context = props.composer ? null : useMessageContext();
 const channelType = computed(() => context?.channelType.value || '');
@@ -119,16 +124,23 @@ const excerpt = computed(() => {
 });
 const isCrossConversation = computed(
   () =>
-    !props.composer &&
     message.value?.conversationId &&
-    context?.conversationId?.value &&
+    (props.conversationId || context?.conversationId?.value) &&
     Number(message.value.conversationId) !==
-      Number(context.conversationId.value)
+      Number(props.conversationId || context.conversationId.value)
 );
 const canJump = computed(
   () =>
     Boolean(message.value?.id) &&
     !message.value?.contentAttributes?.deleted &&
+    !unavailableJumpTargets.value.has(
+      jumpTargetKey(
+        props.conversationId ||
+          context?.conversationId?.value ||
+          message.value?.conversationId,
+        message.value?.id
+      )
+    ) &&
     !isCrossConversation.value
 );
 const isLoading = computed(
@@ -167,9 +179,7 @@ const containerClass = computed(() =>
     :class="[
       containerClass,
       composer ? 'flex-1' : 'mb-1.5',
-      canJump && !composer
-        ? 'cursor-pointer hover:bg-n-alpha-black2'
-        : 'cursor-default',
+      canJump ? 'cursor-pointer hover:bg-n-alpha-black2' : 'cursor-default',
     ]"
     :aria-label="
       composer
@@ -179,9 +189,14 @@ const containerClass = computed(() =>
           : undefined
     "
     :disabled="!canJump"
+    :aria-busy="isLoading"
     @click="scrollToMessage"
   >
-    <span class="w-[3px] shrink-0" :class="barToneClasses" aria-hidden="true" />
+    <span
+      class="w-[0.1875rem] shrink-0"
+      :class="barToneClasses"
+      aria-hidden="true"
+    />
     <span class="flex min-w-0 flex-1 flex-col gap-0.5 py-1 ps-2 pe-2">
       <span
         class="line-clamp-1 break-all text-xs font-semibold"
@@ -197,7 +212,7 @@ const containerClass = computed(() =>
         <Icon
           v-if="isLoading"
           icon="i-lucide-loader-circle"
-          class="me-1 inline size-3 animate-spin"
+          class="me-1 inline size-3 animate-spin motion-reduce:animate-none"
         />
         <Icon
           v-else-if="hasThumbnail"
@@ -253,7 +268,10 @@ const containerClass = computed(() =>
         class="absolute inset-0 grid place-items-center bg-n-alpha-black2"
         aria-hidden="true"
       >
-        <Icon icon="i-lucide-play" class="size-3 text-white" />
+        <Icon
+          icon="i-lucide-play"
+          class="size-3 text-n-slate-1 dark:text-n-slate-12"
+        />
       </span>
     </span>
   </button>

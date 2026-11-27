@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { shallowMount } from '@vue/test-utils';
 import Message from '../Message.vue';
 import { emitter } from 'shared/helpers/mitt';
@@ -161,5 +161,30 @@ describe('message reply shortcuts', () => {
     expect(Object.keys(en.EMAIL_HEADER).sort()).toEqual(
       Object.keys(es.EMAIL_HEADER).sort()
     );
+  });
+  it('keeps only the last message highlighted and holds reduced-motion feedback for 1600ms', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const first = render({ id: 1 });
+    const second = render({ id: 2, private: true });
+    emitter.emit(BUS_EVENTS.HIGHLIGHT_MESSAGE, { messageId: 1 });
+    await vi.advanceTimersByTimeAsync(20);
+    emitter.emit(BUS_EVENTS.HIGHLIGHT_MESSAGE, { messageId: 2 });
+    await vi.advanceTimersByTimeAsync(200);
+    await nextTick();
+    expect(first.get('[data-reply-surface]').classes()).toContain(
+      'after:opacity-0'
+    );
+    expect(second.get('[data-reply-surface]').classes()).toContain(
+      'after:opacity-100'
+    );
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(second.get('[data-reply-surface]').classes()).toContain(
+      'after:opacity-0'
+    );
+    first.unmount();
+    second.unmount();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 });

@@ -1,6 +1,10 @@
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
-import { activeJumpMessageId, useJumpToMessage } from './useJumpToMessage';
+import {
+  activeJumpMessageId,
+  unavailableJumpTargets,
+  useJumpToMessage,
+} from './useJumpToMessage';
 
 const flushFrame = () =>
   new Promise(resolve => {
@@ -51,6 +55,7 @@ const setup = ({ targetId = 20, targetRect, initialMessages } = {}) => {
 describe('useJumpToMessage', () => {
   beforeEach(() => {
     activeJumpMessageId.value = null;
+    unavailableJumpTargets.value.clear();
     vi.stubGlobal('requestAnimationFrame', callback => setTimeout(callback, 0));
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     vi.spyOn(emitter, 'emit');
@@ -73,6 +78,51 @@ describe('useJumpToMessage', () => {
     expect(emitter.emit).toHaveBeenCalledWith(BUS_EVENTS.HIGHLIGHT_MESSAGE, {
       messageId: 20,
     });
+  });
+
+  it('highlights only after scrollend in a long thread', async () => {
+    const { jumpToMessage, panel, fetchPreviousMessages } = setup({
+      initialMessages: Array.from({ length: 60 }, (_, index) => ({
+        id: index + 20,
+      })),
+      targetRect: () => ({ top: -700, bottom: -640, height: 60 }),
+    });
+    const pending = jumpToMessage({ messageId: 20 });
+    await Promise.resolve();
+    expect(emitter.emit).not.toHaveBeenCalledWith(
+      BUS_EVENTS.HIGHLIGHT_MESSAGE,
+      { messageId: 20 }
+    );
+    panel.dispatchEvent(new Event('scrollend'));
+    expect(await pending).toBe('found');
+    expect(fetchPreviousMessages).not.toHaveBeenCalled();
+    expect(emitter.emit).toHaveBeenCalledWith(BUS_EVENTS.HIGHLIGHT_MESSAGE, {
+      messageId: 20,
+    });
+  });
+
+  it('the last click cancels a smooth scroll and owns the only highlight', async () => {
+    const { jumpToMessage, panel, target } = setup({
+      targetRect: () => ({ top: 700, bottom: 760, height: 60 }),
+    });
+    const first = jumpToMessage({ messageId: 20 });
+    await Promise.resolve();
+    target.id = 'message21';
+    target.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 160,
+      height: 60,
+    });
+    expect(await jumpToMessage({ messageId: 21 })).toBe('found');
+    expect(await first).toBe('cancelled');
+    expect(panel.scrollTo).toHaveBeenCalledWith({
+      top: 100,
+      behavior: 'instant',
+    });
+    expect(emitter.emit).not.toHaveBeenCalledWith(
+      BUS_EVENTS.HIGHLIGHT_MESSAGE,
+      { messageId: 20 }
+    );
   });
 
   it('centers a loaded target outside the viewport with smooth motion', async () => {
@@ -104,7 +154,7 @@ describe('useJumpToMessage', () => {
     document.getElementById('message999').remove();
     fetchPreviousMessages.mockImplementation(async () => {
       panel.scrollHeight = 1500;
-      document.body.insertAdjacentHTML(
+      panel.insertAdjacentHTML(
         'beforeend',
         '<div id="message999"><div data-reply-surface></div></div>'
       );
@@ -121,7 +171,9 @@ describe('useJumpToMessage', () => {
     expect(fetchPreviousMessages).toHaveBeenCalledWith({
       conversationId: 5,
       after: 999,
-      before: 1000,
+      before: 1001,
+      anchorId: 1000,
+      shouldApply: expect.any(Function),
     });
     expect(panel.scrollTop).toBe(400);
     expect(activeJumpMessageId.value).toBe(null);
@@ -145,6 +197,40 @@ describe('useJumpToMessage', () => {
       await jumpToMessage({ messageId: 20, conversationId: 6, source: 'reply' })
     ).toBe('unavailable');
     expect(fetchPreviousMessages).not.toHaveBeenCalled();
+  });
+
+  it('keeps a truncated history lookup retryable without moving or highlighting', async () => {
+    const { jumpToMessage, target, panel, fetchPreviousMessages, isJumping } =
+      setup();
+    target.remove();
+    fetchPreviousMessages.mockResolvedValue({ limited: true });
+
+    expect(await jumpToMessage({ messageId: 20 })).toBe('limited');
+    expect(fetchPreviousMessages).toHaveBeenCalledOnce();
+    expect(panel.scrollTop).toBe(100);
+    expect(panel.scrollTo).not.toHaveBeenCalled();
+    expect(activeJumpMessageId.value).toBe(null);
+    expect(isJumping.value).toBe(false);
+    expect(unavailableJumpTargets.value.has('5:20')).toBe(false);
+    expect(emitter.emit).not.toHaveBeenCalledWith(
+      BUS_EVENTS.HIGHLIGHT_MESSAGE,
+      { messageId: 20 }
+    );
+  });
+
+  it('allows retry after a network failure and clears the loading state', async () => {
+    const { jumpToMessage, target, panel, fetchPreviousMessages, isJumping } =
+      setup();
+    target.remove();
+    fetchPreviousMessages.mockRejectedValue(new Error('offline'));
+
+    expect(await jumpToMessage({ messageId: 20 })).toBe('error');
+    expect(activeJumpMessageId.value).toBe(null);
+    expect(isJumping.value).toBe(false);
+    expect(unavailableJumpTargets.value.has('5:20')).toBe(false);
+
+    panel.appendChild(target);
+    expect(await jumpToMessage({ messageId: 20 })).toBe('found');
   });
 
   it('ignores an older pending request after a later click', async () => {
@@ -187,5 +273,70 @@ describe('useJumpToMessage', () => {
 
     expect(await pendingJump).toBe('cancelled');
     expect(panel.scrollTo).not.toHaveBeenCalled();
+  });
+  it('waits for the pending DOM render before rejecting the first loaded message', async () => {
+    const { jumpToMessage, target, panel, fetchPreviousMessages } = setup({
+      initialMessages: [{ id: 20 }],
+    });
+    target.remove();
+    queueMicrotask(() => panel.appendChild(target));
+    expect(await jumpToMessage({ messageId: 20 })).toBe('found');
+    expect(fetchPreviousMessages).not.toHaveBeenCalled();
+  });
+
+  it('does not find a target outside its own conversation panel', async () => {
+    const { jumpToMessage, target, panel } = setup({
+      initialMessages: [{ id: 20 }],
+    });
+    document.body.appendChild(target);
+    expect(await jumpToMessage({ messageId: 20 })).toBe('unavailable');
+    expect(panel.scrollTo).not.toHaveBeenCalled();
+    expect(unavailableJumpTargets.value.has('5:20')).toBe(true);
+  });
+
+  it('clears loading when a conversation changes during the request', async () => {
+    const { jumpToMessage, target, fetchPreviousMessages, setConversationId } =
+      setup();
+    target.remove();
+    fetchPreviousMessages.mockImplementation(async () => setConversationId(9));
+    expect(await jumpToMessage({ messageId: 20 })).toBe('cancelled');
+    expect(activeJumpMessageId.value).toBe(null);
+  });
+
+  it('ignores failures from a cancelled request', async () => {
+    const { jumpToMessage, target, fetchPreviousMessages, cancel } = setup();
+    target.remove();
+    let rejectFetch;
+    fetchPreviousMessages.mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          rejectFetch = reject;
+        })
+    );
+    const pending = jumpToMessage({ messageId: 20 });
+    await flushFrame();
+    cancel();
+    rejectFetch(new Error('offline'));
+    expect(await pending).toBe('cancelled');
+  });
+
+  it('does not restore an obsolete anchor after cancellation during the render frame', async () => {
+    const { jumpToMessage, target, panel, fetchPreviousMessages, cancel } =
+      setup();
+    target.remove();
+    let frame;
+    vi.stubGlobal('requestAnimationFrame', callback => {
+      frame = callback;
+      return 1;
+    });
+    fetchPreviousMessages.mockResolvedValue();
+    const pending = jumpToMessage({ messageId: 20 });
+    await Promise.resolve();
+    await Promise.resolve();
+    cancel();
+    panel.scrollHeight = 1800;
+    frame?.();
+    expect(await pending).toBe('cancelled');
+    expect(panel.scrollTop).toBe(100);
   });
 });
