@@ -73,6 +73,17 @@ describe('composer toolbar', () => {
       },
     });
 
+  it('hides and restores the real toolbar on mobile while keeping desktop visible', async () => {
+    wrapper = render();
+    const row = wrapper.get('.flex.items-center.gap-2');
+    expect(row.classes()).not.toContain('max-md:hidden');
+    await wrapper.setProps({ hideOnMobile: true });
+    expect(row.classes()).toContain('max-md:hidden');
+    expect(row.classes()).not.toContain('hidden');
+    await wrapper.setProps({ hideOnMobile: false });
+    expect(row.classes()).not.toContain('max-md:hidden');
+  });
+
   it('orders eligible tools and lists exactly the hidden ones, retaining FileUpload', async () => {
     wrapper = render();
     await flushPromises();

@@ -18,6 +18,7 @@ import RecordingBar from './RecordingBar.vue';
 import ComposerOverflowMenu from './ComposerOverflowMenu.vue';
 
 const props = defineProps({
+  hideOnMobile: { type: Boolean, default: false },
   isNote: {
     type: Boolean,
     default: false,
@@ -319,7 +320,7 @@ onMounted(() => ActiveStorage.start());
   <div
     v-show="!isRecordingAudio"
     class="flex items-center gap-2 px-2.5 py-1.5"
-    :class="{ 'is-note-mode': isNote }"
+    :class="{ 'is-note-mode': isNote, 'max-md:hidden': hideOnMobile }"
   >
     <NextButton
       v-if="enableCannedResponses && !isOnPrivateNote && !isEditorDisabled"

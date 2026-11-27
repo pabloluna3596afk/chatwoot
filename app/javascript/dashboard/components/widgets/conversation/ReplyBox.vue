@@ -1613,6 +1613,9 @@ export default {
     <ReplyBottomPanel
       v-else
       key="reply-bottom-panel"
+      :hide-on-mobile="
+        showCannedMenu || showMacrosMenu || showCannedResponsesModal
+      "
       :conversation-id="conversationId"
       :enable-multiple-file-upload="enableMultipleFileUpload"
       :enable-whats-app-templates="showWhatsappTemplates"

@@ -138,6 +138,33 @@ describe('ReplyBox', () => {
     });
   });
 
+  it.each(['toggleCannedMenu', 'toggleMacrosMenu'])(
+    'hides the bottom row only on mobile during %s and restores it on close',
+    async method => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::WebWidget' },
+      });
+      const panel = wrapper.getComponent({ name: 'ReplyBottomPanel' });
+      const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+      input.vm.closeComposerPickers = vi.fn();
+      input.vm.focusEditorInputField = vi.fn();
+      expect(panel.props('hideOnMobile')).toBe(false);
+      wrapper.vm[method](true);
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(true);
+      wrapper.vm[method](false);
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(false);
+      wrapper.vm.openCannedResponsesModal();
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(true);
+      wrapper.vm.hideCannedResponsesModal();
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(false);
+      wrapper.unmount();
+    }
+  );
+
   it('closes pickers before sending and restores focus after dismissing canned responses', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::WebWidget' },
