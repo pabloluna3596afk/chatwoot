@@ -138,6 +138,29 @@ describe('ReplyBox', () => {
     });
   });
 
+  it('closes pickers before sending and restores focus after dismissing canned responses', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+    input.vm.closeComposerPickers = vi.fn();
+    input.vm.focusEditorInputField = vi.fn();
+    const proceed = vi
+      .spyOn(wrapper.vm, 'proceedAfterAssignmentCheck')
+      .mockResolvedValue();
+    wrapper.vm.openCannedResponsesModal();
+    expect(input.vm.closeComposerPickers).toHaveBeenCalledOnce();
+    expect(wrapper.vm.showCannedResponsesModal).toBe(true);
+    wrapper.vm.hideCannedResponsesModal();
+    expect(input.vm.focusEditorInputField).toHaveBeenCalledWith(null);
+    wrapper.vm.openCannedResponsesModal();
+    await wrapper.vm.onSendReply();
+    expect(input.vm.closeComposerPickers).toHaveBeenCalledTimes(3);
+    expect(wrapper.vm.showCannedResponsesModal).toBe(false);
+    expect(proceed).toHaveBeenCalledOnce();
+    wrapper.unmount();
+  });
+
   it.each([REPLY_EDITOR_MODES.NOTE, REPLY_EDITOR_MODES.REPLY])(
     'renders an intact return symbol in %s mode',
     async mode => {

@@ -900,10 +900,12 @@ export default {
       this.requestContactInfoTemplatesOnly = false;
     },
     openCannedResponsesModal() {
+      this.messageEditor?.closeComposerPickers();
       this.showCannedResponsesModal = true;
     },
     hideCannedResponsesModal() {
       this.showCannedResponsesModal = false;
+      this.messageEditor?.focusEditorInputField(null);
     },
     onSelectCannedResponse(item) {
       const content = item?.content || '';
@@ -1016,6 +1018,8 @@ export default {
           });
     },
     async onSendReply() {
+      this.messageEditor?.closeComposerPickers();
+      this.showCannedResponsesModal = false;
       const undefinedVariables = getUndefinedVariablesInMessage({
         message: this.message,
         variables: this.messageVariables,
@@ -1634,7 +1638,9 @@ export default {
       :toggle-emoji-picker="toggleEmojiPicker"
       :portal-slug="connectedPortalSlug"
       :new-conversation-modal-active="newConversationModalActive"
+      :enable-macros="isMacrosEnabled && isDefaultEditorMode"
       @select-whatsapp-template="openWhatsappTemplateModal"
+      @select-macro="messageEditor?.openMacros()"
       @select-canned-response="openCannedResponsesModal"
       @select-content-template="openContentTemplateModal"
       @toggle-insert-article="toggleInsertArticle"
