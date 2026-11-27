@@ -1531,6 +1531,7 @@ export default {
           :message="inReplyTo"
           :current-user-id="currentUser?.id"
           :conversation-id="conversationId"
+          :inbox-id="inboxId"
           @dismiss="resetReplyToMessage"
         />
         <CopilotEditorSection

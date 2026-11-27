@@ -4004,3 +4004,10 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Cambio:** `Editor.vue`, `MacroList.vue`, `CannedResponse.vue` y `PreviewPicker.vue` distinguen apertura escrita y de barra. La escrita conserva el foco y filtra con las suggestions existentes; la barra enfoca con `preventScroll`. `CaretAnchoredPicker.vue` consume navegaci?n antes de ProseMirror, preserva IME y agrupa resize/scroll con rAF cancelable. Las opciones preservan foco al pointerdown y seleccionan solo en click. El buscador del modal de respuestas tambi?n usa `preventScroll`.
 - **Prueba:** `ComposerPickerFocus.spec.js` monta editor y selectores reales: foco, filtro, Enter/Escape, toque, inserci?n ?nica e IME. `ComposerPickers.spec.js` verifica rAF y cancelaci?n. Ejecuci?n amplia en UTC y America/Guayaquil; detalle y resultados en la entrega externa `docs-crm/codex/tabla-atajos3.md`.
 - **L?mite:** continuidad del teclado, animaciones y desplazamiento visual pendientes de Safari y PWA en iPhone real. No se cambia ejecuci?n de macros ni altura global de la app.
+
+### B-NEW-315 — Autor de citas salientes sin remitente (2026-11-27)
+
+- **Problema:** los ecos enviados desde WhatsApp Business se citaban como «Remitente desconocido» aunque la conversación tenía una bandeja identificada.
+- **Cambio:** `components-next/message/ReplyPreview.vue` obtiene la bandeja por `inboxes/getInbox` y usa su nombre para salientes/plantillas sin remitente, conservando el tono teal. `ReplyBox.vue` pasa su `inboxId` existente por `ReplyToMessage.vue` al compositor; las burbujas usan el contexto del mensaje. Se mantiene la prioridad de nota privada, agente actual y nombre del remitente.
+- **Prueba:** `ReplyPreview.spec.js` y `conversation/specs/ReplyToMessage.spec.js` cubren eco, plantilla, agente actual/otro, contacto, remitente parcial, nota privada y bandeja ausente/cambiante. Ejecutar las suites `components-next/message` y `components/widgets/conversation` en UTC y America/Guayaquil, más ESLint de los archivos tocados.
+- **Alcance:** sin backend, datos, migraciones ni nuevas claves i18n. Sin Docker, navegador, push ni PR por instrucción del brief.

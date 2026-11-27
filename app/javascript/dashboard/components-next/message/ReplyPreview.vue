@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useMapGetter } from 'dashboard/composables/store';
 import { useMessageContext } from './provider';
 import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 import MessageFormatter from 'shared/helpers/MessageFormatter';
@@ -26,8 +27,14 @@ const props = defineProps({
   composer: { type: Boolean, default: false },
   currentUserId: { type: Number, default: null },
   conversationId: { type: Number, default: null },
+  inboxId: { type: Number, default: null },
 });
 const context = props.composer ? null : useMessageContext();
+const inboxGetter = useMapGetter('inboxes/getInbox');
+const inbox = computed(() => {
+  const inboxId = context?.inboxId?.value ?? props.inboxId;
+  return inboxId ? inboxGetter.value(inboxId) : null;
+});
 const channelType = computed(() => context?.channelType.value || '');
 const currentUserIdRef = context?.currentUserId || ref(props.currentUserId);
 const { t } = useI18n();
@@ -94,6 +101,10 @@ const author = computed(() => {
   return (
     message.value?.sender?.name ||
     message.value?.senderName ||
+    (isAgentMessage.value &&
+      !message.value?.sender &&
+      senderId.value == null &&
+      inbox.value?.name) ||
     t('CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR')
   );
 });

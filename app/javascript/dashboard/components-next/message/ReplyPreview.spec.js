@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
+import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import conversation from 'dashboard/i18n/locale/en/conversation.json';
 import { emitter } from 'shared/helpers/mitt';
@@ -12,17 +13,25 @@ import {
 
 const inReplyTo = ref({});
 const currentUserId = ref(7);
+const inboxId = ref(1);
 vi.mock('./provider', () => ({
   useMessageContext: () => ({
     inReplyTo,
     channelType: ref('Channel::Instagram'),
     currentUserId,
+    inboxId,
     conversationId: ref(3),
   }),
 }));
 const options = () => ({
   global: {
     plugins: [
+      createStore({
+        getters: {
+          'inboxes/getInbox': () => id =>
+            ({ 1: { name: 'Support' }, 2: { name: 'Sales' } })[id],
+        },
+      }),
       createI18n({
         legacy: false,
         locale: 'en',
@@ -39,8 +48,66 @@ const options = () => ({
 
 describe('reply attachment preview', () => {
   beforeEach(() => {
+    inboxId.value = 1;
     activeJumpMessageId.value = null;
     unavailableJumpTargets.value.clear();
+  });
+
+  it.each([
+    [
+      {
+        message_type: 1,
+        sender: null,
+        content_attributes: { external_echo: true },
+      },
+      'Support',
+    ],
+    [{ message_type: 3, sender: null }, 'Support'],
+    [{ message_type: 1, sender: { id: 7, name: 'Agent' } }, 'You'],
+    [{ message_type: 1, sender_id: 7 }, 'You'],
+    [{ message_type: 1, sender: { id: 8, name: 'Luis' } }, 'Luis'],
+    [{ message_type: 1, sender_name: 'Lucia' }, 'Lucia'],
+    [{ message_type: 0, sender: { id: 7, name: 'Ana' } }, 'Ana'],
+    [
+      { message_type: 1, sender_id: 8 },
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR,
+    ],
+    [
+      { message_type: 1, sender: {} },
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR,
+    ],
+    [
+      { message_type: 0, sender: null },
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR,
+    ],
+    [
+      { message_type: 1, private: true, sender: { id: 7, name: 'Agent' } },
+      conversation.CONVERSATION.REPLYBOX.PRIVATE_NOTE,
+    ],
+  ])('resolves the bubble author for %j as %s', (message, expected) => {
+    inReplyTo.value = { id: 1, content: 'Quoted text', ...message };
+    const wrapper = mount(ReplyPreview, options());
+    expect(wrapper.get('.font-semibold').text()).toBe(expected);
+    if (message.message_type === 1 && !message.private) {
+      expect(wrapper.get('.font-semibold').classes()).toContain(
+        'text-n-teal-11'
+      );
+    }
+    wrapper.unmount();
+  });
+
+  it('updates the bubble author with its inbox and keeps the unknown fallback', async () => {
+    inReplyTo.value = { id: 1, message_type: 1, sender: null };
+    const wrapper = mount(ReplyPreview, options());
+    inboxId.value = 2;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.font-semibold').text()).toBe('Sales');
+    inboxId.value = 99;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.font-semibold').text()).toBe(
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR
+    );
+    wrapper.unmount();
   });
 
   it('disables every quote of a target after a missing lookup', async () => {

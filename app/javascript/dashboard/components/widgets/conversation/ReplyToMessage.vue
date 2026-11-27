@@ -12,6 +12,7 @@ defineProps({
     default: null,
   },
   conversationId: { type: Number, default: null },
+  inboxId: { type: Number, default: null },
 });
 
 const emit = defineEmits(['dismiss']);
@@ -25,6 +26,7 @@ const emit = defineEmits(['dismiss']);
       :message="message"
       :current-user-id="currentUserId"
       :conversation-id="conversationId"
+      :inbox-id="inboxId"
       composer
     />
     <Button
