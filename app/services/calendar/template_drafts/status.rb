@@ -1,4 +1,9 @@
 class Calendar::TemplateDrafts::Status
+  AGGREGATE_STATE_PRIORITY = {
+    'usable' => 0, 'pending_approval' => 1, 'not_submitted' => 2, 'missing' => 2, 'incompatible' => 3,
+    'submission_failed' => 4
+  }.freeze
+
   def initialize(account:)
     @account = account
   end
@@ -27,7 +32,17 @@ class Calendar::TemplateDrafts::Status
   def destination_summary(function)
     targets = destinations(function)
     { 'destinations' => targets, 'ready_destinations' => targets.count { |target| target['state'] == 'usable' },
-      'total_destinations' => targets.size }
+      'total_destinations' => targets.size, 'aggregate_state' => aggregate_state(targets) }
+  end
+
+  def aggregate_state(targets)
+    target = targets.max_by do |destination|
+      key = destination['state'] == 'not_submitted' && destination['reason'] == 'submission_failed' ? 'submission_failed' : destination['state']
+      AGGREGATE_STATE_PRIORITY.fetch(key, -1)
+    end
+    return unless target
+
+    target['state'] == 'not_submitted' && target['reason'] == 'submission_failed' ? 'submission_failed' : target['state']
   end
 
   def destinations(function)

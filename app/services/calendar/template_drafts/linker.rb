@@ -5,13 +5,14 @@ class Calendar::TemplateDrafts::Linker
     @channel = account.whatsapp_channels.find_by(id: channel_id)
   end
 
-  def perform(draft_id: nil, template_name: nil, remote_template_id: nil)
+  def perform(draft_id: nil, template_name: nil, remote_template_id: nil, preserve_existing: false)
     validate_channel!
     draft = find_draft(draft_id) if draft_id
     selection = draft ? submitted_selection(draft) : [template_name, remote_template_id]
     resource = Calendar::TemplateResources.new(account: @account, function: @function,
                                                language: Calendar::TemplateDefinitions.language(@account), channel: @channel)
-                                          .link!(template_name: selection.first, remote_template_id: selection.last, draft: draft)
+                                          .link!(template_name: selection.first, remote_template_id: selection.last, draft: draft,
+                                                 preserve_existing: preserve_existing)
     raise Whatsapp::TemplateComponentsBuilder::Invalid, resource.incompatibility_reason if resource.status_incompatible?
 
     Calendar::TemplateDrafts::Status.new(account: @account).perform

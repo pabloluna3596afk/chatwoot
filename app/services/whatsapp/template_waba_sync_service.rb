@@ -13,5 +13,6 @@ class Whatsapp::TemplateWabaSyncService
       channels.update_all(message_templates: templates, message_templates_last_updated: Time.current, updated_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
       @account.update_cache_key('inbox')
     end
+    Calendar::TemplateDrafts::AutoLinker.new(account: @account, waba_id: @waba_id).perform
   end
 end
