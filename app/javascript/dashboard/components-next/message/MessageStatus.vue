@@ -79,7 +79,7 @@ const tooltipText = computed(() => {
     v-if="status === MESSAGE_STATUS.PROGRESS"
     v-tooltip.top-start="tooltipText"
     :class="progessIcon"
-    class="size-3.5 text-n-slate-10"
+    class="size-3.5 shrink-0 text-n-slate-10"
     role="img"
     :aria-label="tooltipText"
   />
@@ -87,7 +87,7 @@ const tooltipText = computed(() => {
     v-else
     v-tooltip.top-start="tooltipText"
     :class="[statusIcon, statusColor]"
-    class="size-3.5"
+    class="size-3.5 shrink-0"
     role="img"
     :aria-label="tooltipText"
   />

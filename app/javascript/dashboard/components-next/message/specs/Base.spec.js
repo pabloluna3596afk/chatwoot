@@ -122,6 +122,18 @@ describe('bubble metadata composition', () => {
     const wrapper = render();
     expect(wrapper.classes()).toContain('bg-transparent');
     expect(wrapper.classes()).toContain('shadow-none');
+    expect(wrapper.get('[data-meta]').classes()).toContain('text-n-slate-1');
+    expect(wrapper.get('[data-meta]').classes()).toContain(
+      'dark:text-n-slate-12'
+    );
+  });
+
+  it.each([
+    ['left', 'rounded-es-none'],
+    ['right', 'rounded-ee-none'],
+  ])('keeps the %s tail on its logical side in RTL', (orientation, corner) => {
+    context.orientation.value = orientation;
+    expect(render().classes()).toContain(corner);
   });
 
   it('does not create a meta row for activities or an explicit hideMeta', async () => {

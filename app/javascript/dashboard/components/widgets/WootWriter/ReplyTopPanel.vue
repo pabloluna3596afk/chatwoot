@@ -228,7 +228,7 @@ export default {
           :reply-suggestion-disabled-reason="replySuggestionDisabledReason"
           :quota-reset-date="quotaResetDate"
           :task-error-message="copilotTaskErrorMessage"
-          class="ltr:right-0 rtl:left-0 bottom-full mb-2"
+          class="end-0 bottom-full mb-2"
           @execute-copilot-action="handleCopilotAction"
         />
       </div>

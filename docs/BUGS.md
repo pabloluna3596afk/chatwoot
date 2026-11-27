@@ -1,3 +1,11 @@
+### B-NEW-314 - Navegación de citas y continuidad del scroll del chat (2026-11-27)
+
+- **Archivos:** `components-next/message/{useJumpToMessage,ReplyPreview,Message}`, `widgets/conversation/{MessagesView,ReplyToMessage,ReplyBox}`, `store/modules/conversations/actions.js`, metadatos, Base y controles WootWriter.
+- **Problema:** respuestas de historial obsoletas podían mover la conversación, mensajes nuevos cancelaban un salto, citas ausentes seguían activas y redimensionar el compositor podía bajar al final durante la carga. El límite de 1000 mensajes podía dejar un hueco invisible tras filtrar notas privadas.
+- **Cambio:** vigencia antes del commit y del render, petición única con ancla visible para comprobar continuidad, destinos ausentes desactivados, resaltado después del scroll, limpieza de listeners y autoscroll solo para quien está al final. Compositor con contexto de conversación, X independiente, márgenes contenidos, estados de foco y ajustes RTL con tokens existentes. Sin cambios de envío, backend ni migraciones.
+- **Cómo probar:** specs de `useJumpToMessage`, `ReplyPreview`, `MessageReply`, `MessagesView`, `ReplyToMessage`, actions, Base, MessageMeta y EditorModeToggle. Tres regresiones adicionales reproducidas en rojo antes de corregirlas (ausencia, resize y rango recortado). Matriz y resultados finales en `docs-crm/codex/tabla-chat-revision.md` del directorio padre.
+- **Pendiente visual:** 390 px/escritorio, claro/oscuro, RTL, teclado, scroll nativo y contraste. El brief prohíbe Docker/preview/navegador; sin aprobación visual ni PR. El test ajeno `useReportMetrics.spec.js:43` falla por locale es-EC (`5.000` frente a `5,000`), reproducido en el HEAD original aislado.
+
 ### B-NEW-311 - Medidas de adjuntos disponibles en vivo tras el análisis (2026-11-24)
 
 - **Problema:** `message.created` puede difundirse antes de que `ActiveStorage::AnalyzeJob` guarde las dimensiones; la burbuja conserva medidas nulas hasta refrescar.

@@ -55,10 +55,8 @@ const varaintBaseMap = {
 };
 
 const orientationMap = {
-  [ORIENTATION.LEFT]:
-    'left-bubble rounded-[0.875rem] ltr:rounded-bl-none rtl:rounded-br-none',
-  [ORIENTATION.RIGHT]:
-    'right-bubble rounded-[0.875rem] ltr:rounded-br-none rtl:rounded-bl-none',
+  [ORIENTATION.LEFT]: 'left-bubble rounded-[0.875rem] rounded-es-none',
+  [ORIENTATION.RIGHT]: 'right-bubble rounded-[0.875rem] rounded-ee-none',
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 
@@ -84,7 +82,7 @@ const shouldShowMeta = computed(
 const MESSAGE_META_SPACING = 'mt-1 px-3 pb-2';
 const metaClass = computed(() => [
   isSticker.value
-    ? 'mt-1 ms-auto w-fit rounded-full bg-n-alpha-black2 px-2 py-1 text-white'
+    ? 'mt-1 ms-auto w-fit rounded-full bg-n-alpha-black2 px-2 py-1 text-n-slate-1 dark:text-n-slate-12'
     : MESSAGE_META_SPACING,
   isSticker.value ? 'justify-end' : 'justify-end text-n-slate-11',
 ]);
