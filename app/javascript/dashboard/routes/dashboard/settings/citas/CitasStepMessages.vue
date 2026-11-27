@@ -191,7 +191,7 @@ const rows = computed(() =>
     result: props.templateData?.results?.[template.key] || {},
     state: templateState.value.functions.find(
       item => item.key === template.key
-    ),
+    ) || { aggregate: 'unsent', perWaba: [], counts: {} },
   }))
 );
 async function loadKit() {
