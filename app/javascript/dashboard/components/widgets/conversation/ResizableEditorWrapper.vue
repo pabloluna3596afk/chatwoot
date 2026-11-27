@@ -62,6 +62,12 @@ const appliedHeight = computed(() => {
   return clampToBounds(Math.max(requested, editorHeight.value));
 });
 
+// On phones the grab bar only shows once the editor is expanded, so it does not
+// intercept touches while scrolling the conversation.
+const showGrabBarOnMobile = computed(
+  () => isResizing.value || appliedHeight.value > sizeBounds.value.default
+);
+
 // Measure height of elements surrounding the editor (top panel, email fields, bottom panel)
 const measureSurroundingHeight = () => {
   if (wrapperRef.value) {
@@ -183,6 +189,8 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
   >
     <div
       class="group absolute inset-x-0 -top-4 z-10 flex h-4 cursor-row-resize select-none items-center justify-center"
+      :class="{ 'max-md:hidden': !showGrabBarOnMobile }"
+      data-resize-handle
       @mousedown="onResizeStart"
       @touchstart.prevent="onResizeStart"
       @dblclick="resetEditorHeight"

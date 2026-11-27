@@ -15,4 +15,24 @@ describe('ResizableEditorWrapper', () => {
     expect(wrapper.emitted('collapse')).toHaveLength(1);
     wrapper.unmount();
   });
+
+  it('hides the grab bar on phones until the editor is expanded', async () => {
+    const wrapper = mount(ResizableEditorWrapper, {
+      props: { containerHeight: 600 },
+      attachTo: document.body,
+      slots: { default: '<div>Reply editor</div>' },
+    });
+
+    const handle = () => wrapper.get('[data-resize-handle]');
+    expect(handle().classes()).toContain('max-md:hidden');
+
+    wrapper.vm.toggleEditorExpand();
+    await wrapper.vm.$nextTick();
+    expect(handle().classes()).not.toContain('max-md:hidden');
+
+    wrapper.vm.toggleEditorExpand();
+    await wrapper.vm.$nextTick();
+    expect(handle().classes()).toContain('max-md:hidden');
+    wrapper.unmount();
+  });
 });
