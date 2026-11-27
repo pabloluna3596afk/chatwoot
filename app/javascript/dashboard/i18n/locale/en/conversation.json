@@ -446,6 +446,7 @@
     "MESSAGE_ERROR": "Unable to send this message, please try again later",
     "SENT_BY": "Sent by:",
     "BOT": "Connector",
+    "SYSTEM": "System",
     "NATIVE_APP": "Native app",
     "NATIVE_APP_ADVISORY": "This message was sent from the native app. Reply from ChatHub to maintain the message window.",
     "SEND_FAILED": "Couldn't send message! Try again",

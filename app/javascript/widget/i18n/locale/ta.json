@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "See new messages",
     "CLOSE_MESSAGES_BUTTON": "மூடு",
     "COMPANY_FROM": "from",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "Chat with us"

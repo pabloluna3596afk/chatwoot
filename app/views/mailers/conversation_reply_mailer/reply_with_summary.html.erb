@@ -5,7 +5,7 @@
 <% @messages.each do |message| %>
   <tr>
     <td>
-      <b><%= message.incoming? ? 'You' : message.sender&.available_name || message.sender&.name || 'Assistant' %></b>
+      <b><%= message.incoming? ? 'You' : message.sender&.available_name || message.sender&.name || t('conversations.system_author') %></b>
     </td>
   </tr>
   <tr>

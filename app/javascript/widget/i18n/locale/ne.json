@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "नयाँ सन्देशहरू हेर्नुहोस्",
     "CLOSE_MESSAGES_BUTTON": "बन्दा गार्नुहोस्",
     "COMPANY_FROM": "from",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "हामीसँग कुराकानी गर्नुहोस्"

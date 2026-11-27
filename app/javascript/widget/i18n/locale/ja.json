@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "新しいメッセージを見る",
     "CLOSE_MESSAGES_BUTTON": "閉じる",
     "COMPANY_FROM": "送信元",
-    "BOT": "ボット"
+    "BOT": "ボット",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "チャットをする"

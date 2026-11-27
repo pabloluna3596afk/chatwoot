@@ -1,5 +1,8 @@
 import { ref } from 'vue';
 import { shallowMount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
+import en from 'dashboard/i18n/locale/en/conversation.json';
+import es from 'dashboard/i18n/locale/es/conversation.json';
 import Message from '../Message.vue';
 
 vi.mock('vue-router', () => ({
@@ -64,6 +67,57 @@ describe('grouped message spacing', () => {
       expect(wrapper.findComponent({ name: 'Avatar' }).exists()).toBe(
         overrides.messageType !== 0
       );
+      wrapper.unmount();
+    }
+  );
+});
+
+describe('message sender identity', () => {
+  it.each([
+    ['en', null, {}, 'System'],
+    ['es', null, {}, 'Sistema'],
+    [
+      'en',
+      { type: 'agent_bot', name: 'Sales connector' },
+      {},
+      'Sales connector',
+    ],
+    [
+      'es',
+      { type: 'agent_bot', name: 'Conector de ventas' },
+      {},
+      'Conector de ventas',
+    ],
+    ['en', { type: 'User', name: 'Alice' }, {}, 'Alice'],
+    ['en', null, { senderName: 'Slack user' }, 'Slack user'],
+  ])(
+    'renders %s sender as %s',
+    (locale, sender, additionalAttributes, expected) => {
+      const wrapper = shallowMount(Message, {
+        props: {
+          id: 1,
+          conversationId: 2,
+          currentUserId: 3,
+          createdAt: 1795125601,
+          messageType: 1,
+          status: 'sent',
+          content: 'Hello',
+          sender,
+          additionalAttributes,
+        },
+        global: {
+          plugins: [
+            createI18n({ legacy: false, locale, messages: { en, es } }),
+          ],
+          stubs: {
+            Avatar: {
+              props: ['name'],
+              template: '<span class="sender-name">{{ name }}</span>',
+            },
+          },
+        },
+      });
+      expect(wrapper.get('.sender-name').text()).toBe(expected);
       wrapper.unmount();
     }
   );

@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Näytä uudet viestit",
     "CLOSE_MESSAGES_BUTTON": "Sulje",
     "COMPANY_FROM": "lähettäjä",
-    "BOT": "Botti"
+    "BOT": "Botti",
+    "SYSTEM": "Järjestelmä"
   },
   "BUBBLE": {
     "LABEL": "Keskustele kanssamme"

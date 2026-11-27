@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Shiko mesazhet e reja",
     "CLOSE_MESSAGES_BUTTON": "Mbylle",
     "COMPANY_FROM": "form",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Sistemi"
   },
   "BUBBLE": {
     "LABEL": "Chat with us"

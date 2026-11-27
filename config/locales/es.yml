@@ -328,6 +328,7 @@ es:
     attachment: 'Adjunto'
     no_content: 'Sin contenido'
   conversations:
+    system_author: 'Sistema'
     captain:
       handoff: 'Te comunico con una persona del equipo para seguir ayudándote.'
     messages:

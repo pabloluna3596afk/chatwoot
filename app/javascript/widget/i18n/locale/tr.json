@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Yeni mesajları gör",
     "CLOSE_MESSAGES_BUTTON": "Kapat",
     "COMPANY_FROM": "dan",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Sistem"
   },
   "BUBBLE": {
     "LABEL": "Sohbet et"

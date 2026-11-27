@@ -76,11 +76,7 @@ export default {
         return this.message.additional_attributes.sender_name;
       }
 
-      if (this.useInboxAvatarForBot) {
-        return this.channelConfig.websiteName;
-      }
-
-      return this.$t('UNREAD_VIEW.BOT');
+      return this.$t('UNREAD_VIEW.SYSTEM');
     },
     avatarUrl() {
       const displayImage = this.useInboxAvatarForBot

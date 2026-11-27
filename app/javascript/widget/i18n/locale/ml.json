@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "പുതിയ സന്ദേശങ്ങൾ കാണുക",
     "CLOSE_MESSAGES_BUTTON": "അടയ്ക്കുക",
     "COMPANY_FROM": "നിന്ന്",
-    "BOT": "ബോട്ട്"
+    "BOT": "ബോട്ട്",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "ഞങ്ങളുമായി ചാറ്റുചെയ്യുക"

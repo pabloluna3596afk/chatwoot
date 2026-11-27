@@ -574,7 +574,7 @@ const avatarInfo = computed(() => {
     if (senderName) {
       return { name: senderName, src: senderAvatarUrl ?? '' };
     }
-    return { name: t('CONVERSATION.BOT'), src: '' };
+    return { name: t('CONVERSATION.SYSTEM'), src: '' };
   }
 
   const { sender } = props;

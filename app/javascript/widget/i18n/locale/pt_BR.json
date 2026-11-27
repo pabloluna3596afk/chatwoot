@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Ver novas mensagens",
     "CLOSE_MESSAGES_BUTTON": "Fechar",
     "COMPANY_FROM": "De",
-    "BOT": "Robôs"
+    "BOT": "Robôs",
+    "SYSTEM": "Sistema"
   },
   "BUBBLE": {
     "LABEL": "Fale conosco no chat"

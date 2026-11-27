@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Žiūrėti naujus pranešimus",
     "CLOSE_MESSAGES_BUTTON": "Uždaryti",
     "COMPANY_FROM": "nuo",
-    "BOT": "Botas"
+    "BOT": "Botas",
+    "SYSTEM": "Sistema"
   },
   "BUBBLE": {
     "LABEL": "Pabendraukite su mumis"

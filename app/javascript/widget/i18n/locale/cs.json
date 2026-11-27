@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Zobrazit nové zprávy",
     "CLOSE_MESSAGES_BUTTON": "Zavřít",
     "COMPANY_FROM": "od",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Systém"
   },
   "BUBBLE": {
     "LABEL": "Napiště nám"

@@ -23,7 +23,7 @@ const props = defineProps({
 const { t } = useI18n();
 
 const senderName = computed(
-  () => props.sender?.name || t('CAMPAIGN.LIVE_CHAT.CARD.CAMPAIGN_DETAILS.BOT')
+  () => props.sender?.name || t('CONVERSATION.SYSTEM')
 );
 
 const senderThumbnailSrc = computed(() => props.sender?.thumbnail);

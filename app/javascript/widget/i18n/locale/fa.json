@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "مشاهده پیام‌های جدید",
     "CLOSE_MESSAGES_BUTTON": "بستن",
     "COMPANY_FROM": "از",
-    "BOT": "ربات"
+    "BOT": "ربات",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "با ما گفتگو کنید"

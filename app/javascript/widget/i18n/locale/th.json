@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "ดูข้อความใหม่",
     "CLOSE_MESSAGES_BUTTON": "ปิด",
     "COMPANY_FROM": "จาก",
-    "BOT": "บอท"
+    "BOT": "บอท",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "คุยกับเรา"

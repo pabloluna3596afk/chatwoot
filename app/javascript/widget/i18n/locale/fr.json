@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Voir les nouveaux messages",
     "CLOSE_MESSAGES_BUTTON": "Fermer",
     "COMPANY_FROM": "de",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Système"
   },
   "BUBBLE": {
     "LABEL": "Discutez avec nous"

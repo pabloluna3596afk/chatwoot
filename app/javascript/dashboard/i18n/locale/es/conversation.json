@@ -378,6 +378,7 @@
     "MESSAGE_ERROR": "No se puede enviar este mensaje, por favor inténtalo de nuevo más tarde",
     "SENT_BY": "Enviado por:",
     "BOT": "Conector",
+    "SYSTEM": "Sistema",
     "NATIVE_APP": "App nativa",
     "NATIVE_APP_ADVISORY": "Este mensaje se envió desde la aplicación nativa. Responde desde ChatHub para mantener la ventana de mensajes.",
     "SEND_FAILED": "¡No se pudo enviar el mensaje! Inténtalo de nuevo",

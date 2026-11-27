@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Вижте новите съобщения",
     "CLOSE_MESSAGES_BUTTON": "Затвори",
     "COMPANY_FROM": "от",
-    "BOT": "Бот"
+    "BOT": "Бот",
+    "SYSTEM": "Система"
   },
   "BUBBLE": {
     "LABEL": "Чатете с нас"

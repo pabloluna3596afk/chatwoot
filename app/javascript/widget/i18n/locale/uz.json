@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Yangi xabarlarni ko'rish",
     "CLOSE_MESSAGES_BUTTON": "Yopish",
     "COMPANY_FROM": "tomonidan",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Tizim"
   },
   "BUBBLE": {
     "LABEL": "Biz bilan suhbatlashing"

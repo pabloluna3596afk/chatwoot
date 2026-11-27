@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Se nye meldinger",
     "CLOSE_MESSAGES_BUTTON": "Lukk",
     "COMPANY_FROM": "fra",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "Chat med oss"

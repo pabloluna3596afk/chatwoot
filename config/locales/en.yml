@@ -384,6 +384,7 @@ en:
       state_failed: 'failed'
       state_cancelled: 'cancelled'
   conversations:
+    system_author: 'System'
     captain:
       handoff: 'Transferring to another agent for further assistance.'
     messages:
