@@ -49,9 +49,10 @@ describe('composer reply quote', () => {
       options({ id: 1, sender: { name: 'Ana' }, content: '**Thank you**' })
     );
     expect(wrapper.classes()).not.toContain('w-full');
-    expect(wrapper.classes()).toContain('m-2');
-    expect(wrapper.classes()).toContain('rounded-lg');
-    expect(wrapper.classes()).toContain('bg-n-alpha-black1');
+    expect(wrapper.classes()).toContain('rounded-t-2xl');
+    expect(wrapper.classes()).toContain('rounded-b-none');
+    expect(wrapper.classes()).toContain('bg-n-alpha-1');
+    expect(wrapper.classes()).not.toContain('m-2');
     expect(
       wrapper
         .get(

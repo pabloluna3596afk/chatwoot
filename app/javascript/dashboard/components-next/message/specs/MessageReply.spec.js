@@ -66,6 +66,16 @@ describe('message reply shortcuts', () => {
     }
   );
 
+  it('keeps the highlight surface corners matching the bubble tail', async () => {
+    const wrapper = render();
+    const surface = wrapper.get('[data-reply-surface]');
+    expect(surface.classes()).toContain('rounded-es-none');
+    await wrapper.setProps({ messageType: 1, sender: { id: 3, type: 'User' } });
+    expect(surface.classes()).toContain('rounded-ee-none');
+    expect(surface.classes()).not.toContain('rounded-es-none');
+    wrapper.unmount();
+  });
+
   it('uses the existing reply handler for click and clears double-click word selection', async () => {
     const emit = vi.spyOn(emitter, 'emit');
     const wrapper = render();

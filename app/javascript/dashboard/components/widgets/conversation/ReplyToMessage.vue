@@ -19,7 +19,7 @@ const emit = defineEmits(['dismiss']);
 
 <template>
   <div
-    class="reply-editor m-2 mb-0 flex min-w-0 items-center overflow-hidden rounded-lg bg-n-alpha-black1 pe-1"
+    class="reply-editor flex min-w-0 items-center overflow-hidden rounded-t-2xl rounded-b-none bg-n-alpha-1 pe-2"
   >
     <ReplyPreview
       :message="message"

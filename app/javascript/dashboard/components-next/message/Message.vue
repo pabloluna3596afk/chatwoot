@@ -702,6 +702,10 @@ provideMessageContext({
             class="relative flex min-w-0 max-w-full rounded-[0.875rem] transition-[box-shadow,transform] motion-reduce:transition-none"
             :class="[
               swipeClass,
+              {
+                'rounded-es-none': orientation === ORIENTATION.LEFT,
+                'rounded-ee-none': orientation === ORIENTATION.RIGHT,
+              },
               showReplyTargetFlash
                 ? [
                     'after:absolute after:inset-0 after:pointer-events-none after:rounded-[inherit] after:bg-n-teal-9/10 after:ring-2 after:ring-n-teal-9/50 after:transition-opacity motion-reduce:after:transition-none',
