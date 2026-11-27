@@ -29,12 +29,17 @@ const onClose = () => {
 </script>
 
 <template>
-  <woot-modal v-model:show="localShow" :on-close="onClose" size="modal-big">
+  <woot-modal
+    v-model:show="localShow"
+    :on-close="onClose"
+    size="modal-big"
+    class="!h-[var(--app-height,100dvh)] !top-[var(--app-offset-top,0px)] p-2 [&>.modal-container]:flex [&>.modal-container]:flex-col [&>.modal-container>button]:min-h-11 [&>.modal-container>button]:min-w-11"
+  >
     <woot-modal-header
       :header-title="t('CANNED_MGMT.PICKER.TITLE')"
       :header-content="t('CANNED_MGMT.PICKER.SUBTITLE')"
     />
-    <div class="px-8 py-6 row modal-content">
+    <div class="flex min-h-0 max-h-[60dvh] px-4 py-4 sm:px-8 sm:py-6">
       <CannedResponsesPicker @on-select="onSelect" />
     </div>
   </woot-modal>
