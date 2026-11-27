@@ -101,7 +101,7 @@ describe('reply attachment preview', () => {
     const wrapper = mount(ReplyPreview, options());
     const excerpt = wrapper.get('[class*="line-clamp-1"][class*="leading-4"]');
     expect(excerpt.text()).toBe('First paragraph Second paragraph one two');
-    expect(excerpt.classes()).not.toContain('sm:line-clamp-2');
+    expect(excerpt.classes()).toContain('sm:line-clamp-2');
     expect(excerpt.element.parentElement.classList).toContain('flex-1');
     expect(wrapper.get('button').classes()).toContain('box-border');
     expect(wrapper.findAll('p, ul, li, br')).toHaveLength(0);
@@ -141,8 +141,8 @@ describe('reply attachment preview', () => {
   it.each([
     [
       { messageType: 0, sender: { name: 'Ana' } },
-      'text-n-iris-11',
-      'bg-n-iris-9/70',
+      'text-n-blue-11',
+      'bg-n-blue-9/70',
     ],
     [
       { messageType: 1, senderId: 7, sender: { name: 'Agent' } },

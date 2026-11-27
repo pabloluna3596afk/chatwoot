@@ -37,7 +37,7 @@ describe('composer reply quote', () => {
     expect(quote.classes()).toContain('bg-transparent');
     expect(quote.classes()).toContain('rounded-none');
     expect(quote.element.firstElementChild.classList).toContain(
-      'bg-n-iris-9/70'
+      'bg-n-blue-9/70'
     );
     expect(quote.findAll('.line-clamp-1').at(-1).text()).toBe('Thank you');
     expect(quote.text()).toContain('Ana');
@@ -55,7 +55,7 @@ describe('composer reply quote', () => {
     expect(wrapper.get('.line-clamp-1').classes()).toContain('break-all');
     const excerpt = wrapper.findAll('.line-clamp-1').at(-1);
     expect(excerpt.classes()).toContain('line-clamp-1');
-    expect(excerpt.classes()).not.toContain('sm:line-clamp-2');
+    expect(excerpt.classes()).toContain('sm:line-clamp-2');
     expect(wrapper.getComponent({ name: 'ReplyPreview' }).classes()).toContain(
       'flex-1'
     );

@@ -95,7 +95,7 @@ const author = computed(() => {
 const tone = computed(() => {
   if (isPrivate.value) return 'amber';
   if (isAgentMessage.value) return 'teal';
-  return 'iris';
+  return 'blue';
 });
 const excerpt = computed(() => {
   if (isExpired.value || (hasThumbnail.value && hasError.value)) {
@@ -135,12 +135,12 @@ const isLoading = computed(
   () => Number(activeJumpMessageId.value) === Number(message.value?.id)
 );
 const barToneClasses = computed(() => ({
-  'bg-n-iris-9/70': tone.value === 'iris',
+  'bg-n-blue-9/70': tone.value === 'blue',
   'bg-n-teal-9/70': tone.value === 'teal',
   'bg-n-amber-9/70': tone.value === 'amber',
 }));
 const authorToneClasses = computed(() => ({
-  'text-n-iris-11': tone.value === 'iris',
+  'text-n-blue-11': tone.value === 'blue',
   'text-n-teal-11': tone.value === 'teal',
   'text-n-amber-11': tone.value === 'amber',
 }));
@@ -152,7 +152,7 @@ const scrollToMessage = () => {
     conversationId: message.value.conversationId,
   });
 };
-const replyExcerptClass = 'line-clamp-1 sm:line-clamp-3';
+const replyExcerptClass = 'line-clamp-1 sm:line-clamp-2';
 const containerClass = computed(() =>
   props.composer
     ? 'rounded-none bg-transparent flex-1'
@@ -163,7 +163,7 @@ const containerClass = computed(() =>
 <template>
   <button
     type="button"
-    class="box-border flex w-full min-w-0 items-stretch overflow-hidden text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand focus-visible:outline-offset-1"
+    class="box-border flex w-full min-w-0 items-stretch overflow-hidden p-0 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand focus-visible:outline-offset-1"
     :class="[
       containerClass,
       composer ? 'flex-1' : 'mb-1.5',
