@@ -139,7 +139,7 @@ it.each([MacroList, CannedResponse, CannedResponsesPicker])(
     const use = root
       .findAll('button')
       .find(button => button.text() === 'CONVERSATION.PICKER.USE');
-    expect(use.classes()).toContain('min-h-11');
+    expect(use.classes()).toContain('h-8');
     await use.trigger('click');
     expect(wrapper.emitted(eventName)).toHaveLength(1);
     const result = wrapper.emitted(eventName)[0][0];

@@ -236,7 +236,8 @@ defineExpose({ scrollSelectedIntoView });
         <Button
           v-if="touchPreview && isTouch && selectedItem"
           intent="primary"
-          class="min-h-11 min-w-11 shrink-0"
+          size="sm"
+          class="shrink-0"
           :label="t('CONVERSATION.PICKER.USE')"
           @pointerdown.prevent
           @mousedown.prevent

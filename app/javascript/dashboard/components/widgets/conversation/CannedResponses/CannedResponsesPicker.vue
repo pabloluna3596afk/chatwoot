@@ -206,7 +206,8 @@ const previewContent = content => {
         <Button
           v-if="isTouch"
           intent="primary"
-          class="min-h-11 min-w-11 shrink-0 self-end"
+          size="sm"
+          class="shrink-0 self-end"
           :label="t('CONVERSATION.PICKER.USE')"
           @pointerdown.prevent
           @mousedown.prevent
