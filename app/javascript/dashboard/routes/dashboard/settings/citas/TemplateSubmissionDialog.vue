@@ -76,16 +76,22 @@ const worstState = account =>
     Object.values(account.templates || {}).some(item => item.state === state)
   ) || 'unsent';
 const options = computed(() =>
-  props.accounts.map(account => {
-    const approved = Object.values(account.templates || {}).filter(
-      item => item.state === 'approved'
-    ).length;
-    return {
-      value: account.waba_id,
-      label: `${account.name || account.number || account.waba_id} · ${t('CITAS_SCREEN.SUBMIT.OPTION', { number: account.number || '', n: approved })} · ● ${stateLabel({ state: worstState(account) })}`,
-    };
-  })
+  props.accounts.map(account => ({
+    value: account.waba_id,
+    label: account.name || account.number || account.waba_id,
+  }))
 );
+const accountSummary = computed(() => {
+  const account = currentAccount.value;
+  if (!account) return null;
+  const approved = Object.values(account.templates || {}).filter(
+    item => item.state === 'approved'
+  ).length;
+  return {
+    state: worstState(account),
+    text: `${stateLabel({ state: worstState(account) })} · ${t('CITAS_SCREEN.SUBMIT.OPTION', { number: account.number || '', n: approved })}`,
+  };
+});
 const setAccount = wabaId => {
   selectedWaba.value = String(wabaId || '');
   selectedTemplates.value = pendingTemplates.value.map(
@@ -173,6 +179,17 @@ defineExpose({
           :aria-label="$t('CITAS_SCREEN.SUBMIT.ACCOUNT')"
           @update:model-value="setAccount"
         />
+        <span
+          v-if="accountSummary"
+          class="flex items-center gap-2 text-sm text-n-slate-11"
+        >
+          <span
+            class="size-2 shrink-0 rounded-full"
+            :class="stateColor(accountSummary.state)"
+            aria-hidden="true"
+          />
+          {{ accountSummary.text }}
+        </span>
       </div>
       <p class="m-0 text-body-main text-n-slate-11">
         {{ $t('CITAS_SCREEN.SUBMIT.TEMPLATES') }}
@@ -197,9 +214,13 @@ defineExpose({
                   : selectedTemplates.filter(key => key !== template.key))
             "
           />
-          <span class="min-w-0 flex-1 text-body-main text-n-slate-12">
+          <span
+            class="flex min-w-0 flex-1 items-center justify-between gap-3 text-body-main text-n-slate-12"
+          >
             {{ template.title }}
-            <span class="flex items-center gap-2 text-sm text-n-slate-11">
+            <span
+              class="flex min-w-0 items-center gap-2 text-sm text-n-slate-11"
+            >
               <span
                 class="size-2 shrink-0 rounded-full"
                 :class="
