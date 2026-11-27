@@ -1,13 +1,12 @@
 <script setup>
 // The text of the invitation of an appointment, written once for the account (Settings > Integrations > Calendars): what
 // the customer reads in the Google Calendar event, for the appointments of the agents and of Captain alike.
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
-import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import {
   INVITATION_TOKENS,
@@ -16,7 +15,7 @@ import {
   unknownTokens,
 } from 'dashboard/helper/invitationText';
 
-const emit = defineEmits(['dirty']);
+const emit = defineEmits(['dirty', 'state']);
 
 const { t, locale } = useI18n();
 
@@ -28,7 +27,6 @@ const maxLength = ref(4000);
 const isLoading = ref(true);
 const loadFailed = ref(false);
 const isSaving = ref(false);
-const showMenu = ref(false);
 const textBox = ref(null);
 
 const preview = computed(() =>
@@ -47,6 +45,9 @@ const dirty = computed(
     location.value !== saved.value.location
 );
 watch(dirty, value => emit('dirty', value));
+watch([template, defaultTemplate], () =>
+  emit('state', { usingDefault: usingDefault.value })
+);
 const canSave = computed(
   () =>
     dirty.value &&
@@ -55,14 +56,34 @@ const canSave = computed(
     !isLoading.value &&
     !loadFailed.value
 );
-
-const menuItems = computed(() =>
-  INVITATION_TOKENS.map(token => ({
-    label: `${t(`CALENDAR_INVITATION.VARIABLES.${token}`)} (${token})`,
-    action: 'insert',
-    value: token,
-  }))
-);
+const tokenLabel = token => {
+  switch (token) {
+    case 'nombre':
+      return t('CALENDAR_INVITATION.VARIABLES.nombre');
+    case 'primer_nombre':
+      return t('CALENDAR_INVITATION.VARIABLES.primer_nombre');
+    case 'telefono':
+      return t('CALENDAR_INVITATION.VARIABLES.telefono');
+    case 'correo':
+      return t('CALENDAR_INVITATION.VARIABLES.correo');
+    case 'agente':
+      return t('CALENDAR_INVITATION.VARIABLES.agente');
+    case 'empresa':
+      return t('CALENDAR_INVITATION.VARIABLES.empresa');
+    case 'fecha':
+      return t('CALENDAR_INVITATION.VARIABLES.fecha');
+    case 'hora':
+      return t('CALENDAR_INVITATION.VARIABLES.hora');
+    case 'motivo':
+      return t('CALENDAR_INVITATION.VARIABLES.motivo');
+    case 'direccion':
+      return t('CALENDAR_INVITATION.VARIABLES.direccion');
+    case 'enlace_meet':
+      return t('CALENDAR_INVITATION.VARIABLES.enlace_meet');
+    default:
+      return t('CALENDAR_INVITATION.VARIABLES.conversacion');
+  }
+};
 
 const apply = data => {
   defaultTemplate.value = data.default_template || '';
@@ -70,6 +91,7 @@ const apply = data => {
   location.value = data.location || '';
   maxLength.value = data.max_length || 4000;
   saved.value = { template: template.value, location: location.value };
+  emit('state', { usingDefault: usingDefault.value });
 };
 
 const load = async () => {
@@ -88,13 +110,15 @@ const load = async () => {
 onMounted(load);
 
 // Puts {{variable}} where the cursor is (at the end when the text was never focused).
-const insertVariable = token => {
+const insertVariable = async token => {
   const field = textBox.value?.querySelector('textarea');
   const text = template.value;
   const start = field?.selectionStart ?? text.length;
   const end = field?.selectionEnd ?? text.length;
   template.value = `${text.slice(0, start)}{{${token}}}${text.slice(end)}`;
-  showMenu.value = false;
+  await nextTick();
+  field?.focus();
+  field?.setSelectionRange(start + token.length + 4, start + token.length + 4);
 };
 
 const restore = () => {
@@ -122,16 +146,10 @@ const save = async () => {
 </script>
 
 <template>
-  <section
-    class="flex flex-col gap-4 p-4 border rounded-xl border-n-weak"
-    data-testid="invitation-settings"
-  >
+  <section class="flex flex-col gap-4" data-testid="invitation-settings">
     <div>
-      <h3 class="text-heading-1 text-n-slate-12">
-        {{ $t('CALENDAR_INVITATION.TITLE') }}
-      </h3>
-      <p class="mt-1 text-body-main text-n-slate-11">
-        {{ $t('CALENDAR_INVITATION.DESCRIPTION') }}
+      <p class="m-0 text-body-main text-n-slate-11">
+        {{ $t('CITAS_SCREEN.INSERT_HINT') }}
       </p>
     </div>
 
@@ -168,28 +186,17 @@ const save = async () => {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <MenuPopover
-            v-model:open="showMenu"
-            :menu-items="menuItems"
-            show-search
-            :search-placeholder="$t('CALENDAR_INVITATION.SEARCH_VARIABLE')"
-            panel-class="w-72 max-w-[calc(100vw-2rem)]"
-            :restore-focus-on-select="false"
-            align="start"
-            @action="item => insertVariable(item.value)"
-          >
-            <template #trigger>
-              <Button
-                type="button"
-                slate
-                xs
-                icon="i-lucide-braces"
-                :label="$t('CALENDAR_INVITATION.INSERT_VARIABLE')"
-                data-testid="invitation-variables"
-                @click="showMenu = !showMenu"
-              />
-            </template>
-          </MenuPopover>
+          <Button
+            v-for="token in INVITATION_TOKENS"
+            :key="token"
+            type="button"
+            intent="secondary"
+            size="sm"
+            :label="tokenLabel(token)"
+            :disabled="isLoading"
+            :data-testid="`invitation-token-${token}`"
+            @click="insertVariable(token)"
+          />
           <Button
             type="button"
             ghost
@@ -225,7 +232,7 @@ const save = async () => {
           {{ $t('CALENDAR_INVITATION.PREVIEW') }}
         </span>
         <div
-          class="p-3 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12 break-words"
+          class="p-3 text-sm whitespace-pre-wrap rounded-lg font-sans bg-n-alpha-2 text-n-slate-12 break-words"
           data-testid="invitation-preview"
         >
           {{ preview }}
