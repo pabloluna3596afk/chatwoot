@@ -134,7 +134,7 @@ describe('composer reply quote', () => {
           'button[aria-label="' + en.CONVERSATION.REPLYBOX.DISMISS_REPLY + '"]'
         )
         .classes()
-    ).toContain('!size-6');
+    ).toContain('size-6');
     const quote = wrapper.getComponent({ name: 'ReplyPreview' });
     expect(quote.props('composer')).toBe(true);
     expect(quote.classes()).toContain('bg-transparent');
@@ -190,7 +190,7 @@ describe('composer reply quote', () => {
           (locale === 'en' ? en : es).CONVERSATION.REPLYBOX.DISMISS_REPLY +
           '"]'
       );
-      expect(cancel.classes()).toContain('!size-6');
+      expect(cancel.classes()).toContain('size-6');
       await cancel.trigger('click');
       expect(wrapper.emitted('dismiss')).toHaveLength(1);
     }
