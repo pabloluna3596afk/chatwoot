@@ -91,7 +91,7 @@ class Calendar::TemplateDrafts::DestinationStatus
   end
 
   def submission_state(submission)
-    return %w[incompatible explicit_link_required] if submission.remote_status == 'APPROVED'
+    return approved_submission_state(submission) if submission.remote_status == 'APPROVED'
     return ['incompatible', submission.remote_status.downcase] if terminal_remote_status?(submission)
     return %w[not_submitted submission_failed] if failed_submission?(submission)
 
@@ -123,5 +123,15 @@ class Calendar::TemplateDrafts::DestinationStatus
     @destination_draft ||= @account.whatsapp_template_drafts.active.find_by(
       name: Calendar::TemplateDefinitions::FUNCTIONS.fetch(@function), language: @language, waba_id: waba_id
     ) || draft
+  end
+
+  def approved_submission_state(submission)
+    template = Array(@channel.message_templates).find do |item|
+      item['id'] == submission.remote_id && item['name'] == submission.name && item['language'] == submission.language
+    end
+    reason = Calendar::TemplateContract.new(function: @function, language: @language, template: template).incompatibility
+    return ['incompatible', reason] if reason
+
+    %w[usable nil]
   end
 end

@@ -25,6 +25,32 @@ RSpec.describe Whatsapp::TemplateWabaSyncService do
     expect(second.reload.message_templates).to eq([])
   end
 
+  it 'automatically links a compatible approved Citas draft after updating the WABA mirror' do
+    account.update!(locale: 'es')
+    draft = create(:whatsapp_template_draft, account: account, preferred_channel: channel,
+                                             waba_id: channel.provider_config['business_account_id'])
+    definition = Calendar::TemplateDefinitions.definition('confirmation', 'es')
+    mirror = [{ 'id' => 'meta-confirmation', 'name' => draft.name, 'language' => 'es', 'status' => 'APPROVED',
+                'category' => 'UTILITY', 'parameter_format' => 'NAMED',
+                'components' => [{ 'type' => 'BODY', 'text' => definition[:body] },
+                                 { 'type' => 'BUTTONS', 'buttons' => definition[:buttons].map do |text|
+                                   { 'type' => 'QUICK_REPLY', 'text' => text }
+                                 end }] }]
+    resource = Calendar::TemplateResources.new(account: account, function: 'confirmation', language: 'es', channel: channel)
+                                          .prepare!(template_name: draft.name, draft: draft)
+    draft.submissions.create!(account: account, revision: 0, waba_id: draft.waba_id, name: draft.name, language: 'es',
+                              snapshot: { 'payload' => {} }, payload_digest: 'digest', status: 'submitted',
+                              remote_id: 'meta-confirmation', remote_status: 'APPROVED')
+    stub_request(:get, endpoint).with(query: hash_including('limit' => '100')).to_return(
+      status: 200, body: { data: mirror }.to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+
+    service.perform
+
+    expect(resource.reload).to have_attributes(status: 'linked', remote_template_id: 'meta-confirmation')
+    expect(Calendar::TemplateDrafts::Status.new(account: account).perform.dig('results', 'confirmation', 'aggregate_state')).to eq('usable')
+  end
+
   it 'does not replace any channel cache if a later page fails' do
     previous = channel.message_templates
     stub_request(:get, endpoint).with(query: hash_excluding('after')).to_return(

@@ -71,9 +71,26 @@ RSpec.describe Calendar::TemplateDrafts::Status do
     expect(service.perform['results']['confirmation']['destinations'].sole).to include('state' => 'incompatible', 'reason' => 'category')
   end
 
-  it 'uses the latest destination submission and never equates approval with an explicit custom link' do
+  it 'reports the worst destination state as the function aggregate' do
+    channel
+    other = create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false)
+    other.update!(provider_config: other.provider_config.merge('business_account_id' => 'other-waba'))
+    draft = create(:whatsapp_template_draft, account: account, name: 'cita_confirmacion', waba_id: 'other-waba')
+    draft.submissions.create!(account: account, revision: 0, waba_id: 'other-waba', name: draft.name, language: 'es',
+                              snapshot: { 'payload' => {} }, payload_digest: 'digest', status: 'failed')
+
+    expect(service.perform.dig('results', 'confirmation')).to include('aggregate_state' => 'submission_failed')
+  end
+
+  it 'reports a compatible approved draft as usable without an explicit link' do
     channel.update!(message_templates: [])
     draft = create(:whatsapp_template_draft, account: account, name: 'cita_confirmacion', waba_id: channel.provider_config['business_account_id'])
+    definition = Calendar::TemplateDefinitions.definition('confirmation', 'es')
+    template = { 'id' => 'meta-approved', 'name' => draft.name, 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+                 'parameter_format' => 'NAMED', 'components' => [
+                   { 'type' => 'BODY', 'text' => definition[:body] },
+                   { 'type' => 'BUTTONS', 'buttons' => definition[:buttons].map { |text| { 'type' => 'QUICK_REPLY', 'text' => text } } }
+                 ] }
     submission = draft.submissions.create!(account: account, revision: 0, waba_id: draft.waba_id, name: draft.name, language: 'es',
                                            snapshot: { 'name' => draft.name }, payload_digest: 'digest',
                                            status: 'submitted', remote_status: 'PENDING')
@@ -81,10 +98,25 @@ RSpec.describe Calendar::TemplateDrafts::Status do
       'state' => 'pending_approval', 'draft_id' => draft.id,
       'submission' => include('id' => submission.id, 'status' => 'submitted', 'remote_status' => 'PENDING')
     )
-    submission.update!(remote_status: 'APPROVED')
-    expect(service.perform['results']['confirmation']['destinations'].sole).to include(
-      'state' => 'incompatible', 'reason' => 'explicit_link_required'
-    )
+    submission.update!(remote_status: 'APPROVED', remote_id: 'meta-approved')
+    channel.update!(message_templates: [template])
+    expect(service.perform['results']['confirmation']['destinations'].sole).to include('state' => 'usable', 'reason' => nil)
+  end
+
+  it 'keeps an approved submission incompatible when its category changes' do
+    channel.update!(message_templates: [])
+    draft = create(:whatsapp_template_draft, account: account, name: 'cita_confirmacion', waba_id: channel.provider_config['business_account_id'])
+    definition = Calendar::TemplateDefinitions.definition('confirmation', 'es')
+    template = { 'id' => 'meta-approved', 'name' => draft.name, 'language' => 'es', 'status' => 'APPROVED', 'category' => 'MARKETING',
+                 'parameter_format' => 'NAMED', 'components' => [
+                   { 'type' => 'BODY', 'text' => definition[:body] },
+                   { 'type' => 'BUTTONS', 'buttons' => definition[:buttons].map { |text| { 'type' => 'QUICK_REPLY', 'text' => text } } }
+                 ] }
+    draft.submissions.create!(account: account, revision: 0, waba_id: draft.waba_id, name: draft.name, language: 'es',
+                              snapshot: { 'name' => draft.name }, payload_digest: 'digest', status: 'submitted',
+                              remote_id: 'meta-approved', remote_status: 'APPROVED')
+    channel.update!(message_templates: [template])
+    expect(service.perform['results']['confirmation']['destinations'].sole).to include('state' => 'incompatible', 'reason' => 'category')
   end
 
   it 'revalidates linked versions through the real resolver and blocks legacy fallback after a version change' do
