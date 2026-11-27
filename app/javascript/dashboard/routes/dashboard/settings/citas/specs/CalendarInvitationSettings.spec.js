@@ -126,4 +126,15 @@ describe('CalendarInvitationSettings', () => {
       wrapper.get('[data-testid="invitation-save"]').attributes('disabled')
     ).toBeDefined();
   });
+
+  it('inserts a visible variable chip at the current cursor', async () => {
+    const wrapper = await mountSettings();
+    const field = textarea(wrapper);
+    field.element.setSelectionRange(5, 5);
+    await wrapper.get('[data-testid="invitation-token-hora"]').trigger('click');
+    expect(field.element.value).toBe(
+      'Hola {{hora}}{{primer_nombre}}, te esperamos.\n\nLugar: {{direccion}}'
+    );
+    expect(field.element.selectionStart).toBe(13);
+  });
 });

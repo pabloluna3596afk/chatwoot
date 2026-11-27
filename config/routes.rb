@@ -573,6 +573,7 @@ Rails.application.routes.draw do
                 patch :appointment_attributes, to: 'calendar_appointment_attributes#update'
                 get :template_drafts, to: 'calendar_template_drafts#show'
                 post :template_drafts, to: 'calendar_template_drafts#create'
+                post 'template_drafts/submit', to: 'calendar_template_drafts#submit'
                 post 'template_drafts/link', to: 'calendar_template_drafts#link'
                 get :activation_kit, to: 'calendar_activation_kits#show'
                 patch :activation_kit, to: 'calendar_activation_kits#update'

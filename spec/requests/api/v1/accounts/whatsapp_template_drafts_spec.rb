@@ -119,7 +119,7 @@ RSpec.describe 'WhatsApp template drafts API', type: :request do
     id = response.parsed_body['id']
     post "#{path}/#{draft.id}/submit", params: { lock_version: draft.lock_version }, headers: headers, as: :json
     expect(response.parsed_body['id']).to eq(id)
-    expect(Whatsapp::SubmitTemplateDraftJob).to have_been_enqueued.with(id).exactly(2).times
+    expect(Whatsapp::SubmitTemplateDraftJob).to have_been_enqueued.with(id).once
     post "#{path}/#{draft.id}/submissions/#{id}/reconcile", headers: headers, as: :json
     expect(response).to have_http_status(:accepted)
     expect(Whatsapp::SubmitTemplateDraftJob).to have_been_enqueued.with(id, refresh: true)

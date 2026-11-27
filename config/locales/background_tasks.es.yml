@@ -6,4 +6,14 @@ es:
       approved: Meta aprobó la plantilla
       rejected: Meta rechazó la plantilla
       failed: No se pudo enviar la plantilla a Meta
+      errors:
+        submission_failed: No se pudo enviar la plantilla a Meta.
+        draft_changed: El borrador cambió antes del envío. Revísalo e inténtalo de nuevo.
+        destination_unavailable: El destino de WhatsApp ya no está disponible.
+        source_unavailable: La plantilla preparada ya no está disponible.
+        invalid_name: El nombre de la plantilla no es válido.
+        invalid_language: El idioma de la plantilla no es válido.
+        invalid_category: La categoría de la plantilla no es válida.
+        archived: El borrador de la plantilla está archivado.
+        destination_required: La plantilla no tiene un destino de WhatsApp.
       link: Ver plantilla

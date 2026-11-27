@@ -62,6 +62,13 @@ class CalendarAPI extends ApiClient {
     );
   }
 
+  submitTemplateDrafts({ functions, waba_ids }) {
+    return axios.post(`${this.url}/template_drafts/submit`, {
+      functions,
+      waba_ids,
+    });
+  }
+
   linkTemplateDraft(payload) {
     return axios.post(`${this.url}/template_drafts/link`, payload);
   }

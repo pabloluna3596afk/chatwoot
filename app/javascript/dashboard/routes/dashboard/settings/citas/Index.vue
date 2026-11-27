@@ -11,18 +11,15 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useStore } from 'dashboard/composables/store';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
-import Button from 'dashboard/components-next/button/Button.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
-import VerticalTabs from 'dashboard/components-next/vertical-tabs/VerticalTabs.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
-import CalendarTemplates from './CalendarTemplates.vue';
-import CalendarInvitationSettings from './CalendarInvitationSettings.vue';
-import CalendarSummary from './CalendarSummary.vue';
-import CalendarResources from './CalendarResources.vue';
+import CitasStepCalendar from './CitasStepCalendar.vue';
+import CitasStepMessages from './CitasStepMessages.vue';
+import CitasStepInvitation from './CitasStepInvitation.vue';
+import CitasContactData from './CitasContactData.vue';
 import { useCitasPanel } from './useCitasPanel';
 
-const { accountId, accountScopedRoute, isCloudFeatureEnabled } = useAccount();
+const { accountId, isCloudFeatureEnabled } = useAccount();
 const { isAdmin } = useAdmin();
 const { t } = useI18n();
 const route = useRoute();
@@ -34,6 +31,8 @@ const {
   assistants,
   withoutCalendar,
   attributes,
+  templateState,
+  templateData,
   loading,
   errors,
   loadConnections,
@@ -41,6 +40,7 @@ const {
   loadCalendar,
   loadAssistants,
   loadAttributes,
+  loadTemplateState,
   calendarErrors,
   calendarLoading,
 } = useCitasPanel({
@@ -49,45 +49,64 @@ const {
   captainEnabled: () => isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN),
 });
 const connected = computed(() => connections.value.length > 0);
-const tabIds = ['resumen', 'calendarios', 'mensajes', 'invitacion'];
-const tabs = computed(() =>
-  tabIds.map(id => ({ id, label: t(`CITAS_PANEL.TABS.${id}`) }))
-);
-const activeTab = computed(() =>
-  tabIds.includes(route.query.tab) ? route.query.tab : 'resumen'
-);
-const visited = reactive({
-  resumen: activeTab.value === 'resumen',
-  calendarios: activeTab.value === 'calendarios',
-  invitacion: activeTab.value === 'invitacion',
-  mensajes: activeTab.value === 'mensajes',
-});
-const dirty = reactive({ invitacion: false });
+const expandedStep = ref('');
+const dirty = reactive({ invitation: false });
 const dirtyWarning = ref(false);
-const protectedTab = computed(() => dirty[activeTab.value]);
-const navigate = tab => {
-  if (tab === activeTab.value) return;
-  if (protectedTab.value) {
+const connectionsReady = ref(false);
+let resourcesRequested = false;
+
+const routeTab = computed(() => {
+  const tabs = {
+    calendarios: 'calendar',
+    mensajes: 'messages',
+    invitacion: 'invitation',
+  };
+  return tabs[route.query.tab] || '';
+});
+watch(
+  routeTab,
+  async tab => {
+    if (tab) expandedStep.value = tab;
+    if (route.query.tab !== undefined) {
+      const query = { ...route.query };
+      delete query.tab;
+      await router.replace({ query });
+    }
+  },
+  { immediate: true }
+);
+const toggleStep = step => {
+  if (dirty.invitation && expandedStep.value !== step) {
     dirtyWarning.value = true;
     return;
   }
-  router.push({ query: { ...route.query, tab } });
+  expandedStep.value = expandedStep.value === step ? '' : step;
+  dirtyWarning.value = false;
 };
-onBeforeRouteUpdate(to => {
-  if (to.query.tab !== route.query.tab && protectedTab.value) {
+onBeforeRouteLeave(() => {
+  if (dirty.invitation) {
     dirtyWarning.value = true;
     return false;
   }
-  if (tabIds.includes(to.query.tab)) visited[to.query.tab] = true;
-  dirtyWarning.value = false;
   return true;
 });
-onBeforeRouteLeave(() => {
-  if (Object.values(dirty).some(Boolean)) {
+onBeforeRouteUpdate((to, from) => {
+  if (dirty.invitation && to.fullPath !== from.fullPath) {
     dirtyWarning.value = true;
     return false;
   }
   return true;
+});
+const retryConnections = async () => {
+  await loadConnections();
+  connectionsReady.value = !errors.connections;
+};
+watch([connected, connectionsReady], ([isConnected, ready]) => {
+  if (isAdmin.value && isConnected && ready && !resourcesRequested) {
+    resourcesRequested = true;
+    loadCalendars();
+    loadAssistants();
+  }
 });
 const updateCalendar = calendar => {
   calendars.value = calendars.value.map(item =>
@@ -96,41 +115,14 @@ const updateCalendar = calendar => {
       : item
   );
 };
-const connectionsReady = ref(false);
-let resourcesRequested = false;
-watch(
-  [activeTab, connectionsReady],
-  ([tab, ready]) => {
-    if (!isAdmin.value) return;
-    visited[tab] = true;
-    if (
-      tab === 'resumen' &&
-      !attributes.value &&
-      !loading.attributes &&
-      !errors.attributes
-    ) {
-      loadAttributes();
-    }
-    if (
-      tab === 'calendarios' &&
-      ready &&
-      !errors.connections &&
-      !resourcesRequested
-    ) {
-      resourcesRequested = true;
-      loadCalendars();
-      loadAssistants();
-    }
-  },
-  { immediate: true }
-);
-const retryConnections = async () => {
-  await loadConnections();
-  connectionsReady.value = !errors.connections;
-};
-onMounted(() => {
-  if (isAdmin.value) retryConnections();
+onMounted(async () => {
+  if (!isAdmin.value) return;
+  await retryConnections();
+  loadAttributes();
+  loadTemplateState();
 });
+const refreshTemplates = () => loadTemplateState();
+const description = t('CITAS_SCREEN.DESCRIPTION');
 </script>
 
 <template>
@@ -138,14 +130,14 @@ onMounted(() => {
     <template #header>
       <BaseSettingsHeader
         :title="$t('SIDEBAR.CITAS')"
-        :description="$t('CITAS_SETTINGS.DESCRIPTION')"
+        :description="description"
       />
     </template>
     <template #body>
       <p v-if="!isAdmin" class="text-body-main text-n-slate-11">
         {{ $t('CALENDAR_TEMPLATES.ADMIN_ONLY') }}
       </p>
-      <div v-else class="flex w-full min-w-0 flex-col gap-4">
+      <div v-else class="w-full min-w-0 max-w-[58rem] pb-8">
         <p
           v-if="dirtyWarning"
           role="alert"
@@ -153,76 +145,48 @@ onMounted(() => {
         >
           {{ $t('CITAS_PANEL.UNSAVED') }}
         </p>
-        <VerticalTabs
-          :model-value="activeTab"
-          :tabs="tabs"
-          content-class="max-w-[45rem] pb-8"
-          @update:model-value="navigate"
-        >
-          <template #resumen>
-            <CalendarSummary
-              v-if="visited.resumen"
-              :connected="connected"
-              :attributes="attributes"
-              :loading="loading"
-              :errors="errors"
-              @navigate="navigate"
-              @retry-connections="retryConnections"
-              @retry-attributes="loadAttributes"
-            />
-          </template>
-          <template #calendarios>
-            <Spinner
-              v-if="
-                loading.calendars || loading.connections || loading.assistants
-              "
-            />
-            <div
-              v-if="errors.connections"
-              role="alert"
-              class="text-body-main text-n-ruby-11"
-            >
-              {{ $t('INTEGRATION_SETTINGS.CALENDARS.LOAD_ERROR') }}
-              <Button
-                intent="secondary"
-                :label="$t('CALENDAR_ACTIVATION_KIT.RELOAD')"
-                @click="retryConnections"
-              />
-            </div>
-            <CalendarResources
-              v-if="
-                visited.calendarios && connectionsReady && !loading.connections
-              "
-              :connections="connections"
-              :calendar-errors="calendarErrors"
-              :calendar-loading="calendarLoading"
-              :calendars-loading="loading.calendars"
-              :calendars="calendars"
-              :assistants="assistants"
-              :without-calendar="withoutCalendar"
-              :assistants-failed="errors.assistants"
-              :assistants-loading="loading.assistants"
-              @updated="updateCalendar"
-              @retry-calendar="loadCalendar"
-              @retry-assistants="loadAssistants"
-            />
-            <RouterLink
-              :to="accountScopedRoute('settings_integrations_calendars')"
-              class="mt-4 text-body-main text-n-blue-11 underline"
-            >
-              {{ $t('CITAS_SETTINGS.MANAGE_CONNECTION') }}
-            </RouterLink>
-          </template>
-          <template #mensajes>
-            <CalendarTemplates v-if="visited.mensajes" :connected="connected" />
-          </template>
-          <template #invitacion>
-            <CalendarInvitationSettings
-              v-if="visited.invitacion"
-              @dirty="dirty.invitacion = $event"
-            />
-          </template>
-        </VerticalTabs>
+        <CitasStepCalendar
+          :connections="connections"
+          :calendars="calendars"
+          :connected="connected"
+          :loading="loading"
+          :errors="errors"
+          :expanded="expandedStep === 'calendar'"
+          :calendar-errors="calendarErrors"
+          :calendar-loading="calendarLoading"
+          :assistants="assistants"
+          :without-calendar="withoutCalendar"
+          @toggle="toggleStep('calendar')"
+          @retry-connections="retryConnections"
+          @retry-calendar="loadCalendar"
+          @retry-assistants="loadAssistants"
+          @updated="updateCalendar"
+        />
+        <CitasStepMessages
+          :connected="connected"
+          :disabled="!connected"
+          :expanded="expandedStep === 'messages'"
+          :template-data="templateData"
+          :template-state="templateState"
+          :loading="loading.templates"
+          :error="errors.templates"
+          :refresh="refreshTemplates"
+          @toggle="toggleStep('messages')"
+        />
+        <CitasStepInvitation
+          :disabled="!connected"
+          :expanded="expandedStep === 'invitation'"
+          @toggle="toggleStep('invitation')"
+          @dirty="dirty.invitation = $event"
+        />
+        <CitasContactData
+          :attributes="attributes"
+          :loading="loading.attributes"
+          :error="errors.attributes"
+          :expanded="expandedStep === 'contact'"
+          @toggle="toggleStep('contact')"
+          @retry="loadAttributes"
+        />
       </div>
     </template>
   </SettingsLayout>

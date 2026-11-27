@@ -39,10 +39,10 @@ const assistantRoute = assistant =>
       )"
       :key="connection.id"
       :role="calendarErrors[connection.id] ? 'alert' : 'status'"
-      class="rounded-xl border border-n-weak p-4 text-body-main text-n-ruby-11"
+      class="py-2 text-body-main text-n-ruby-11"
     >
       <h3>{{ connectionDisplayName(connection, t) }}</h3>
-      <p>{{ $t('CITAS_PANEL.TABS.calendarios') }}</p>
+      <p>{{ $t('CITAS_SCREEN.STEP_CALENDAR') }}</p>
       <Spinner v-if="calendarLoading[connection.id]" />
       <p v-if="calendarErrors[connection.id]">
         {{ $t('CITAS_PANEL.SECTION_ERROR') }}
@@ -81,7 +81,7 @@ const assistantRoute = assistant =>
     <section
       v-for="calendar in calendars"
       :key="`${calendar.connection.id}:${calendar.id}`"
-      class="flex min-w-0 flex-col gap-4 rounded-xl border border-n-weak bg-n-card p-4"
+      class="flex min-w-0 flex-col gap-4 py-3"
     >
       <div class="min-w-0 break-words">
         <h3 class="text-heading-1 text-n-slate-12">
@@ -96,7 +96,11 @@ const assistantRoute = assistant =>
         <h4 class="text-body-main font-medium text-n-slate-12">
           {{ $t('CITAS_PANEL.BOOKINGS') }}
         </h4>
-        <Label :label="$t('CITAS_PANEL.OPEN')" color="teal" role="status" />
+        <Label
+          :label="$t('CITAS_SCREEN.CALENDAR_OPEN')"
+          color="teal"
+          role="status"
+        />
       </div>
       <p class="text-body-main text-n-slate-11">
         {{ $t('CITAS_PANEL.BOOKINGS_READ_ONLY') }}
@@ -137,7 +141,7 @@ const assistantRoute = assistant =>
         !assistantsLoading &&
         !calendarsLoading
       "
-      class="flex flex-col gap-3 rounded-xl border border-n-weak p-4"
+      class="flex flex-col gap-3 py-3"
     >
       <h3 class="text-heading-1 text-n-slate-12">
         {{ $t('CITAS_PANEL.WITHOUT_CALENDAR') }}
