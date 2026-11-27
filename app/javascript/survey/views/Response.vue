@@ -1,6 +1,7 @@
 <script>
 import { useAlert } from 'dashboard/composables';
 import Branding from 'shared/components/Branding.vue';
+import { useBranding } from 'shared/composables/useBranding';
 import Spinner from 'shared/components/Spinner.vue';
 import Rating from 'survey/components/Rating.vue';
 import Feedback from 'survey/components/Feedback.vue';
@@ -23,7 +24,8 @@ export default {
   },
   setup() {
     const { formatMessage } = useMessageFormatter();
-    return { formatMessage };
+    const { replaceInstallationName } = useBranding();
+    return { formatMessage, replaceInstallationName };
   },
   data() {
     return {
@@ -174,7 +176,12 @@ export default {
       class="flex flex-col w-full h-full bg-n-solid-1 rounded-lg border border-solid border-n-weak shadow-md lg:w-2/5 lg:h-auto"
     >
       <div class="w-full px-12 pt-12 pb-6 m-auto my-0">
-        <img v-if="logo" :src="logo" alt="Chatwoot logo" class="mb-6 logo" />
+        <img
+          v-if="logo"
+          :src="logo"
+          :alt="replaceInstallationName('Chatwoot')"
+          class="mb-6 logo"
+        />
         <div
           v-if="!isRatingSubmitted"
           v-dompurify-html="formattedMessageContent"

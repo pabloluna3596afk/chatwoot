@@ -148,7 +148,7 @@
         "SAVE": "Guardar"
       }
     },
-    "UPDATE_CHATWOOT": "Hay una actualización {latestChatwootVersion} para Chatwoot disponible. Por favor, actualiza tu instancia.",
+    "UPDATE_CHATWOOT": "Hay una actualización {latestChatHubVersion} para ChatHub disponible. Por favor, actualiza tu instancia.",
     "LEARN_MORE": "Más información",
     "PAYMENT_PENDING": "Tu pago está pendiente. Por favor actualiza tu información de pago para seguir usando ChatHub",
     "UPGRADE": "Actualiza para seguir usando ChatHub",

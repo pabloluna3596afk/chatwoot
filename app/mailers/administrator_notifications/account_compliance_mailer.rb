@@ -22,6 +22,7 @@ class AdministratorNotifications::AccountComplianceMailer < AdministratorNotific
 
     {
       'instance_url' => instance_url,
+      'installation_name' => GlobalConfig.get('INSTALLATION_NAME')['INSTALLATION_NAME'],
       'account_id' => account.id,
       'account_name' => account.name,
       'deleted_at' => format_time(Time.current.iso8601),
