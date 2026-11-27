@@ -112,8 +112,18 @@ export default {
     useKeyboardEvents({
       Escape: {
         action: () => {
+          // Esc closes the innermost layer first; the quote goes last.
+          const closedLayer =
+            proxy.showEmojiPicker ||
+            copilot.isActive.value ||
+            proxy.showCannedMenu ||
+            proxy.showMacrosMenu ||
+            proxy.showCannedResponsesModal;
           proxy.hideEmojiPicker();
           if (copilot.isActive.value) copilot.reset();
+          if (!closedLayer && proxy.shouldShowReplyToMessage) {
+            proxy.resetReplyToMessage();
+          }
         },
         allowOnFocusedInput: true,
       },

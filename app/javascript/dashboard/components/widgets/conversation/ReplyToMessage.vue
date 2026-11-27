@@ -19,7 +19,7 @@ const emit = defineEmits(['dismiss']);
 
 <template>
   <div
-    class="reply-editor flex min-w-0 items-center overflow-hidden rounded-t-2xl rounded-b-none bg-n-alpha-1 pe-2"
+    class="reply-editor flex min-w-0 items-center overflow-hidden rounded-t-2xl rounded-b-none bg-n-alpha-1"
   >
     <ReplyPreview
       :message="message"
@@ -32,7 +32,7 @@ const emit = defineEmits(['dismiss']);
       v-tooltip="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
       type="button"
       :aria-label="$t('CONVERSATION.REPLYBOX.DISMISS_REPLY')"
-      class="grid size-6 shrink-0 place-items-center rounded-full bg-transparent text-n-slate-11 outline-none transition-colors hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-n-brand"
+      class="grid w-12 shrink-0 cursor-pointer self-stretch place-items-center bg-transparent text-n-slate-11 outline-none transition-colors hover:text-n-slate-12 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-n-brand"
       @click.stop="emit('dismiss')"
     >
       <span class="i-lucide-x size-4" aria-hidden="true" />

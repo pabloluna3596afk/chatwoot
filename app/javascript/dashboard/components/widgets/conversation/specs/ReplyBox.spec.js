@@ -262,6 +262,38 @@ describe('ReplyBox', () => {
     }
   );
 
+  it('dismisses the reply quote on Escape only when no other layer is open', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::Whatsapp' },
+      chat: { can_reply: false },
+    });
+    await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    await wrapper.setData({
+      inReplyTo: { id: 8, content: 'Quoted text' },
+      showCannedMenu: true,
+    });
+    const pressEscape = () =>
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          bubbles: true,
+        })
+      );
+    pressEscape();
+    await nextTick();
+    expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(
+      true
+    );
+    await wrapper.setData({ showCannedMenu: false });
+    pressEscape();
+    await nextTick();
+    expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(
+      false
+    );
+    wrapper.unmount();
+  });
+
   it('restores the bottom bar on Escape while an input is focused', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::WebWidget' },
