@@ -25,9 +25,7 @@ class Whatsapp::TemplateBackgroundTask
   def self.task_payload(submission)
     status, key = state_for(submission)
     account = submission.account
-    detail = I18n.t("background_tasks.whatsapp_template.#{key}", locale: account.locale)
-    reason = submission.remote_reason.presence || submission.error_details.values_at('error_user_msg', 'detail').find(&:present?)
-    detail = "#{detail}: #{reason}" if status == 'error' && reason.present?
+    detail = translated_detail(submission, status, key, account.locale)
     {
       id: "whatsapp_template_submission:#{submission.id}", kind: 'whatsapp_template', title: submission.name,
       status: status, phase: phase_for(status, submission),
@@ -35,6 +33,15 @@ class Whatsapp::TemplateBackgroundTask
       link: { label: I18n.t('background_tasks.whatsapp_template.link', locale: account.locale),
               route: { name: 'settings_templates', params: { accountId: account.id }, query: { q: submission.name } } }
     }
+  end
+
+  def self.translated_detail(submission, status, key, locale)
+    return I18n.t("background_tasks.whatsapp_template.#{key}", locale: locale) unless status == 'error'
+    return submission.remote_reason if submission.status != 'failed' && submission.remote_reason.present?
+
+    code = submission.error_details['code']
+    I18n.t("background_tasks.whatsapp_template.errors.#{code}", locale: locale,
+                                                                default: I18n.t('background_tasks.whatsapp_template.failed', locale: locale))
   end
 
   def self.phase_for(status, submission)
@@ -51,4 +58,5 @@ class Whatsapp::TemplateBackgroundTask
     end
   end
   private_class_method :state_for
+  private_class_method :translated_detail
 end

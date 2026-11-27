@@ -6,16 +6,29 @@ class Whatsapp::SubmitTemplateDraftService
   end
 
   def perform
-    submission = @draft.with_lock do
+    submission, enqueue = @draft.with_lock do
       raise ActiveRecord::StaleObjectError.new(@draft, 'submit') unless @draft.lock_version == @revision
 
-      @draft.submissions.find_by(revision: @revision) || create_submission
+      submission = @draft.submissions.find_by(revision: @revision)
+      retried_submission = retry_failed_submission(submission)
+      next [retried_submission, true] if retried_submission
+      next [submission, false] if submission
+
+      [create_submission, true]
     end
-    Whatsapp::SubmitTemplateDraftJob.perform_later(submission.id) if submission.status == 'submitting'
+    Whatsapp::SubmitTemplateDraftJob.perform_later(submission.id) if enqueue
     submission
   end
 
   private
+
+  def retry_failed_submission(submission)
+    return unless submission&.status == 'failed' && submission.remote_id.blank? && submission.remote_status.blank?
+
+    submission.update!(status: 'submitting', error_details: {})
+    Whatsapp::TemplateBackgroundTask.publish(submission)
+    submission
+  end
 
   def create_submission
     snapshot = Whatsapp::TemplateDraftValidator.new(@draft).snapshot!

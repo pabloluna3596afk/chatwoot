@@ -17,6 +17,15 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
     render json: Calendar::TemplateDrafts::Provisioner.new(account: Current.account).perform(language: params[:language])
   end
 
+  def submit
+    return invalid_submission_input unless submission_input_valid?
+
+    result = Calendar::TemplateDrafts::Submitter.new(account: Current.account, actor: Current.user,
+                                                     functions: params[:functions], waba_ids: params[:waba_ids]).perform
+    render json: { submissions: submission_payloads(result[:submissions]), skipped: result[:skipped], failed: result[:failed] },
+           status: :accepted
+  end
+
   def link
     raise Whatsapp::TemplateComponentsBuilder::Invalid, 'invalid_input' unless valid_link_input?
 
@@ -36,5 +45,17 @@ class Api::V1::Accounts::Integrations::CalendarTemplateDraftsController < Api::V
     else
       [:template_name, :remote_template_id].all? { |key| params[key].is_a?(String) && params[key].present? }
     end
+  end
+
+  def submission_input_valid?
+    Calendar::TemplateDrafts::SubmissionInput.new(Current.account, params[:functions], params[:waba_ids]).valid?
+  end
+
+  def submission_payloads(submissions)
+    submissions.map { |submission| submission.attributes.slice(*WhatsappTemplateDraftSerializer::SUBMISSION_FIELDS) }
+  end
+
+  def invalid_submission_input
+    render json: { error: 'invalid_submission' }, status: :unprocessable_entity
   end
 end
