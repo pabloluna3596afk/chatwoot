@@ -1,4 +1,6 @@
 <script setup>
+import { resolvePreviewText } from 'dashboard/helper/shortcutPreview';
+import ShortcutPreview from 'dashboard/components-next/preview-picker/ShortcutPreview.vue';
 import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import { ref, computed, onMounted, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -6,9 +8,17 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import { picoSearch } from '@chatwoot/pico-search';
 
+const props = defineProps({ variables: { type: Object, default: () => ({}) } });
 const emit = defineEmits(['onSelect']);
-
 const { t } = useI18n();
+const selectedResponse = ref(null);
+const resolveContent = content =>
+  resolvePreviewText(
+    content,
+    props.variables,
+    t('CONVERSATION.PICKER.PREVIEW.MISSING')
+  );
+
 const store = useStore();
 const { getPlainText } = useMessageFormatter();
 
@@ -50,13 +60,19 @@ const filteredResponses = computed(() => {
   ]);
 });
 
+const previewResponse = computed(() =>
+  filteredResponses.value.includes(selectedResponse.value)
+    ? selectedResponse.value
+    : filteredResponses.value[0]
+);
+
 const chipClass = active =>
   active
     ? 'bg-n-slate-5 text-n-slate-12 border-n-brand'
     : 'bg-n-alpha-black2 text-n-slate-12 border-n-weak hover:bg-n-alpha-2';
 
 const previewContent = content => {
-  const plain = getPlainText(content || '');
+  const plain = getPlainText(resolveContent(content));
   return plain.length > 160 ? `${plain.slice(0, 160)}…` : plain;
 };
 </script>
@@ -105,64 +121,75 @@ const previewContent = content => {
       </button>
     </div>
 
-    <div
-      class="bg-n-background outline-n-container outline outline-1 rounded-lg min-h-0 max-h-[18.75rem] overflow-y-auto overscroll-contain p-2.5"
-    >
+    <div class="flex min-h-0 min-w-0 flex-col sm:flex-row gap-3">
       <div
-        v-for="(item, i) in filteredResponses"
-        :key="item.id || item.short_code"
+        class="flex-1 min-w-0 bg-n-background outline-n-container outline outline-1 rounded-lg min-h-0 max-h-[18.75rem] overflow-y-auto overscroll-contain p-2.5"
       >
-        <button
-          type="button"
-          class="block min-h-11 break-words p-2.5 w-full text-start rounded-lg cursor-pointer hover:bg-n-alpha-2 dark:hover:bg-n-solid-2"
-          @mousedown.prevent
-          @click="emit('onSelect', item)"
+        <div
+          v-for="(item, i) in filteredResponses"
+          :key="item.id || item.short_code"
         >
-          <div class="flex flex-wrap justify-between items-center gap-2 mb-1.5">
-            <p
-              class="min-w-0 max-w-full mb-0 text-sm font-medium text-n-slate-12"
+          <button
+            type="button"
+            class="block min-h-11 break-words p-2.5 w-full text-start rounded-lg cursor-pointer hover:bg-n-alpha-2 dark:hover:bg-n-solid-2"
+            @mousedown.prevent
+            @focus="selectedResponse = item"
+            @mouseenter="selectedResponse = item"
+            @click="emit('onSelect', item)"
+          >
+            <div
+              class="flex flex-wrap justify-between items-center gap-2 mb-1.5"
             >
-              /{{ item.short_code }}
-            </p>
-            <div class="flex flex-wrap min-w-0 gap-1 items-center">
-              <span
-                v-if="item.category"
-                class="inline-block max-w-full break-words px-2 py-1 text-xs leading-none rounded-lg bg-n-slate-3 text-n-slate-12"
+              <p
+                class="min-w-0 max-w-full mb-0 text-sm font-medium text-n-slate-12"
               >
-                {{ item.category }}
-              </span>
-              <span
-                class="inline-block max-w-full break-words px-2 py-1 text-xs leading-none rounded-lg bg-n-alpha-black2 text-n-slate-11"
-              >
-                {{
-                  item.visibility === 'personal'
-                    ? t('CANNED_MGMT.PICKER.PERSONAL_BADGE')
-                    : t('CANNED_MGMT.PICKER.ACCOUNT_BADGE')
-                }}
-              </span>
+                /{{ item.short_code }}
+              </p>
+              <div class="flex flex-wrap min-w-0 gap-1 items-center">
+                <span
+                  v-if="item.category"
+                  class="inline-block max-w-full break-words px-2 py-1 text-xs leading-none rounded-lg bg-n-slate-3 text-n-slate-12"
+                >
+                  {{ item.category }}
+                </span>
+                <span
+                  class="inline-block max-w-full break-words px-2 py-1 text-xs leading-none rounded-lg bg-n-alpha-black2 text-n-slate-11"
+                >
+                  {{
+                    item.visibility === 'personal'
+                      ? t('CANNED_MGMT.PICKER.PERSONAL_BADGE')
+                      : t('CANNED_MGMT.PICKER.ACCOUNT_BADGE')
+                  }}
+                </span>
+              </div>
             </div>
+            <p class="mb-0 text-sm text-n-slate-11 truncate">
+              {{ previewContent(item.content) }}
+            </p>
+          </button>
+          <hr
+            v-if="i !== filteredResponses.length - 1"
+            :key="`hr-${i}`"
+            class="border-b border-solid border-n-weak my-2.5 mx-auto max-w-[95%]"
+          />
+        </div>
+        <div v-if="!filteredResponses.length" class="py-8 text-center">
+          <div v-if="query && (cannedResponses || []).length">
+            <p class="mb-0 text-n-slate-11">
+              {{ t('CANNED_MGMT.PICKER.NO_RESULTS') }}
+              <strong>{{ query }}</strong>
+            </p>
           </div>
-          <p class="mb-0 text-sm text-n-slate-11 line-clamp-3">
-            {{ previewContent(item.content) }}
-          </p>
-        </button>
-        <hr
-          v-if="i !== filteredResponses.length - 1"
-          :key="`hr-${i}`"
-          class="border-b border-solid border-n-weak my-2.5 mx-auto max-w-[95%]"
-        />
-      </div>
-      <div v-if="!filteredResponses.length" class="py-8 text-center">
-        <div v-if="query && (cannedResponses || []).length">
-          <p class="mb-0 text-n-slate-11">
-            {{ t('CANNED_MGMT.PICKER.NO_RESULTS') }}
-            <strong>{{ query }}</strong>
+          <p v-else class="mb-0 text-n-slate-11">
+            {{ t('CANNED_MGMT.PICKER.EMPTY_PENDING_HINT') }}
           </p>
         </div>
-        <p v-else class="mb-0 text-n-slate-11">
-          {{ t('CANNED_MGMT.PICKER.EMPTY_PENDING_HINT') }}
-        </p>
       </div>
+      <ShortcutPreview
+        v-if="previewResponse"
+        :content="resolveContent(previewResponse.content)"
+        class="flex-1 min-h-0 max-h-[18.75rem] overflow-y-auto p-2.5"
+      />
     </div>
   </div>
 </template>

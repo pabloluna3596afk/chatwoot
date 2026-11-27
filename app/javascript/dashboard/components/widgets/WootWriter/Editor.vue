@@ -1009,7 +1009,6 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :caret-position="caretPosition"
       :search-key="cannedSearchKey"
       :variables="variables"
-      :schema="editorSchema"
       @close="dismissCannedResponses"
       @remove-trigger="removeSuggestionTrigger"
       @replace="content => insertSpecialContent('cannedResponse', content)"
@@ -1025,6 +1024,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
     />
     <MacroList
       v-if="shouldShowMacros"
+      :variables="variables"
       :caret-position="caretPosition"
       :search-key="macroSearchKey"
       @close="dismissMacros"

@@ -1660,6 +1660,7 @@ export default {
     />
 
     <CannedResponsesModal
+      :variables="messageVariables"
       :show="showCannedResponsesModal"
       @on-select="onSelectCannedResponse"
       @cancel="hideCannedResponsesModal"

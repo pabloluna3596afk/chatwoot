@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import CannedResponsesPicker from './CannedResponsesPicker.vue';
 
 const props = defineProps({
+  variables: { type: Object, default: () => ({}) },
   show: {
     type: Boolean,
     default: false,
@@ -40,7 +41,7 @@ const onClose = () => {
       :header-content="t('CANNED_MGMT.PICKER.SUBTITLE')"
     />
     <div class="flex min-h-0 max-h-[60dvh] px-4 py-4 sm:px-8 sm:py-6">
-      <CannedResponsesPicker @on-select="onSelect" />
+      <CannedResponsesPicker :variables="variables" @on-select="onSelect" />
     </div>
   </woot-modal>
 </template>

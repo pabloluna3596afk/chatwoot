@@ -3,10 +3,9 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { picoSearch } from '@chatwoot/pico-search';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
-import {
-  resolveVariablesInMessage,
-  stripUnsupportedFormatting,
-} from 'dashboard/helper/editorHelper';
+import { resolvePreviewText } from 'dashboard/helper/shortcutPreview';
+import { escapeHtml } from 'shared/helpers/HTMLSanitizer';
+import ShortcutPreview from 'dashboard/components-next/preview-picker/ShortcutPreview.vue';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import CaretAnchoredPicker from 'dashboard/components-next/preview-picker/CaretAnchoredPicker.vue';
 
@@ -23,10 +22,6 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-  schema: {
-    type: Object,
-    default: null,
-  },
 });
 
 const emit = defineEmits(['replace', 'close', 'removeTrigger']);
@@ -37,7 +32,7 @@ const HIGHLIGHT_CLASS = 'text-n-blue-text';
 
 const store = useStore();
 const { t } = useI18n();
-const { getPlainText, formatMessage, highlightContent } = useMessageFormatter();
+const { getPlainText, highlightContent } = useMessageFormatter();
 
 const cannedResponses = useMapGetter('getCannedResponses');
 const uiFlags = useMapGetter('getUIFlags');
@@ -50,8 +45,8 @@ const searchTerm = computed(() => searchQuery.value.trim());
 // whole string in empty spans
 const highlightMatches = text =>
   searchTerm.value
-    ? highlightContent(text, searchTerm.value, HIGHLIGHT_CLASS)
-    : text;
+    ? highlightContent(escapeHtml(text), searchTerm.value, HIGHLIGHT_CLASS)
+    : escapeHtml(text);
 
 const buildSnippet = text => {
   const term = searchTerm.value;
@@ -63,13 +58,11 @@ const buildSnippet = text => {
   return `…${text.slice(index - SNIPPET_LEAD)}`;
 };
 
-// Both steps mirror what insertion does: variables are substituted, then formatting the
-// channel's schema cannot carry is stripped. Previewing the raw content would advertise
-// styling the message never ends up with.
 const resolveContent = message =>
-  stripUnsupportedFormatting(
-    resolveVariablesInMessage(message, props.variables),
-    props.schema
+  resolvePreviewText(
+    message,
+    props.variables,
+    t('CONVERSATION.PICKER.PREVIEW.MISSING')
   );
 
 const records = computed(() =>
@@ -142,10 +135,7 @@ onMounted(fetchCannedResponses);
     @remove-trigger="emit('removeTrigger')"
   >
     <template #preview="{ item }">
-      <div
-        v-dompurify-html="formatMessage(item?.resolved || '')"
-        class="px-4 py-3 prose prose-bubble !max-w-none prose-a:text-n-brand"
-      />
+      <ShortcutPreview :content="item?.resolved || ''" class="px-4 py-3" />
     </template>
   </CaretAnchoredPicker>
 </template>
