@@ -297,6 +297,7 @@ const removeSuggestionTrigger = () => {
 };
 
 const onSelectMacro = macro => {
+  showMacroMenu.value = false;
   removeSuggestionTrigger();
   emit('executeMacro', macro);
 };
@@ -956,7 +957,26 @@ function insertVariable(expression) {
   editorView.focus();
 }
 
-defineExpose({ focusEditorInputField, insertVariable });
+function closeComposerPickers() {
+  showCannedMenu.value = false;
+  showMacroMenu.value = false;
+}
+
+function openMacros() {
+  if (!props.enableMacros || props.disabled) return;
+  closeComposerPickers();
+  const { from } = editorView.state.selection;
+  range.value = { from, to: from };
+  macroSearchKey.value = '';
+  showMacroMenu.value = true;
+}
+
+defineExpose({
+  focusEditorInputField,
+  insertVariable,
+  openMacros,
+  closeComposerPickers,
+});
 
 // BUS Event to insert text or markdown into the editor at the
 // current cursor position.
@@ -1008,7 +1028,10 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       :caret-position="caretPosition"
       :search-key="macroSearchKey"
       @close="dismissMacros"
-      @remove-trigger="removeSuggestionTrigger"
+      @remove-trigger="
+        dismissMacros();
+        removeSuggestionTrigger();
+      "
       @select-macro="onSelectMacro"
     />
     <KeyboardEmojiSelector

@@ -26,10 +26,10 @@ class Calendar::TemplateResources
 
   # An explicit local binding, never automatic adoption by name. Identity and content
   # are checked against the selected channel's synced mirror before the link is usable.
-  def link!(template_name:, remote_template_id:, draft: nil)
+  def link!(template_name:, remote_template_id:, draft: nil, preserve_existing: false)
     raise ArgumentError, 'WhatsApp Cloud WABA required' unless cloud? && waba_id.present?
 
-    write_resource { |record| link_resource!(record, template_name, remote_template_id, draft) }
+    write_resource { |record| link_resource!(record, template_name, remote_template_id, draft, preserve_existing) }
   end
 
   def resolve
@@ -61,7 +61,9 @@ class Calendar::TemplateResources
 
   private
 
-  def link_resource!(record, template_name, remote_template_id, draft)
+  def link_resource!(record, template_name, remote_template_id, draft, preserve_existing)
+    return if preserve_existing_link?(record, remote_template_id, draft, preserve_existing)
+
     template = templates.find { |item| selected_template?(item, template_name, remote_template_id) }
     contract = Calendar::TemplateContract.new(function: @function, language: @language, template: template)
     reason = contract.incompatibility
@@ -69,6 +71,11 @@ class Calendar::TemplateResources
     return if attributes.except(:linked_at).all? { |key, value| record.public_send(key) == value }
 
     record.update!(attributes)
+  end
+
+  def preserve_existing_link?(record, remote_template_id, draft, preserve_existing)
+    preserve_existing && record.status_linked? &&
+      (record.remote_template_id != remote_template_id || record.whatsapp_template_draft_id != draft&.id)
   end
 
   def selected_template?(item, template_name, remote_template_id)

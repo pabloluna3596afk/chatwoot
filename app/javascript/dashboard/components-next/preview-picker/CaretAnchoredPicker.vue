@@ -2,6 +2,7 @@
 import { computed, ref, watch, useSlots, useTemplateRef } from 'vue';
 import {
   useElementBounding,
+  useEventListener,
   useResizeObserver,
   useWindowSize,
 } from '@vueuse/core';
@@ -59,6 +60,28 @@ const selectedIndex = ref(0);
 const caretAnchor = useElementBounding(caretAnchorRef);
 const { width: windowWidth, height: windowHeight } = useWindowSize();
 const isRTL = useMapGetter('accounts/isRTL');
+const visualViewport = window.visualViewport;
+const viewportBounds = ref(null);
+const updateViewport = () => {
+  if (!visualViewport) return;
+  viewportBounds.value = {
+    top: visualViewport.offsetTop,
+    left: visualViewport.offsetLeft,
+    width: visualViewport.width,
+    height: visualViewport.height,
+  };
+};
+updateViewport();
+useEventListener(visualViewport, ['resize', 'scroll'], updateViewport);
+const viewport = computed(
+  () =>
+    viewportBounds.value || {
+      top: 0,
+      left: 0,
+      width: windowWidth.value,
+      height: windowHeight.value,
+    }
+);
 
 const items = computed(() => props.items);
 
@@ -73,13 +96,21 @@ useResizeObserver(
 );
 
 const placement = computed(() => {
-  const above = caretAnchor.top.value - VIEWPORT_MARGIN - GAP;
-  const below =
-    windowHeight.value - caretAnchor.bottom.value - VIEWPORT_MARGIN - GAP;
+  const top = viewport.value.top + VIEWPORT_MARGIN;
+  const bottom = viewport.value.top + viewport.value.height - VIEWPORT_MARGIN;
+  const aboveEnd = Math.max(top, Math.min(caretAnchor.top.value - GAP, bottom));
+  const belowStart = Math.min(
+    bottom,
+    Math.max(caretAnchor.bottom.value + GAP, top)
+  );
+  const above = aboveEnd - top;
+  const below = bottom - belowStart;
   const placeAbove = above > below;
 
   return {
     placeAbove,
+    aboveEnd,
+    belowStart,
     height: Math.min(MAX_HEIGHT, Math.max(placeAbove ? above : below, 0)),
   };
 });
@@ -88,7 +119,7 @@ const width = computed(() =>
   Math.min(
     caretAnchor.width.value,
     hasPreview.value ? MAX_WIDTH : LIST_ONLY_MAX_WIDTH,
-    windowWidth.value - VIEWPORT_MARGIN * 2
+    viewport.value.width - VIEWPORT_MARGIN * 2
   )
 );
 
@@ -108,21 +139,24 @@ const inlineStart = computed(() =>
 );
 
 const pickerStyle = computed(() => {
-  const { placeAbove, height } = placement.value;
+  const { placeAbove, height, aboveEnd, belowStart } = placement.value;
   const showsPreview = previewLayout.value !== 'none';
+  const viewportStart = isRTL.value
+    ? windowWidth.value - viewport.value.left - viewport.value.width
+    : viewport.value.left;
   const start = Math.min(
     inlineStart.value,
-    windowWidth.value - width.value - VIEWPORT_MARGIN
+    viewportStart + viewport.value.width - width.value - VIEWPORT_MARGIN
   );
 
   return {
-    insetInlineStart: `${Math.max(VIEWPORT_MARGIN, start)}px`,
+    insetInlineStart: `${Math.max(viewportStart + VIEWPORT_MARGIN, start)}px`,
     width: `${width.value}px`,
     maxHeight: `${height}px`,
     minHeight: showsPreview ? `${Math.min(MIN_HEIGHT, height)}px` : null,
     ...(placeAbove
-      ? { bottom: `${windowHeight.value - caretAnchor.top.value + GAP}px` }
-      : { top: `${caretAnchor.bottom.value + GAP}px` }),
+      ? { bottom: `${windowHeight.value - aboveEnd}px` }
+      : { top: `${belowStart}px` }),
   };
 });
 

@@ -1,6 +1,6 @@
 <script setup>
 import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
@@ -14,10 +14,12 @@ const { getPlainText } = useMessageFormatter();
 
 const query = ref('');
 const selectedCategory = ref(null);
+const searchInput = useTemplateRef('searchInput');
 
 const cannedResponses = useMapGetter('getCannedResponses');
 
 onMounted(() => {
+  searchInput.value.$el.querySelector('input').focus();
   store.dispatch('getCannedResponse', { usable: true });
 });
 
@@ -50,7 +52,7 @@ const filteredResponses = computed(() => {
 
 const chipClass = active =>
   active
-    ? 'bg-n-brand text-white border-n-brand'
+    ? 'bg-n-slate-5 text-n-slate-12 border-n-brand'
     : 'bg-n-alpha-black2 text-n-slate-12 border-n-weak hover:bg-n-alpha-2';
 
 const previewContent = content => {
@@ -60,21 +62,23 @@ const previewContent = content => {
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="flex flex-col min-h-0 min-w-0 w-full">
     <SearchInput
+      ref="searchInput"
       v-model="query"
       :placeholder="t('CANNED_MGMT.PICKER.SEARCH_PLACEHOLDER')"
-      class="mb-2.5"
+      class="shrink-0 mb-2.5 [&_input]:min-h-11 [&_input]:text-base sm:[&_input]:min-h-0 sm:[&_input]:text-sm"
       size="sm"
     />
 
     <div
       v-if="categories.length || (cannedResponses || []).some(r => !r.category)"
-      class="flex flex-wrap gap-2 mb-2.5"
+      class="flex shrink-0 gap-2 mb-2.5 overflow-x-auto"
+      @mousedown.prevent
     >
       <button
         type="button"
-        class="px-2.5 py-1 text-xs rounded-lg border border-solid transition-colors"
+        class="min-h-11 sm:min-h-0 shrink-0 max-w-full break-words px-2.5 py-1 text-xs rounded-lg border border-solid transition-colors"
         :class="chipClass(selectedCategory === null)"
         @click="selectedCategory = null"
       >
@@ -84,7 +88,7 @@ const previewContent = content => {
         v-for="cat in categories"
         :key="cat"
         type="button"
-        class="px-2.5 py-1 text-xs rounded-lg border border-solid transition-colors"
+        class="min-h-11 sm:min-h-0 shrink-0 max-w-full break-words px-2.5 py-1 text-xs rounded-lg border border-solid transition-colors"
         :class="chipClass(selectedCategory === cat)"
         @click="selectedCategory = cat"
       >
@@ -93,7 +97,7 @@ const previewContent = content => {
       <button
         v-if="(cannedResponses || []).some(r => !r.category)"
         type="button"
-        class="px-2.5 py-1 text-xs rounded-lg border border-solid transition-colors"
+        class="min-h-11 sm:min-h-0 shrink-0 max-w-full break-words px-2.5 py-1 text-xs rounded-lg border border-solid transition-colors"
         :class="chipClass(selectedCategory === '')"
         @click="selectedCategory = ''"
       >
@@ -102,7 +106,7 @@ const previewContent = content => {
     </div>
 
     <div
-      class="bg-n-background outline-n-container outline outline-1 rounded-lg max-h-[18.75rem] overflow-y-auto p-2.5"
+      class="bg-n-background outline-n-container outline outline-1 rounded-lg min-h-0 max-h-[18.75rem] overflow-y-auto overscroll-contain p-2.5"
     >
       <div
         v-for="(item, i) in filteredResponses"
@@ -110,22 +114,25 @@ const previewContent = content => {
       >
         <button
           type="button"
-          class="block p-2.5 w-full text-left rounded-lg cursor-pointer hover:bg-n-alpha-2 dark:hover:bg-n-solid-2"
+          class="block min-h-11 break-words p-2.5 w-full text-start rounded-lg cursor-pointer hover:bg-n-alpha-2 dark:hover:bg-n-solid-2"
+          @mousedown.prevent
           @click="emit('onSelect', item)"
         >
-          <div class="flex justify-between items-center gap-2 mb-1.5">
-            <p class="mb-0 text-sm font-medium text-n-slate-12">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-1.5">
+            <p
+              class="min-w-0 max-w-full mb-0 text-sm font-medium text-n-slate-12"
+            >
               /{{ item.short_code }}
             </p>
-            <div class="flex flex-shrink-0 gap-1 items-center">
+            <div class="flex flex-wrap min-w-0 gap-1 items-center">
               <span
                 v-if="item.category"
-                class="inline-block px-2 py-1 text-xs leading-none rounded-lg bg-n-slate-3 text-n-slate-12"
+                class="inline-block max-w-full break-words px-2 py-1 text-xs leading-none rounded-lg bg-n-slate-3 text-n-slate-12"
               >
                 {{ item.category }}
               </span>
               <span
-                class="inline-block px-2 py-1 text-xs leading-none rounded-lg bg-n-alpha-black2 text-n-slate-11"
+                class="inline-block max-w-full break-words px-2 py-1 text-xs leading-none rounded-lg bg-n-alpha-black2 text-n-slate-11"
               >
                 {{
                   item.visibility === 'personal'

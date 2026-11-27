@@ -94,7 +94,7 @@ defineExpose({ scrollSelectedIntoView });
     class="flex overflow-hidden border shadow-lg rounded-xl border-n-strong bg-n-alpha-3 backdrop-blur-[100px]"
     :class="{ 'flex-col': isStacked }"
   >
-    <div class="flex flex-col min-h-0" :class="listClass">
+    <div class="flex flex-col min-h-0 min-w-0" :class="listClass">
       <div
         class="relative flex items-center flex-shrink-0 h-11 px-3 border-b border-n-strong"
       >
@@ -109,8 +109,13 @@ defineExpose({ scrollSelectedIntoView });
           :aria-controls="listboxId"
           :aria-activedescendant="items.length ? optionId(selectedIndex) : null"
           :aria-label="searchPlaceholder"
-          class="w-full h-full px-2 text-sm bg-transparent outline-none text-n-slate-12 placeholder:text-n-slate-11 reset-base"
+          class="min-w-0 w-full h-full px-2 text-base sm:text-sm bg-transparent outline-none text-n-slate-12 placeholder:text-n-slate-11 reset-base"
           :placeholder="searchPlaceholder"
+          @keydown="
+            event => {
+              if (event.isComposing) event.stopPropagation();
+            }
+          "
         />
       </div>
       <div
@@ -120,7 +125,10 @@ defineExpose({ scrollSelectedIntoView });
       >
         <slot name="filters" />
       </div>
-      <div ref="listRef" class="flex-1 p-1 overflow-y-auto">
+      <div
+        ref="listRef"
+        class="flex-1 min-h-0 p-1 overflow-y-auto overscroll-contain"
+      >
         <ul :id="listboxId" role="listbox" class="m-0 list-none">
           <template v-for="(item, index) in items" :key="item.id">
             <li
@@ -136,9 +144,10 @@ defineExpose({ scrollSelectedIntoView });
               :data-index="index"
               role="option"
               :aria-selected="index === selectedIndex"
-              class="flex items-center w-full gap-2 px-2 py-1 overflow-hidden rounded-lg cursor-pointer text-start"
+              class="flex items-center w-full min-h-11 sm:min-h-0 gap-2 px-2 py-1 overflow-hidden rounded-lg cursor-pointer text-start"
               :class="index === selectedIndex ? 'bg-n-alpha-black2' : ''"
               @mousemove="selectedIndex = index"
+              @mousedown.prevent
               @click="emit('select', index)"
             >
               <slot
