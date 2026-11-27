@@ -59,6 +59,7 @@ RSpec.describe Whatsapp::TemplateSubmissionService do
       status: 200, body: remote.merge('status' => 'APPROVED').to_json, headers: { 'Content-Type' => 'application/json' }
     )
     expect(BackgroundTasks::Notifier).to receive(:publish).with(hash_including(status: 'success'))
+    expect(Whatsapp::SyncTemplateWabaJob).to receive(:perform_later).with(account.id, waba_id)
     Whatsapp::RefreshTemplateSubmissionsJob.perform_now
     expect(attempt.reload.remote_status).to eq('APPROVED')
   end
