@@ -109,7 +109,7 @@ const handleSeeOriginal = () => {
 </script>
 
 <template>
-  <BaseBubble content-class="px-3 pt-2" data-bubble-name="text">
+  <BaseBubble content-class="px-2.5 pt-2" data-bubble-name="text">
     <div class="gap-3 flex flex-col">
       <WhatsappReferral v-if="referral" :referral="referral" />
       <span v-if="isEmpty" class="text-n-slate-11">

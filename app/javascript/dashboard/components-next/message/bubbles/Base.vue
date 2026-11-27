@@ -79,7 +79,7 @@ const shouldShowMeta = computed(
     (!shouldGroupWithNext.value || sourceIcon.value || showCaptain.value) &&
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
-const MESSAGE_META_SPACING = 'mt-1 px-3 pb-2';
+const MESSAGE_META_SPACING = 'mt-1 px-2.5 pb-1.5';
 const metaClass = computed(() => [
   isSticker.value
     ? 'mt-1 ms-auto w-fit rounded-full bg-n-alpha-black2 px-2 py-1 text-n-slate-1 dark:text-n-slate-12'

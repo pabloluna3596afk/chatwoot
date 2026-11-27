@@ -152,13 +152,13 @@ describe('attachments across seed channels', () => {
 
 describe('attachment composition', () => {
   it.each([
-    ['text', { content: 'Hello' }, 'text', ['px-3', 'pt-2']],
+    ['text', { content: 'Hello' }, 'text', ['px-2.5', 'pt-2']],
     ['image', { attachments: [image] }, 'image', ['p-1']],
     [
       'mosaic',
       { attachments: [image, { ...image, id: 3 }] },
       'text',
-      ['px-3', 'pt-2'],
+      ['px-2.5', 'pt-2'],
     ],
     ['file', { attachments: [pdf] }, 'file', ['p-2']],
     [
@@ -200,7 +200,7 @@ describe('attachment composition', () => {
       });
       const meta = wrapper.getComponent({ name: 'MessageMeta' });
       expect(meta.classes()).toEqual(
-        expect.arrayContaining(['mt-1', 'px-3', 'pb-2', 'justify-end'])
+        expect.arrayContaining(['mt-1', 'px-2.5', 'pb-1.5', 'justify-end'])
       );
       expect(wrapper.get(`[data-bubble-name="${bubbleName}"]`).exists()).toBe(
         true
@@ -233,7 +233,7 @@ describe('attachment composition', () => {
     expect(wrapper.get('[role="status"]').exists()).toBe(true);
     expect(figure.classes()).toContain('bg-n-alpha-1');
     expect(wrapper.getComponent({ name: 'MessageMeta' }).classes()).toEqual(
-      expect.arrayContaining(['mt-1', 'px-3', 'pb-2', 'justify-end'])
+      expect.arrayContaining(['mt-1', 'px-2.5', 'pb-1.5', 'justify-end'])
     );
     wrapper.unmount();
   });

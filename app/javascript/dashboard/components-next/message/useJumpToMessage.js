@@ -128,13 +128,25 @@ export function useJumpToMessage({
         ? Promise.resolve()
         : new Promise(resolve => {
             let timer;
+            let ceiling;
+            let waitForIdle;
             const finish = () => {
               clearTimeout(timer);
+              clearTimeout(ceiling);
               panel.removeEventListener('scrollend', finish);
+              panel.removeEventListener('scroll', waitForIdle);
               stopScrolling = null;
               resolve();
             };
-            timer = setTimeout(finish, 600);
+            // Long smooth scrolls can outlast a fixed timeout, so wait until
+            // the panel stops moving (with a hard ceiling as a safety net).
+            waitForIdle = () => {
+              clearTimeout(timer);
+              timer = setTimeout(finish, 180);
+            };
+            timer = setTimeout(finish, 300);
+            ceiling = setTimeout(finish, 6000);
+            panel.addEventListener('scroll', waitForIdle, { passive: true });
             panel.addEventListener('scrollend', finish, { once: true });
             stopScrolling = () => {
               panel.scrollTo({ top: panel.scrollTop, behavior: 'instant' });

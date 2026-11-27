@@ -178,7 +178,7 @@ const containerClass = computed(() =>
     class="box-border flex w-full min-w-0 items-stretch overflow-hidden p-0 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand focus-visible:outline-offset-1"
     :class="[
       containerClass,
-      composer ? 'flex-1' : 'mb-1.5 mt-1',
+      composer ? 'flex-1' : 'mb-1.5 mt-0.5',
       canJump ? 'cursor-pointer hover:bg-n-alpha-black2' : 'cursor-default',
     ]"
     :aria-label="

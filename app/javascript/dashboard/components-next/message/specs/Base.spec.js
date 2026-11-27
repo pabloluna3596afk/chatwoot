@@ -99,8 +99,8 @@ describe('bubble metadata composition', () => {
     expect(meta.classes()).toEqual(
       expect.arrayContaining([
         'mt-1',
-        'px-3',
-        'pb-2',
+        'px-2.5',
+        'pb-1.5',
         'justify-end',
         'text-n-slate-11',
       ])
