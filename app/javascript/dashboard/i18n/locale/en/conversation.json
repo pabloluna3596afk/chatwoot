@@ -241,6 +241,9 @@
       "TEAMS": "Teams"
     },
     "PICKER": {
+      "CLOSE": "Close picker",
+      "TYPE_TO_SEARCH": "Type to search…",
+      "USE": "Use",
       "VARIABLE": {
         "SEARCH_PLACEHOLDER": "Search variables",
         "DESCRIPTION": "Description",

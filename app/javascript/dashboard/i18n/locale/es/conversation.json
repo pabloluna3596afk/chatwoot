@@ -476,6 +476,9 @@
       "AD": "Publicidad"
     },
     "PICKER": {
+      "CLOSE": "Cerrar selector",
+      "TYPE_TO_SEARCH": "Escribe para buscar…",
+      "USE": "Usar",
       "VARIABLE": {
         "SEARCH_PLACEHOLDER": "Buscar variables",
         "DESCRIPTION": "Descripción",

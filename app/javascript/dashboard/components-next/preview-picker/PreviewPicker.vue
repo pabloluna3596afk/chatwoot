@@ -1,9 +1,13 @@
 <script setup>
 import { computed, nextTick, onMounted, useId, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useTouchPreview } from 'dashboard/composables/useTouchPreview';
+import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 
 const props = defineProps({
+  touchPreview: { type: Boolean, default: false },
   focusSearch: { type: Boolean, default: true },
   items: {
     type: Array,
@@ -28,7 +32,8 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['select', 'close']);
+const { t } = useI18n();
 
 const selectedIndex = defineModel('selectedIndex', {
   type: Number,
@@ -44,6 +49,15 @@ const optionId = index => `${listboxId}-${index}`;
 
 const selectedItem = computed(() => props.items[selectedIndex.value]);
 
+const { isTouch, onPointerDown, onPointerMove, onHover, onClick } =
+  useTouchPreview({
+    selectedItem,
+    onPreview: item => {
+      selectedIndex.value = props.items.indexOf(item);
+    },
+    onSelect: item => emit('select', props.items.indexOf(item)),
+  });
+
 const isStacked = computed(() => props.previewLayout === 'stacked');
 
 const hasPreview = computed(
@@ -57,9 +71,12 @@ const listClass = computed(() => {
     : 'w-2/5 flex-shrink-0 border-r rtl:border-r-0 rtl:border-l border-n-strong';
 });
 
-const previewClass = computed(() =>
-  isStacked.value ? 'h-28 flex-shrink-0 border-t border-n-strong' : 'flex-1'
-);
+const previewClass = computed(() => {
+  if (!isStacked.value) return 'flex-1';
+  return props.touchPreview
+    ? 'flex-1 min-h-0 border-t border-n-strong'
+    : 'h-28 flex-shrink-0 border-t border-n-strong';
+});
 
 const groupFor = index => {
   const { group } = props.items[index];
@@ -99,11 +116,13 @@ defineExpose({ scrollSelectedIntoView });
   >
     <div class="flex flex-col min-h-0 min-w-0" :class="listClass">
       <div
-        v-if="focusSearch"
         class="relative flex items-center flex-shrink-0 h-11 px-3 border-b border-n-strong"
+        @pointerdown="!focusSearch && $event.preventDefault()"
+        @mousedown="!focusSearch && $event.preventDefault()"
       >
         <Icon icon="i-lucide-search" class="size-4 text-n-slate-11" />
         <input
+          v-if="focusSearch"
           ref="searchRef"
           v-model="search"
           type="text"
@@ -120,6 +139,24 @@ defineExpose({ scrollSelectedIntoView });
               if (event.isComposing) event.stopPropagation();
             }
           "
+        />
+        <span
+          v-else
+          role="status"
+          class="flex-1 min-w-0 px-2 text-base truncate sm:text-sm"
+          :class="search ? 'text-n-slate-12' : 'text-n-slate-11'"
+        >
+          {{ search || t('CONVERSATION.PICKER.TYPE_TO_SEARCH') }}
+        </span>
+        <Button
+          v-if="touchPreview"
+          icon="i-lucide-x"
+          intent="tertiary"
+          class="min-h-11 min-w-11 shrink-0"
+          :aria-label="t('CONVERSATION.PICKER.CLOSE')"
+          @pointerdown.prevent
+          @mousedown.prevent
+          @click="emit('close')"
         />
       </div>
       <div
@@ -149,12 +186,13 @@ defineExpose({ scrollSelectedIntoView });
               :data-index="index"
               role="option"
               :aria-selected="index === selectedIndex"
-              class="flex items-center w-full min-h-11 sm:min-h-0 gap-2 px-2 py-1 overflow-hidden rounded-lg cursor-pointer text-start"
+              class="flex items-center w-full min-h-11 gap-2 px-2 py-1 overflow-hidden rounded-lg cursor-pointer text-start"
               :class="index === selectedIndex ? 'bg-n-alpha-black2' : ''"
-              @mousemove="selectedIndex = index"
-              @pointerdown.prevent
+              @mousemove="onHover(item)"
+              @pointerdown.prevent="onPointerDown"
+              @pointermove="onPointerMove($event, item)"
               @mousedown.prevent
-              @click="emit('select', index)"
+              @click="touchPreview ? onClick(item) : emit('select', index)"
             >
               <slot
                 name="leading"
@@ -187,12 +225,23 @@ defineExpose({ scrollSelectedIntoView });
     </div>
     <div v-if="hasPreview" class="flex flex-col min-w-0" :class="previewClass">
       <div
-        v-if="!isStacked"
-        class="flex items-center flex-shrink-0 h-11 px-4 border-b border-n-strong"
+        v-if="!isStacked || (touchPreview && isTouch)"
+        class="flex items-center flex-shrink-0 h-11 gap-2 px-4 border-b border-n-strong"
       >
-        <span class="min-w-0 text-xs font-medium truncate text-n-slate-11">
+        <span
+          class="min-w-0 flex-1 text-xs font-medium truncate text-n-slate-11"
+        >
           {{ selectedItem?.label }}
         </span>
+        <Button
+          v-if="touchPreview && isTouch && selectedItem"
+          intent="primary"
+          class="min-h-11 min-w-11 shrink-0"
+          :label="t('CONVERSATION.PICKER.USE')"
+          @pointerdown.prevent
+          @mousedown.prevent
+          @click="emit('select', selectedIndex)"
+        />
       </div>
       <div class="relative flex-1 min-h-0">
         <div class="absolute inset-0 overflow-y-auto">

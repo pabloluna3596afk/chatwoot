@@ -21,6 +21,7 @@ import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirecti
 import PreviewPicker from './PreviewPicker.vue';
 
 const props = defineProps({
+  touchPreview: { type: Boolean, default: false },
   focusSearch: { type: Boolean, default: true },
   caretPosition: {
     type: Object,
@@ -56,6 +57,7 @@ const VIEWPORT_MARGIN = 16;
 const GAP = 8;
 const SIDE_PREVIEW_MIN_WIDTH = 480;
 const STACKED_PREVIEW_MIN_HEIGHT = 280;
+const MOBILE_BREAKPOINT = 768;
 
 const slots = useSlots();
 
@@ -105,10 +107,15 @@ const viewport = computed(
 
 const items = computed(() => props.items);
 
-const caretAnchorStyle = computed(() => ({
-  top: `${props.caretPosition?.top ?? 0}px`,
-  height: `${props.caretPosition?.height ?? 0}px`,
-}));
+const caretAnchorStyle = computed(() => {
+  // On mobile, keep the picker at the editor edge as the caret and keyboard move.
+  const atEditorEdge =
+    props.touchPreview && windowWidth.value < MOBILE_BREAKPOINT;
+  return {
+    top: `${atEditorEdge ? 0 : (props.caretPosition?.top ?? 0)}px`,
+    height: `${atEditorEdge ? 0 : (props.caretPosition?.height ?? 0)}px`,
+  };
+});
 
 useResizeObserver(
   () => caretAnchorRef.value?.parentElement,
@@ -146,7 +153,11 @@ const width = computed(() =>
 const previewLayout = computed(() => {
   if (!hasPreview.value) return 'none';
   if (width.value >= SIDE_PREVIEW_MIN_WIDTH) return 'side';
-  if (placement.value.height >= STACKED_PREVIEW_MIN_HEIGHT) return 'stacked';
+  if (
+    props.touchPreview ||
+    placement.value.height >= STACKED_PREVIEW_MIN_HEIGHT
+  )
+    return 'stacked';
   return 'none';
 });
 
@@ -172,6 +183,10 @@ const pickerStyle = computed(() => {
   return {
     insetInlineStart: `${Math.max(viewportStart + VIEWPORT_MARGIN, start)}px`,
     width: `${width.value}px`,
+    height:
+      props.touchPreview && previewLayout.value === 'stacked'
+        ? `${height}px`
+        : null,
     maxHeight: `${height}px`,
     minHeight: showsPreview ? `${Math.min(MIN_HEIGHT, height)}px` : null,
     ...(placeAbove
@@ -268,6 +283,7 @@ watch(items, () => {
       v-model:search="search"
       v-on-click-outside="() => emit('close')"
       :focus-search="focusSearch"
+      :touch-preview="touchPreview"
       :items="items"
       :search-placeholder="searchPlaceholder"
       :empty-label="emptyLabel"
@@ -277,6 +293,7 @@ watch(items, () => {
       class="fixed z-[9999]"
       :style="pickerStyle"
       @select="onListItemSelection"
+      @close="emit('close')"
       @keydown.esc.stop.prevent="emit('close')"
     >
       <template v-if="$slots.leading" #leading="slotProps">

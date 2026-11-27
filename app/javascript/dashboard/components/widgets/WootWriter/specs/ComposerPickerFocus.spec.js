@@ -68,8 +68,21 @@ it.each(['#', '/'])(
     await flushPromises();
     expect(document.activeElement).toBe(view.dom);
     expect(focus).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="status"]').textContent).toContain(
+      'CONVERSATION.PICKER.TYPE_TO_SEARCH'
+    );
+    expect(document.querySelector('input[role="combobox"]')).toBeNull();
+    const mirrorDown = new Event('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    document.querySelector('[role="status"]').dispatchEvent(mirrorDown);
+    expect(mirrorDown.defaultPrevented).toBe(true);
     view.dispatch(view.state.tr.insertText(trigger === '#' ? 'Clos' : 'hello'));
     await flushPromises();
+    expect(document.querySelector('[role="status"]').textContent).toContain(
+      trigger === '#' ? 'Clos' : 'hello'
+    );
     const rows = document.querySelectorAll('[role="option"]');
     expect(rows).toHaveLength(1);
     expect(wrapper.getComponent(CaretAnchoredPicker).props('items')[0].id).toBe(
@@ -149,17 +162,37 @@ it('focuses toolbar search without scrolling and restores editor focus on close'
   expect(document.activeElement).toBe(view.dom);
 });
 
-it.each(['#', '/'])(
-  'selects %s by touch without moving focus or leaving the trigger',
-  async trigger => {
+it.each([
+  ['#', 'row'],
+  ['/', 'row'],
+  ['#', 'use'],
+  ['/', 'use'],
+])(
+  'previews %s then selects with %s once without losing focus or leaving the trigger',
+  async (trigger, confirm) => {
     view.dispatch(view.state.tr.insertText(trigger));
     await flushPromises();
     const row = document.querySelector('[role="option"]');
     const down = new Event('pointerdown', { bubbles: true, cancelable: true });
+    Object.defineProperty(down, 'pointerType', { value: 'touch' });
     row.dispatchEvent(down);
     expect(down.defaultPrevented).toBe(true);
     row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
+    expect(view.state.doc.textContent).toBe(trigger);
+    expect(wrapper.emitted('executeMacro')).toBeUndefined();
+    expect(document.activeElement).toBe(view.dom);
+    const target =
+      confirm === 'row'
+        ? row
+        : Array.from(
+            document.querySelectorAll('[data-popover-content] button')
+          ).find(button =>
+            button.textContent.includes('CONVERSATION.PICKER.USE')
+          );
+    target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
     expect(document.activeElement).toBe(view.dom);
     expect(view.state.doc.textContent).toBe(
       trigger === '#' ? '' : 'Hello there '
@@ -184,3 +217,20 @@ it('does not select on IME confirmation', async () => {
   expect(wrapper.emitted('executeMacro')).toBeUndefined();
   expect(wrapper.findComponent(MacroList).exists()).toBe(true);
 });
+
+it.each(['#', '/', 'toolbar'])(
+  'closes %s with the visible button and restores editor focus',
+  async trigger => {
+    if (trigger === 'toolbar') wrapper.vm.openMacros();
+    else view.dispatch(view.state.tr.insertText(trigger));
+    await flushPromises();
+    const button = document.querySelector(
+      'button[aria-label="CONVERSATION.PICKER.CLOSE"]'
+    );
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    expect(document.activeElement).toBe(view.dom);
+    expect(wrapper.emitted('executeMacro')).toBeUndefined();
+  }
+);

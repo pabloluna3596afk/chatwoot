@@ -1,8 +1,10 @@
 <script setup>
+import Button from 'dashboard/components-next/button/Button.vue';
+import { useTouchPreview } from 'dashboard/composables/useTouchPreview';
 import { resolvePreviewText } from 'dashboard/helper/shortcutPreview';
 import ShortcutPreview from 'dashboard/components-next/preview-picker/ShortcutPreview.vue';
 import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
-import { ref, computed, onMounted, useTemplateRef } from 'vue';
+import { ref, shallowRef, computed, onMounted, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
@@ -11,7 +13,7 @@ import { picoSearch } from '@chatwoot/pico-search';
 const props = defineProps({ variables: { type: Object, default: () => ({}) } });
 const emit = defineEmits(['onSelect']);
 const { t } = useI18n();
-const selectedResponse = ref(null);
+const selectedResponse = shallowRef(null);
 const resolveContent = content =>
   resolvePreviewText(
     content,
@@ -66,6 +68,15 @@ const previewResponse = computed(() =>
     : filteredResponses.value[0]
 );
 
+const { isTouch, onPointerDown, onPointerMove, onHover, onClick } =
+  useTouchPreview({
+    selectedItem: previewResponse,
+    onPreview: item => {
+      selectedResponse.value = item;
+    },
+    onSelect: item => emit('onSelect', item),
+  });
+
 const chipClass = active =>
   active
     ? 'bg-n-slate-5 text-n-slate-12 border-n-brand'
@@ -83,7 +94,7 @@ const previewContent = content => {
       ref="searchInput"
       v-model="query"
       :placeholder="t('CANNED_MGMT.PICKER.SEARCH_PLACEHOLDER')"
-      class="shrink-0 mb-2.5 [&_input]:min-h-11 [&_input]:text-base sm:[&_input]:min-h-0 sm:[&_input]:text-sm"
+      class="shrink-0 mb-2.5 [&_input]:h-11 [&_input]:min-h-11 [&_input]:text-base sm:[&_input]:text-sm"
       size="sm"
     />
 
@@ -132,10 +143,13 @@ const previewContent = content => {
           <button
             type="button"
             class="block min-h-11 break-words p-2.5 w-full text-start rounded-lg cursor-pointer hover:bg-n-alpha-2 dark:hover:bg-n-solid-2"
+            :class="previewResponse === item ? 'bg-n-alpha-black2' : ''"
+            @pointerdown.prevent="onPointerDown"
             @mousedown.prevent
             @focus="selectedResponse = item"
-            @mouseenter="selectedResponse = item"
-            @click="emit('onSelect', item)"
+            @mouseenter="onHover(item)"
+            @pointermove="onPointerMove($event, item)"
+            @click="onClick(item)"
           >
             <div
               class="flex flex-wrap justify-between items-center gap-2 mb-1.5"
@@ -185,11 +199,24 @@ const previewContent = content => {
           </p>
         </div>
       </div>
-      <ShortcutPreview
+      <div
         v-if="previewResponse"
-        :content="resolveContent(previewResponse.content)"
-        class="flex-1 min-h-0 max-h-[18.75rem] overflow-y-auto p-2.5"
-      />
+        class="flex flex-col flex-1 min-h-0 min-w-0 max-h-[18.75rem]"
+      >
+        <Button
+          v-if="isTouch"
+          intent="primary"
+          class="min-h-11 min-w-11 shrink-0 self-end"
+          :label="t('CONVERSATION.PICKER.USE')"
+          @pointerdown.prevent
+          @mousedown.prevent
+          @click="emit('onSelect', previewResponse)"
+        />
+        <ShortcutPreview
+          :content="resolveContent(previewResponse.content)"
+          class="min-h-0 overflow-y-auto p-2.5"
+        />
+      </div>
     </div>
   </div>
 </template>

@@ -67,6 +67,7 @@ onMounted(() => {
     v-model:search="searchQuery"
     :caret-position="caretPosition"
     :focus-search="focusSearch"
+    touch-preview
     :items="items"
     :search-placeholder="t('CONVERSATION.PICKER.MACRO.SEARCH_PLACEHOLDER')"
     :is-loading="uiFlags.isFetching"

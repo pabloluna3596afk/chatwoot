@@ -124,6 +124,7 @@ onMounted(fetchCannedResponses);
     v-model:search="searchQuery"
     :caret-position="caretPosition"
     :focus-search="focusSearch"
+    touch-preview
     :items="items"
     :search-placeholder="t('COMBOBOX.SEARCH_PLACEHOLDER')"
     :is-loading="uiFlags.fetchingList"
