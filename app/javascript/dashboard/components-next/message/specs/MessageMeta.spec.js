@@ -29,6 +29,12 @@ const render = (props = {}, captain = false) =>
   });
 
 describe('message metadata', () => {
+  it('keeps time on one line and status icons at a fixed size', () => {
+    const wrapper = render();
+    expect(wrapper.classes()).toContain('whitespace-nowrap');
+    expect(wrapper.get('[role="img"]').classes()).toContain('shrink-0');
+    wrapper.unmount();
+  });
   beforeEach(() => {
     [
       'isAFacebookInbox',

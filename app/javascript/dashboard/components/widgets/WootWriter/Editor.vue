@@ -210,6 +210,7 @@ const cannedSearchKey = ref('');
 const variableSearchKey = ref('');
 const emojiSearchKey = ref('');
 const macroSearchKey = ref('');
+const macroOpenedFromToolbar = ref(false);
 const range = ref(null);
 const isTextSelected = ref(false); // Tracks text selection and prevents unnecessary re-renders on mouse selection
 const showSelectionMenu = ref(false);
@@ -272,9 +273,8 @@ const shouldShowUserMentions = computed(() => {
   return showUserMentions.value && props.isPrivate;
 });
 
-// The picker owns the search field, so it takes focus while open. Dismissing it hands
-// focus back; selecting one does so through the insert itself. The suggestion stays
-// active in the document, so the picker only reopens once the trigger is typed afresh.
+// Toolbar search returns focus on dismissal; typed suggestions retain editor focus.
+// The suggestion stays active until the trigger is typed afresh.
 const dismissPicker = showMenu => {
   showMenu.value = false;
   editorView?.focus();
@@ -297,6 +297,7 @@ const removeSuggestionTrigger = () => {
 };
 
 const onSelectMacro = macro => {
+  showMacroMenu.value = false;
   removeSuggestionTrigger();
   emit('executeMacro', macro);
 };
@@ -314,6 +315,7 @@ function createSuggestionPlugin({
     suggestionClass: '',
     onEnter: args => {
       if (!isAllowed()) return false;
+      if (trigger === '#') macroOpenedFromToolbar.value = false;
       range.value = args.range;
       editorView = args.view;
       if (searchTerm) searchTerm.value = args.text || '';
@@ -956,7 +958,27 @@ function insertVariable(expression) {
   editorView.focus();
 }
 
-defineExpose({ focusEditorInputField, insertVariable });
+function closeComposerPickers() {
+  showCannedMenu.value = false;
+  showMacroMenu.value = false;
+}
+
+function openMacros() {
+  if (!props.enableMacros || props.disabled) return;
+  closeComposerPickers();
+  const { from } = editorView.state.selection;
+  range.value = { from, to: from };
+  macroSearchKey.value = '';
+  macroOpenedFromToolbar.value = true;
+  showMacroMenu.value = true;
+}
+
+defineExpose({
+  focusEditorInputField,
+  insertVariable,
+  openMacros,
+  closeComposerPickers,
+});
 
 // BUS Event to insert text or markdown into the editor at the
 // current cursor position.
@@ -988,8 +1010,8 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       v-if="shouldShowCannedResponses"
       :caret-position="caretPosition"
       :search-key="cannedSearchKey"
+      :focus-search="false"
       :variables="variables"
-      :schema="editorSchema"
       @close="dismissCannedResponses"
       @remove-trigger="removeSuggestionTrigger"
       @replace="content => insertSpecialContent('cannedResponse', content)"
@@ -1005,10 +1027,15 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
     />
     <MacroList
       v-if="shouldShowMacros"
+      :variables="variables"
       :caret-position="caretPosition"
       :search-key="macroSearchKey"
+      :focus-search="macroOpenedFromToolbar"
       @close="dismissMacros"
-      @remove-trigger="removeSuggestionTrigger"
+      @remove-trigger="
+        dismissMacros();
+        removeSuggestionTrigger();
+      "
       @select-macro="onSelectMacro"
     />
     <KeyboardEmojiSelector

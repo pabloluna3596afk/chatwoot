@@ -137,7 +137,7 @@ const isoTime = computed(() => new Date(createdAt.value * 1000).toISOString());
 </script>
 
 <template>
-  <div class="text-xs flex items-center gap-1.5 min-h-6">
+  <div class="text-xs flex items-center gap-1.5 min-h-6 whitespace-nowrap">
     <MessageSourceIndicator
       :content-attributes="contentAttributes"
       icon-class="size-4 text-n-slate-11"

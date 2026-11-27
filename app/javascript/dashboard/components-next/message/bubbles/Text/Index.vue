@@ -13,6 +13,7 @@ import { useTranslations } from 'dashboard/composables/useTranslations';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useMapGetter } from 'dashboard/composables/store';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import WhatsappReferral from './WhatsappReferral.vue';
 
 const {
   id,
@@ -78,8 +79,14 @@ const hasMedia = computed(() =>
 );
 
 const isEmpty = computed(() => {
-  return !content.value && !attachments.value?.length;
+  return (
+    !content.value &&
+    !attachments.value?.length &&
+    !contentAttributes.value?.referral
+  );
 });
+
+const referral = computed(() => contentAttributes.value?.referral);
 
 const templateButtons = computed(() => {
   return contentAttributes.value?.templateButtons ?? [];
@@ -102,8 +109,9 @@ const handleSeeOriginal = () => {
 </script>
 
 <template>
-  <BaseBubble content-class="px-3 pt-2" data-bubble-name="text">
+  <BaseBubble content-class="px-2.5 pt-2" data-bubble-name="text">
     <div class="gap-3 flex flex-col">
+      <WhatsappReferral v-if="referral" :referral="referral" />
       <span v-if="isEmpty" class="text-n-slate-11">
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>

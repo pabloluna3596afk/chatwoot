@@ -241,6 +241,9 @@
       "TEAMS": "Teams"
     },
     "PICKER": {
+      "CLOSE": "Close picker",
+      "TYPE_TO_SEARCH": "Type to search…",
+      "USE": "Use",
       "VARIABLE": {
         "SEARCH_PLACEHOLDER": "Search variables",
         "DESCRIPTION": "Description",
@@ -266,6 +269,18 @@
         "ENABLED": "Enabled",
         "DISABLED": "Disabled",
         "YOU_ARE_A_MEMBER": "You are a member of this team"
+      },
+      "PREVIEW": {
+        "MISSING": "no value",
+        "TODAY": "today",
+        "RELATIVE_DAYS": "today {sign} {days} days",
+        "SELF": "Current agent",
+        "STATUS": {
+          "open": "Open",
+          "pending": "Pending",
+          "resolved": "Resolved",
+          "snoozed": "Snoozed"
+        }
       }
     },
     "CUSTOM_SNOOZE": {
@@ -519,6 +534,13 @@
       "GO_TO_CONVERSATION": "Go to conversation thread"
     },
     "REPLY_PREVIEW": {
+      "YOU": "You",
+      "GO_TO_MESSAGE": "Go to message from {author}",
+      "REPLYING_TO_AUTHOR": "Replying to {author}",
+      "UNKNOWN_AUTHOR": "Unknown sender",
+      "ORIGINAL_MESSAGE": "Original message",
+      "ORIGINAL_UNAVAILABLE": "The original message is no longer available.",
+      "HISTORY_LIMIT": "This message is too far back. Load more history and try again.",
       "PHOTO": "Photo",
       "VIDEO": "Video",
       "PDF": "PDF",

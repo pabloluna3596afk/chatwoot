@@ -2,13 +2,19 @@
 import BaseBubble from './Base.vue';
 import MediaGrid from '../media/MediaGrid.vue';
 import { useMessageContext } from '../provider';
-const { attachments, content } = useMessageContext();
+import { computed } from 'vue';
+const { attachments, content, contentType } = useMessageContext();
+const isSticker = computed(() => contentType.value === 'sticker');
 </script>
 
 <template>
   <BaseBubble
     class="overflow-hidden"
-    content-class="p-1 [&_button]:mx-0 [&_button]:w-auto"
+    :content-class="
+      isSticker
+        ? 'p-0 [&_button]:mx-0 [&_button]:w-auto'
+        : 'p-1 [&_button]:mx-0 [&_button]:w-auto'
+    "
     data-bubble-name="image"
   >
     <MediaGrid :items="attachments" :caption="content || ''" />

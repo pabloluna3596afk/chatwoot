@@ -23,6 +23,7 @@ const {
   sender,
   senderType,
   contentAttributes,
+  contentType,
   variant,
   orientation,
   inReplyTo,
@@ -36,6 +37,7 @@ const showCaptain = computed(() =>
     contentAttributes: contentAttributes?.value,
   })
 );
+const isSticker = computed(() => contentType?.value === 'sticker');
 
 const varaintBaseMap = {
   [MESSAGE_VARIANTS.AGENT]: CHAT_SKIN.bubble.outgoing,
@@ -47,20 +49,19 @@ const varaintBaseMap = {
   [MESSAGE_VARIANTS.BOT]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.TEMPLATE]: CHAT_SKIN.bubble.outgoing,
   [MESSAGE_VARIANTS.ERROR]: 'bg-n-ruby-4 text-n-ruby-12',
-  [MESSAGE_VARIANTS.EMAIL]: 'w-full',
+  [MESSAGE_VARIANTS.EMAIL]: 'w-full bg-n-slate-4',
   [MESSAGE_VARIANTS.UNSUPPORTED]:
-    'bg-n-solid-amber/70 border border-dashed border-n-amber-12 text-n-amber-12',
+    'bg-n-solid-amber border border-dashed border-n-amber-12 text-n-amber-12',
 };
 
 const orientationMap = {
-  [ORIENTATION.LEFT]:
-    'left-bubble rounded-[0.875rem] ltr:rounded-bl-none rtl:rounded-br-none',
-  [ORIENTATION.RIGHT]:
-    'right-bubble rounded-[0.875rem] ltr:rounded-br-none rtl:rounded-bl-none',
+  [ORIENTATION.LEFT]: 'left-bubble rounded-[0.875rem] rounded-es-none',
+  [ORIENTATION.RIGHT]: 'right-bubble rounded-[0.875rem] rounded-ee-none',
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 
 const messageClass = computed(() => {
+  if (isSticker.value) return ['bg-transparent shadow-none', 'rounded-md'];
   const classToApply = [varaintBaseMap[variant.value]];
 
   if (variant.value !== MESSAGE_VARIANTS.ACTIVITY) {
@@ -78,10 +79,12 @@ const shouldShowMeta = computed(
     (!shouldGroupWithNext.value || sourceIcon.value || showCaptain.value) &&
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
-const MESSAGE_META_SPACING = 'mt-1 px-3 pb-2';
+const MESSAGE_META_SPACING = 'mt-1 px-2.5 pb-1.5';
 const metaClass = computed(() => [
-  MESSAGE_META_SPACING,
-  'justify-end text-n-slate-11',
+  isSticker.value
+    ? 'mt-1 ms-auto w-fit rounded-full bg-n-alpha-black2 px-2 py-1 text-n-slate-1 dark:text-n-slate-12'
+    : MESSAGE_META_SPACING,
+  isSticker.value ? 'justify-end' : 'justify-end text-n-slate-11',
 ]);
 </script>
 
@@ -107,7 +110,8 @@ const metaClass = computed(() => [
             props.contentClass &&
             !shouldShowMeta &&
             !props.hideMeta &&
-            variant !== MESSAGE_VARIANTS.ACTIVITY,
+            variant !== MESSAGE_VARIANTS.ACTIVITY &&
+            !isSticker,
         },
       ]"
     >

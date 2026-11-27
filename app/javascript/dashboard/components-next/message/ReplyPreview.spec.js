@@ -1,21 +1,37 @@
 import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
+import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import conversation from 'dashboard/i18n/locale/en/conversation.json';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import ReplyPreview from './ReplyPreview.vue';
+import {
+  activeJumpMessageId,
+  unavailableJumpTargets,
+} from './useJumpToMessage';
 
 const inReplyTo = ref({});
+const currentUserId = ref(7);
+const inboxId = ref(1);
 vi.mock('./provider', () => ({
   useMessageContext: () => ({
     inReplyTo,
     channelType: ref('Channel::Instagram'),
+    currentUserId,
+    inboxId,
+    conversationId: ref(3),
   }),
 }));
 const options = () => ({
   global: {
     plugins: [
+      createStore({
+        getters: {
+          'inboxes/getInbox': () => id =>
+            ({ 1: { name: 'Support' }, 2: { name: 'Sales' } })[id],
+        },
+      }),
       createI18n({
         legacy: false,
         locale: 'en',
@@ -31,10 +47,83 @@ const options = () => ({
 });
 
 describe('reply attachment preview', () => {
+  beforeEach(() => {
+    inboxId.value = 1;
+    activeJumpMessageId.value = null;
+    unavailableJumpTargets.value.clear();
+  });
+
+  it.each([
+    [
+      {
+        message_type: 1,
+        sender: null,
+        content_attributes: { external_echo: true },
+      },
+      'Support',
+    ],
+    [{ message_type: 3, sender: null }, 'Support'],
+    [{ message_type: 1, sender: { id: 7, name: 'Agent' } }, 'You'],
+    [{ message_type: 1, sender_id: 7 }, 'You'],
+    [{ message_type: 1, sender: { id: 8, name: 'Luis' } }, 'Luis'],
+    [{ message_type: 1, sender_name: 'Lucia' }, 'Lucia'],
+    [{ message_type: 0, sender: { id: 7, name: 'Ana' } }, 'Ana'],
+    [
+      { message_type: 1, sender_id: 8 },
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR,
+    ],
+    [
+      { message_type: 1, sender: {} },
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR,
+    ],
+    [
+      { message_type: 0, sender: null },
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR,
+    ],
+    [
+      { message_type: 1, private: true, sender: { id: 7, name: 'Agent' } },
+      conversation.CONVERSATION.REPLYBOX.PRIVATE_NOTE,
+    ],
+  ])('resolves the bubble author for %j as %s', (message, expected) => {
+    inReplyTo.value = { id: 1, content: 'Quoted text', ...message };
+    const wrapper = mount(ReplyPreview, options());
+    expect(wrapper.get('.font-semibold').text()).toBe(expected);
+    if (message.message_type === 1 && !message.private) {
+      expect(wrapper.get('.font-semibold').classes()).toContain(
+        'text-n-teal-11'
+      );
+    }
+    wrapper.unmount();
+  });
+
+  it('updates the bubble author with its inbox and keeps the unknown fallback', async () => {
+    inReplyTo.value = { id: 1, message_type: 1, sender: null };
+    const wrapper = mount(ReplyPreview, options());
+    inboxId.value = 2;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.font-semibold').text()).toBe('Sales');
+    inboxId.value = 99;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.font-semibold').text()).toBe(
+      conversation.CONVERSATION.REPLY_PREVIEW.UNKNOWN_AUTHOR
+    );
+    wrapper.unmount();
+  });
+
+  it('disables every quote of a target after a missing lookup', async () => {
+    inReplyTo.value = { id: 14, conversation_id: 3, content: 'Old' };
+    const wrapper = mount(ReplyPreview, options());
+    unavailableJumpTargets.value.add('3:14');
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    wrapper.unmount();
+  });
+
   it('shows the image thumbnail, type, caption and scrolls to its message', async () => {
     const emit = vi.spyOn(emitter, 'emit');
     inReplyTo.value = {
       id: 14,
+      conversation_id: 3,
       content: 'Payment receipt',
       attachments: [
         {
@@ -51,6 +140,8 @@ describe('reply attachment preview', () => {
     await wrapper.get('button').trigger('click');
     expect(emit).toHaveBeenCalledWith(BUS_EVENTS.SCROLL_TO_MESSAGE, {
       messageId: 14,
+      source: 'reply',
+      conversationId: 3,
     });
     emit.mockRestore();
   });
@@ -68,6 +159,27 @@ describe('reply attachment preview', () => {
     expect(wrapper.findComponent({ name: 'FileIcon' }).exists()).toBe(true);
     expect(wrapper.find('img').exists()).toBe(false);
   });
+
+  it.each(['image', 'video', 'audio', 'file'])(
+    'navigates from a %s quote using the same reply contract',
+    async fileType => {
+      const emit = vi.spyOn(emitter, 'emit');
+      inReplyTo.value = {
+        id: 21,
+        conversationId: 3,
+        attachments: [{ fileType, dataUrl: '/attachment' }],
+      };
+      const wrapper = mount(ReplyPreview, options());
+      await wrapper.get('button').trigger('click');
+      expect(emit).toHaveBeenCalledWith(BUS_EVENTS.SCROLL_TO_MESSAGE, {
+        messageId: 21,
+        source: 'reply',
+        conversationId: 3,
+      });
+      wrapper.unmount();
+      emit.mockRestore();
+    }
+  );
 
   it('shows the sender name and a plain-text excerpt without markup', () => {
     inReplyTo.value = {
@@ -90,7 +202,7 @@ describe('reply attachment preview', () => {
     const wrapper = mount(ReplyPreview, options());
     const excerpt = wrapper.get('[class*="line-clamp-1"][class*="leading-4"]');
     expect(excerpt.text()).toBe('First paragraph Second paragraph one two');
-    expect(excerpt.classes()).not.toContain('sm:line-clamp-2');
+    expect(excerpt.classes()).toContain('sm:line-clamp-2');
     expect(excerpt.element.parentElement.classList).toContain('flex-1');
     expect(wrapper.get('button').classes()).toContain('box-border');
     expect(wrapper.findAll('p, ul, li, br')).toHaveLength(0);
@@ -125,5 +237,90 @@ describe('reply attachment preview', () => {
     await wrapper.get('img').trigger('error');
     expect(wrapper.find('img').exists()).toBe(false);
     expect(wrapper.text()).toContain('Photo unavailable');
+  });
+
+  it.each([
+    [
+      { messageType: 0, sender: { name: 'Ana' } },
+      'text-n-blue-11',
+      'bg-n-blue-9/70',
+    ],
+    [
+      { messageType: 1, senderId: 7, sender: { name: 'Agent' } },
+      'text-n-teal-11',
+      'bg-n-teal-9/70',
+    ],
+    [
+      { messageType: 1, senderId: 8, sender: { name: 'Luis' } },
+      'text-n-teal-11',
+      'bg-n-teal-9/70',
+    ],
+    [
+      { messageType: 0, private: true, sender: { name: 'Ana' } },
+      'text-n-amber-11',
+      'bg-n-amber-9/70',
+    ],
+  ])(
+    'uses the author tone and always shows the author',
+    (message, authorClass, barClass) => {
+      inReplyTo.value = { id: 1, content: 'Quoted text', ...message };
+      const wrapper = mount(ReplyPreview, options());
+      const author = wrapper.get('span:nth-child(2) > span:first-child');
+      expect(author.classes()).toContain(authorClass);
+      expect(
+        wrapper.get('button').find('span:first-child').classes()
+      ).toContain(barClass);
+      expect(author.text()).not.toBe('');
+    }
+  );
+
+  it('keeps the thumbnail at the trailing edge and uses logical spacing for RTL', () => {
+    inReplyTo.value = {
+      id: 2,
+      messageType: 0,
+      sender: { name: 'Ana' },
+      attachments: [{ fileType: 'image', dataUrl: '/photo.png' }],
+    };
+    const wrapper = mount(ReplyPreview, options());
+    const button = wrapper.get('button');
+    expect(button.element.lastElementChild.classList).toContain('size-10');
+    expect(button.classes()).toContain('text-start');
+    expect(
+      button.classes().some(className => /(^|:)(left|right)-/.test(className))
+    ).toBe(false);
+  });
+
+  it('does not expose a deleted or unavailable quote as a clickable button', () => {
+    inReplyTo.value = { content: 'Deleted', sender: { name: 'Ana' } };
+    const wrapper = mount(ReplyPreview, options());
+    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('button').classes()).toContain('cursor-default');
+  });
+
+  it('labels the current agent as You and shows a spinner while fetching', () => {
+    inReplyTo.value = {
+      id: 8,
+      conversationId: 3,
+      messageType: 1,
+      senderId: 7,
+      sender: { name: 'Agent' },
+      content: 'Earlier reply',
+    };
+    activeJumpMessageId.value = 8;
+    const wrapper = mount(ReplyPreview, options());
+    expect(wrapper.text()).toContain('You');
+    expect(wrapper.find('.i-lucide-loader-circle').exists()).toBe(true);
+    activeJumpMessageId.value = null;
+  });
+
+  it.each([
+    { id: 9, content: 'Deleted', contentAttributes: { deleted: true } },
+    { id: 10, conversationId: 4, content: 'Other conversation' },
+  ])('disables a quote that cannot be opened', message => {
+    inReplyTo.value = message;
+    const wrapper = mount(ReplyPreview, options());
+    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('button').classes()).toContain('cursor-default');
+    expect(wrapper.get('button').attributes('aria-label')).toBeUndefined();
   });
 });

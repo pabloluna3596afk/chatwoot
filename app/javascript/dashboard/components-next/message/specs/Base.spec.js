@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import Base from '../bubbles/Base.vue';
+import { MESSAGE_VARIANTS } from '../constants';
 
 const context = {};
 vi.mock('../provider.js', () => ({ useMessageContext: () => context }));
@@ -32,6 +33,7 @@ describe('bubble metadata composition', () => {
       inReplyTo: ref(null),
       shouldGroupWithNext: ref(false),
       contentAttributes: ref({}),
+      contentType: ref('text'),
       sender: ref({ type: 'User' }),
     })
   );
@@ -97,13 +99,41 @@ describe('bubble metadata composition', () => {
     expect(meta.classes()).toEqual(
       expect.arrayContaining([
         'mt-1',
-        'px-3',
-        'pb-2',
+        'px-2.5',
+        'pb-1.5',
         'justify-end',
         'text-n-slate-11',
       ])
     );
     expect(meta.classes()).not.toContain('absolute');
+  });
+
+  it.each(Object.values(MESSAGE_VARIANTS))(
+    'provides an explicit background for the %s variant',
+    variant => {
+      context.variant.value = variant;
+      const classes = render().classes();
+      expect(classes.some(className => className.startsWith('bg-'))).toBe(true);
+    }
+  );
+
+  it('keeps the sticker variant transparent by design', () => {
+    context.contentType.value = 'sticker';
+    const wrapper = render();
+    expect(wrapper.classes()).toContain('bg-transparent');
+    expect(wrapper.classes()).toContain('shadow-none');
+    expect(wrapper.get('[data-meta]').classes()).toContain('text-n-slate-1');
+    expect(wrapper.get('[data-meta]').classes()).toContain(
+      'dark:text-n-slate-12'
+    );
+  });
+
+  it.each([
+    ['left', 'rounded-es-none'],
+    ['right', 'rounded-ee-none'],
+  ])('keeps the %s tail on its logical side in RTL', (orientation, corner) => {
+    context.orientation.value = orientation;
+    expect(render().classes()).toContain(corner);
   });
 
   it('does not create a meta row for activities or an explicit hideMeta', async () => {

@@ -476,6 +476,9 @@
       "AD": "Publicidad"
     },
     "PICKER": {
+      "CLOSE": "Cerrar selector",
+      "TYPE_TO_SEARCH": "Escribe para buscar…",
+      "USE": "Usar",
       "VARIABLE": {
         "SEARCH_PLACEHOLDER": "Buscar variables",
         "DESCRIPTION": "Descripción",
@@ -501,6 +504,18 @@
         "ENABLED": "Activado",
         "DISABLED": "Deshabilitado",
         "YOU_ARE_A_MEMBER": "Eres un miembro de este equipo"
+      },
+      "PREVIEW": {
+        "MISSING": "sin valor",
+        "TODAY": "hoy",
+        "RELATIVE_DAYS": "hoy {sign} {days} días",
+        "SELF": "Agente actual",
+        "STATUS": {
+          "open": "Abierta",
+          "pending": "Pendiente",
+          "resolved": "Resuelta",
+          "snoozed": "Pospuesta"
+        }
       }
     },
     "CONTACT_HISTORY": {
@@ -519,6 +534,13 @@
       }
     },
     "REPLY_PREVIEW": {
+      "YOU": "Tú",
+      "GO_TO_MESSAGE": "Ir al mensaje de {author}",
+      "REPLYING_TO_AUTHOR": "Respondiendo a {author}",
+      "UNKNOWN_AUTHOR": "Remitente desconocido",
+      "ORIGINAL_MESSAGE": "Mensaje original",
+      "ORIGINAL_UNAVAILABLE": "El mensaje original ya no está disponible.",
+      "HISTORY_LIMIT": "Este mensaje está demasiado atrás. Carga más historial e inténtalo de nuevo.",
       "PHOTO": "Foto",
       "VIDEO": "Video",
       "PDF": "PDF",

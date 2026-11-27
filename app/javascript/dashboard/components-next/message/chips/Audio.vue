@@ -28,6 +28,9 @@ const { attachment } = defineProps({
     default: true,
   },
 });
+
+const DURATION_SEPARATOR = ' / ';
+
 const { conversationId } = useMessageContext();
 const { t } = useI18n();
 
@@ -288,7 +291,7 @@ const downloadAudio = async () => {
   </audio>
   <div
     v-bind="$attrs"
-    class="rounded-xl w-full gap-2 p-2 bg-n-alpha-1 flex flex-col items-center border border-n-weak"
+    class="rounded-xl w-full gap-2 p-2 bg-n-alpha-1 flex flex-col items-center"
   >
     <div class="flex gap-1 w-full flex-1 items-center justify-start">
       <button
@@ -303,7 +306,8 @@ const downloadAudio = async () => {
         <Icon v-else class="size-8" icon="i-teenyicons-play-small-solid" />
       </button>
       <div class="tabular-nums text-xs">
-        {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+        {{ formatTime(currentTime) }}{{ DURATION_SEPARATOR
+        }}{{ formatTime(duration) }}
       </div>
       <div class="flex-1 items-center flex px-2">
         <input

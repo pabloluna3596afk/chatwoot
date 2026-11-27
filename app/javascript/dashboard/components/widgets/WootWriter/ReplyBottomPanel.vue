@@ -18,6 +18,7 @@ import RecordingBar from './RecordingBar.vue';
 import ComposerOverflowMenu from './ComposerOverflowMenu.vue';
 
 const props = defineProps({
+  hideOnMobile: { type: Boolean, default: false },
   isNote: {
     type: Boolean,
     default: false,
@@ -86,6 +87,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  enableMacros: { type: Boolean, default: false },
   enableCannedResponses: {
     type: Boolean,
     default: true,
@@ -127,6 +129,7 @@ const emit = defineEmits([
   'toggleInsertArticle',
   'selectWhatsappTemplate',
   'selectCannedResponse',
+  'selectMacro',
   'selectContentTemplate',
   'toggleQuotedReply',
   'requestContactInfoTemplate',
@@ -200,7 +203,6 @@ const activateItem = key => {
     audio: props.toggleAudioRecorder,
     emoji: props.toggleEmojiPicker,
     quoted: () => emit('toggleQuotedReply'),
-    canned: () => emit('selectCannedResponse'),
     article: () => emit('toggleInsertArticle'),
     signature: () =>
       setSignatureFlagForInbox(channelType.value, !sendWithSignature.value),
@@ -263,16 +265,6 @@ const toolbarItems = computed(() =>
       state: stateLabel(props.quotedReplyEnabled),
     },
     {
-      key: 'canned',
-      hideRank: 3,
-      visible:
-        props.enableCannedResponses &&
-        !props.isOnPrivateNote &&
-        !props.isEditorDisabled,
-      icon: 'i-lucide-text-quote',
-      label: t('CONVERSATION.FOOTER.CANNED_RESPONSES'),
-    },
-    {
       key: 'article',
       hideRank: 2,
       visible: !!props.portalSlug,
@@ -328,8 +320,34 @@ onMounted(() => ActiveStorage.start());
   <div
     v-show="!isRecordingAudio"
     class="flex items-center gap-2 px-2.5 py-1.5"
-    :class="{ 'is-note-mode': isNote }"
+    :class="{ 'is-note-mode': isNote, 'max-md:hidden': hideOnMobile }"
   >
+    <NextButton
+      v-if="enableCannedResponses && !isOnPrivateNote && !isEditorDisabled"
+      v-tooltip.top="t('CONVERSATION.FOOTER.CANNED_RESPONSES')"
+      data-composer-shortcut="canned"
+      intent="tertiary"
+      sm
+      icon="i-lucide-text-quote"
+      :aria-label="t('CONVERSATION.FOOTER.CANNED_RESPONSES')"
+      aria-haspopup="dialog"
+      class="shrink-0 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+      @mousedown.prevent
+      @click="emit('selectCannedResponse')"
+    />
+    <NextButton
+      v-if="enableMacros && !isEditorDisabled"
+      v-tooltip.top="t('MACROS.HEADER')"
+      data-composer-shortcut="macros"
+      intent="tertiary"
+      sm
+      icon="i-lucide-zap"
+      :aria-label="t('MACROS.HEADER')"
+      aria-haspopup="listbox"
+      class="shrink-0 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+      @mousedown.prevent
+      @click="emit('selectMacro')"
+    />
     <div
       ref="toolbarRef"
       class="left-wrap flex min-w-0 flex-1 items-center gap-2"

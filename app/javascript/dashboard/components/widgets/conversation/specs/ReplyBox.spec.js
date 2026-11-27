@@ -138,6 +138,56 @@ describe('ReplyBox', () => {
     });
   });
 
+  it.each(['toggleCannedMenu', 'toggleMacrosMenu'])(
+    'hides the bottom row only on mobile during %s and restores it on close',
+    async method => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::WebWidget' },
+      });
+      const panel = wrapper.getComponent({ name: 'ReplyBottomPanel' });
+      const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+      input.vm.closeComposerPickers = vi.fn();
+      input.vm.focusEditorInputField = vi.fn();
+      expect(panel.props('hideOnMobile')).toBe(false);
+      wrapper.vm[method](true);
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(true);
+      wrapper.vm[method](false);
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(false);
+      wrapper.vm.openCannedResponsesModal();
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(true);
+      wrapper.vm.hideCannedResponsesModal();
+      await nextTick();
+      expect(panel.props('hideOnMobile')).toBe(false);
+      wrapper.unmount();
+    }
+  );
+
+  it('closes pickers before sending and restores focus after dismissing canned responses', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+    input.vm.closeComposerPickers = vi.fn();
+    input.vm.focusEditorInputField = vi.fn();
+    const proceed = vi
+      .spyOn(wrapper.vm, 'proceedAfterAssignmentCheck')
+      .mockResolvedValue();
+    wrapper.vm.openCannedResponsesModal();
+    expect(input.vm.closeComposerPickers).toHaveBeenCalledOnce();
+    expect(wrapper.vm.showCannedResponsesModal).toBe(true);
+    wrapper.vm.hideCannedResponsesModal();
+    expect(input.vm.focusEditorInputField).toHaveBeenCalledWith(null);
+    wrapper.vm.openCannedResponsesModal();
+    await wrapper.vm.onSendReply();
+    expect(input.vm.closeComposerPickers).toHaveBeenCalledTimes(3);
+    expect(wrapper.vm.showCannedResponsesModal).toBe(false);
+    expect(proceed).toHaveBeenCalledOnce();
+    wrapper.unmount();
+  });
+
   it.each([REPLY_EDITOR_MODES.NOTE, REPLY_EDITOR_MODES.REPLY])(
     'renders an intact return symbol in %s mode',
     async mode => {
@@ -166,10 +216,10 @@ describe('ReplyBox', () => {
       });
       const quote = wrapper.getComponent({ name: 'ReplyToMessage' });
       const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+      expect(quote.classes().includes('!bg-n-amber-12/5')).toBe(isPrivate);
       expect(quote.element.nextElementSibling).toBe(input.element);
       expect(input.classes()).toContain('!rounded-t-none');
       expect(input.props('disabled')).toBe(!isPrivate);
-      if (isPrivate) expect(quote.classes()).toContain('!bg-n-amber-12/5');
       await wrapper.vm.copilot.execute('reply_suggestion', '');
       await nextTick();
       expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(
@@ -212,6 +262,38 @@ describe('ReplyBox', () => {
       wrapper.unmount();
     }
   );
+
+  it('dismisses the reply quote on Escape only when no other layer is open', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::Whatsapp' },
+      chat: { can_reply: false },
+    });
+    await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    await wrapper.setData({
+      inReplyTo: { id: 8, content: 'Quoted text' },
+      showCannedMenu: true,
+    });
+    const pressEscape = () =>
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          bubbles: true,
+        })
+      );
+    pressEscape();
+    await nextTick();
+    expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(
+      true
+    );
+    await wrapper.setData({ showCannedMenu: false });
+    pressEscape();
+    await nextTick();
+    expect(wrapper.findComponent({ name: 'ReplyToMessage' }).exists()).toBe(
+      false
+    );
+    wrapper.unmount();
+  });
 
   it('restores the bottom bar on Escape while an input is focused', async () => {
     const { wrapper } = mountWith({

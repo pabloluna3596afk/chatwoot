@@ -1,12 +1,15 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useOrderedMacros } from 'dashboard/composables/useOrderedMacros';
 import { useMacros } from 'dashboard/composables/useMacros';
+import ShortcutPreview from 'dashboard/components-next/preview-picker/ShortcutPreview.vue';
 import CaretAnchoredPicker from 'dashboard/components-next/preview-picker/CaretAnchoredPicker.vue';
 
 const props = defineProps({
+  focusSearch: { type: Boolean, default: true },
+  variables: { type: Object, default: () => ({}) },
   caretPosition: {
     type: Object,
     default: null,
@@ -29,6 +32,12 @@ const uiFlags = useMapGetter('macros/getUIFlags');
 
 // The trigger can already be followed by text, from a draft or a caret moved back onto it
 const searchQuery = ref(props.searchKey);
+watch(
+  () => props.searchKey,
+  value => {
+    searchQuery.value = value;
+  }
+);
 
 const searchTerm = computed(() => searchQuery.value.trim().toLowerCase());
 
@@ -57,6 +66,8 @@ onMounted(() => {
   <CaretAnchoredPicker
     v-model:search="searchQuery"
     :caret-position="caretPosition"
+    :focus-search="focusSearch"
+    touch-preview
     :items="items"
     :search-placeholder="t('CONVERSATION.PICKER.MACRO.SEARCH_PLACEHOLDER')"
     :is-loading="uiFlags.isFetching"
@@ -68,12 +79,12 @@ onMounted(() => {
     <template #preview="{ item }">
       <div v-if="item" class="px-4 py-3">
         <div
-          v-for="(action, index) in resolveMacroActions(item.macro)"
+          v-for="(action, index) in resolveMacroActions(item.macro, variables)"
           :key="index"
           class="relative flex flex-col pb-2 group ps-4 last:pb-0 gap-0.5"
         >
           <span
-            class="absolute top-1 -bottom-1 w-px start-[3.5px] bg-n-slate-6 group-last:hidden"
+            class="absolute top-1 -bottom-1 w-px start-[0.21875rem] bg-n-slate-6 group-last:hidden"
           />
           <span
             class="absolute border-2 rounded-full top-1 start-0 size-2 bg-n-solid-1 border-n-weak dark:border-n-slate-6"
@@ -81,12 +92,10 @@ onMounted(() => {
           <span class="text-xs text-n-slate-10">
             {{ t(`MACROS.ACTIONS.${action.actionName}`) }}
           </span>
-          <span
+          <ShortcutPreview
             v-if="action.actionValue"
-            class="text-sm break-words text-n-slate-12"
-          >
-            {{ action.actionValue }}
-          </span>
+            :content="action.actionValue"
+          />
         </div>
       </div>
     </template>

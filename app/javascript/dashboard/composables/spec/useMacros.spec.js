@@ -222,6 +222,70 @@ describe('useMacros', () => {
     ]);
   });
 
+  it.each([
+    ['assign_team', [1], '⚙️ sales team'],
+    ['assign_agent', [9], 'Clark Kent'],
+    ['assign_agent', ['self'], 'Ana'],
+    ['assign_agent', ['nil'], 'AUTOMATION.NONE_OPTION'],
+    ['add_label', ['sales', 'billing'], 'sales, billing'],
+    ['remove_label', ['sales'], 'sales'],
+    ['remove_assigned_agent', [], ''],
+    ['remove_assigned_team', [], ''],
+    [
+      'send_email_transcript',
+      ['a@example.com', 'b@example.com'],
+      'a@example.com, b@example.com',
+    ],
+    ['mute_conversation', [], ''],
+    ['snooze_conversation', [], ''],
+    ['resolve_conversation', [], ''],
+    [
+      'change_status',
+      ['resolved'],
+      'CONVERSATION.PICKER.PREVIEW.STATUS.resolved',
+    ],
+    ['send_attachment', ['blob-1'], 'invoice.pdf'],
+    ['send_message', ['Hello **{{contact.name}}**'], 'Hello **Bea**'],
+    ['change_priority', ['high'], 'MACROS.PRIORITY_TYPES.HIGH'],
+    ['add_private_note', ['{{agent.name}}\nNote'], 'Ana\nNote'],
+    [
+      'send_webhook_event',
+      ['https://example.com/hook'],
+      'https://example.com/hook',
+    ],
+    [
+      'update_contact_custom_attribute',
+      [{ attribute_key: 'level', value: false }],
+      'level = false',
+    ],
+    [
+      'update_conversation_custom_attribute',
+      {
+        attribute_key: 'amount',
+        value: '{{conversation.custom_attribute.amount}}',
+      },
+      'amount = 42',
+    ],
+  ])(
+    'previews %s without raw data or changing the macro',
+    (name, params, expected) => {
+      const macro = {
+        actions: [{ action_name: name, action_params: params }],
+        files: [{ blob_id: 'blob-1', filename: 'invoice.pdf' }],
+      };
+      const original = JSON.stringify(macro);
+      const { resolveMacroActions } = useMacros();
+      expect(
+        resolveMacroActions(macro, {
+          'agent.name': 'Ana',
+          'contact.name': 'Bea',
+          'conversation.custom_attribute.amount': 42,
+        })[0].actionValue
+      ).toBe(expected);
+      expect(JSON.stringify(macro)).toBe(original);
+    }
+  );
+
   it('handles empty data correctly', () => {
     useStoreGetters.mockReturnValue({
       'labels/getLabels': { value: [] },

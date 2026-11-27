@@ -73,6 +73,17 @@ describe('composer toolbar', () => {
       },
     });
 
+  it('hides and restores the real toolbar on mobile while keeping desktop visible', async () => {
+    wrapper = render();
+    const row = wrapper.get('.flex.items-center.gap-2');
+    expect(row.classes()).not.toContain('max-md:hidden');
+    await wrapper.setProps({ hideOnMobile: true });
+    expect(row.classes()).toContain('max-md:hidden');
+    expect(row.classes()).not.toContain('hidden');
+    await wrapper.setProps({ hideOnMobile: false });
+    expect(row.classes()).not.toContain('max-md:hidden');
+  });
+
   it('orders eligible tools and lists exactly the hidden ones, retaining FileUpload', async () => {
     wrapper = render();
     await flushPromises();
@@ -95,7 +106,6 @@ describe('composer toolbar', () => {
       'audio',
       'emoji',
       'contact',
-      'canned',
       'article',
       'signature',
     ]);
@@ -120,12 +130,29 @@ describe('composer toolbar', () => {
       'audio',
       'emoji',
       'contact',
-      'canned',
       'article',
       'signature',
     ]);
-    wrapper.findComponent(ComposerOverflowMenu).vm.$emit('select', 'canned');
+    await wrapper.get('[data-composer-shortcut="canned"]').trigger('click');
     expect(wrapper.emitted('selectCannedResponse')).toHaveLength(1);
+  });
+
+  it('keeps both shortcuts outside overflow with accessible touch targets', async () => {
+    wrapper = render({ enableMacros: true });
+    await flushPromises();
+    const shortcuts = wrapper.findAll('[data-composer-shortcut]');
+    expect(shortcuts).toHaveLength(2);
+    shortcuts.forEach(button => {
+      expect(button.isVisible()).toBe(true);
+      expect(button.attributes('aria-label')).toBeTruthy();
+      expect(button.classes()).toContain('min-h-11');
+      expect(button.classes()).toContain('min-w-11');
+      expect(button.element.closest('.left-wrap')).toBeNull();
+    });
+    await shortcuts[1].trigger('click');
+    expect(wrapper.emitted('selectMacro')).toHaveLength(1);
+    await wrapper.setProps({ isEditorDisabled: true });
+    expect(wrapper.find('[data-composer-shortcut]').exists()).toBe(false);
   });
 
   it('keeps API Send disabled without a template action', () => {

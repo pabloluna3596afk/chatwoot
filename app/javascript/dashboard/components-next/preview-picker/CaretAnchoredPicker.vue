@@ -1,7 +1,15 @@
 <script setup>
-import { computed, ref, watch, useSlots, useTemplateRef } from 'vue';
+import {
+  computed,
+  ref,
+  watch,
+  useSlots,
+  useTemplateRef,
+  onUnmounted,
+} from 'vue';
 import {
   useElementBounding,
+  useEventListener,
   useResizeObserver,
   useWindowSize,
 } from '@vueuse/core';
@@ -13,6 +21,8 @@ import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirecti
 import PreviewPicker from './PreviewPicker.vue';
 
 const props = defineProps({
+  touchPreview: { type: Boolean, default: false },
+  focusSearch: { type: Boolean, default: true },
   caretPosition: {
     type: Object,
     default: null,
@@ -47,6 +57,7 @@ const VIEWPORT_MARGIN = 16;
 const GAP = 8;
 const SIDE_PREVIEW_MIN_WIDTH = 480;
 const STACKED_PREVIEW_MIN_HEIGHT = 280;
+const MOBILE_BREAKPOINT = 768;
 
 const slots = useSlots();
 
@@ -59,13 +70,52 @@ const selectedIndex = ref(0);
 const caretAnchor = useElementBounding(caretAnchorRef);
 const { width: windowWidth, height: windowHeight } = useWindowSize();
 const isRTL = useMapGetter('accounts/isRTL');
+const visualViewport = window.visualViewport;
+const viewportBounds = ref(null);
+const updateViewport = () => {
+  if (!visualViewport) return;
+  viewportBounds.value = {
+    top: visualViewport.offsetTop,
+    left: visualViewport.offsetLeft,
+    width: visualViewport.width,
+    height: visualViewport.height,
+  };
+};
+updateViewport();
+let viewportFrame = null;
+const scheduleViewportUpdate = () => {
+  if (viewportFrame !== null) return;
+  viewportFrame = requestAnimationFrame(() => {
+    viewportFrame = null;
+    updateViewport();
+    caretAnchor.update();
+  });
+};
+useEventListener(visualViewport, ['resize', 'scroll'], scheduleViewportUpdate);
+onUnmounted(() => {
+  if (viewportFrame !== null) cancelAnimationFrame(viewportFrame);
+});
+const viewport = computed(
+  () =>
+    viewportBounds.value || {
+      top: 0,
+      left: 0,
+      width: windowWidth.value,
+      height: windowHeight.value,
+    }
+);
 
 const items = computed(() => props.items);
 
-const caretAnchorStyle = computed(() => ({
-  top: `${props.caretPosition?.top ?? 0}px`,
-  height: `${props.caretPosition?.height ?? 0}px`,
-}));
+const caretAnchorStyle = computed(() => {
+  // On mobile, keep the picker at the editor edge as the caret and keyboard move.
+  const atEditorEdge =
+    props.touchPreview && windowWidth.value < MOBILE_BREAKPOINT;
+  return {
+    top: `${atEditorEdge ? 0 : (props.caretPosition?.top ?? 0)}px`,
+    height: `${atEditorEdge ? 0 : (props.caretPosition?.height ?? 0)}px`,
+  };
+});
 
 useResizeObserver(
   () => caretAnchorRef.value?.parentElement,
@@ -73,13 +123,21 @@ useResizeObserver(
 );
 
 const placement = computed(() => {
-  const above = caretAnchor.top.value - VIEWPORT_MARGIN - GAP;
-  const below =
-    windowHeight.value - caretAnchor.bottom.value - VIEWPORT_MARGIN - GAP;
+  const top = viewport.value.top + VIEWPORT_MARGIN;
+  const bottom = viewport.value.top + viewport.value.height - VIEWPORT_MARGIN;
+  const aboveEnd = Math.max(top, Math.min(caretAnchor.top.value - GAP, bottom));
+  const belowStart = Math.min(
+    bottom,
+    Math.max(caretAnchor.bottom.value + GAP, top)
+  );
+  const above = aboveEnd - top;
+  const below = bottom - belowStart;
   const placeAbove = above > below;
 
   return {
     placeAbove,
+    aboveEnd,
+    belowStart,
     height: Math.min(MAX_HEIGHT, Math.max(placeAbove ? above : below, 0)),
   };
 });
@@ -88,14 +146,18 @@ const width = computed(() =>
   Math.min(
     caretAnchor.width.value,
     hasPreview.value ? MAX_WIDTH : LIST_ONLY_MAX_WIDTH,
-    windowWidth.value - VIEWPORT_MARGIN * 2
+    viewport.value.width - VIEWPORT_MARGIN * 2
   )
 );
 
 const previewLayout = computed(() => {
   if (!hasPreview.value) return 'none';
   if (width.value >= SIDE_PREVIEW_MIN_WIDTH) return 'side';
-  if (placement.value.height >= STACKED_PREVIEW_MIN_HEIGHT) return 'stacked';
+  if (
+    props.touchPreview ||
+    placement.value.height >= STACKED_PREVIEW_MIN_HEIGHT
+  )
+    return 'stacked';
   return 'none';
 });
 
@@ -108,21 +170,28 @@ const inlineStart = computed(() =>
 );
 
 const pickerStyle = computed(() => {
-  const { placeAbove, height } = placement.value;
+  const { placeAbove, height, aboveEnd, belowStart } = placement.value;
   const showsPreview = previewLayout.value !== 'none';
+  const viewportStart = isRTL.value
+    ? windowWidth.value - viewport.value.left - viewport.value.width
+    : viewport.value.left;
   const start = Math.min(
     inlineStart.value,
-    windowWidth.value - width.value - VIEWPORT_MARGIN
+    viewportStart + viewport.value.width - width.value - VIEWPORT_MARGIN
   );
 
   return {
-    insetInlineStart: `${Math.max(VIEWPORT_MARGIN, start)}px`,
+    insetInlineStart: `${Math.max(viewportStart + VIEWPORT_MARGIN, start)}px`,
     width: `${width.value}px`,
+    height:
+      props.touchPreview && previewLayout.value === 'stacked'
+        ? `${height}px`
+        : null,
     maxHeight: `${height}px`,
     minHeight: showsPreview ? `${Math.min(MIN_HEIGHT, height)}px` : null,
     ...(placeAbove
-      ? { bottom: `${windowHeight.value - caretAnchor.top.value + GAP}px` }
-      : { top: `${caretAnchor.bottom.value + GAP}px` }),
+      ? { bottom: `${windowHeight.value - aboveEnd}px` }
+      : { top: `${belowStart}px` }),
   };
 });
 
@@ -140,6 +209,34 @@ const { moveSelectionUp, moveSelectionDown } = useKeyboardNavigableList({
   selectedIndex,
 });
 
+// Consume suggestion keys before ProseMirror moves the caret or inserts a newline.
+// Escape must also bypass the document shortcuts that blur editable elements.
+const editorElement = document.activeElement;
+useEventListener(
+  document,
+  'keydown',
+  event => {
+    if (props.focusSearch || event.target !== editorElement) return;
+    if (event.isComposing || event.keyCode === 229) {
+      event.stopPropagation();
+      return;
+    }
+    const actions = {
+      ArrowUp: moveSelectionUp,
+      ArrowDown: moveSelectionDown,
+      Tab: event.shiftKey ? moveSelectionUp : moveSelectionDown,
+      Enter: onSelect,
+      Escape: () => emit('close'),
+    };
+    const action = actions[event.key];
+    if (!action || event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    action();
+  },
+  { capture: true }
+);
+
 const withPicker = action => ({
   action: event => {
     event.preventDefault();
@@ -154,7 +251,7 @@ useKeyboardEvents({
   Escape: withPicker(() => emit('close')),
   Backspace: {
     action: event => {
-      if (search.value) return;
+      if (!props.focusSearch || search.value) return;
       event.preventDefault();
       emit('removeTrigger');
     },
@@ -185,6 +282,8 @@ watch(items, () => {
       v-model:selected-index="selectedIndex"
       v-model:search="search"
       v-on-click-outside="() => emit('close')"
+      :focus-search="focusSearch"
+      :touch-preview="touchPreview"
       :items="items"
       :search-placeholder="searchPlaceholder"
       :empty-label="emptyLabel"
@@ -194,6 +293,7 @@ watch(items, () => {
       class="fixed z-[9999]"
       :style="pickerStyle"
       @select="onListItemSelection"
+      @close="emit('close')"
       @keydown.esc.stop.prevent="emit('close')"
     >
       <template v-if="$slots.leading" #leading="slotProps">

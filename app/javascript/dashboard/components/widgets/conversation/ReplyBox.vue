@@ -112,8 +112,18 @@ export default {
     useKeyboardEvents({
       Escape: {
         action: () => {
+          // Esc closes the innermost layer first; the quote goes last.
+          const closedLayer =
+            proxy.showEmojiPicker ||
+            copilot.isActive.value ||
+            proxy.showCannedMenu ||
+            proxy.showMacrosMenu ||
+            proxy.showCannedResponsesModal;
           proxy.hideEmojiPicker();
           if (copilot.isActive.value) copilot.reset();
+          if (!closedLayer && proxy.shouldShowReplyToMessage) {
+            proxy.resetReplyToMessage();
+          }
         },
         allowOnFocusedInput: true,
       },
@@ -900,10 +910,12 @@ export default {
       this.requestContactInfoTemplatesOnly = false;
     },
     openCannedResponsesModal() {
+      this.messageEditor?.closeComposerPickers();
       this.showCannedResponsesModal = true;
     },
     hideCannedResponsesModal() {
       this.showCannedResponsesModal = false;
+      this.messageEditor?.focusEditorInputField(null);
     },
     onSelectCannedResponse(item) {
       const content = item?.content || '';
@@ -1016,6 +1028,8 @@ export default {
           });
     },
     async onSendReply() {
+      this.messageEditor?.closeComposerPickers();
+      this.showCannedResponsesModal = false;
       const undefinedVariables = getUndefinedVariablesInMessage({
         message: this.message,
         variables: this.messageVariables,
@@ -1525,6 +1539,9 @@ export default {
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"
           :message="inReplyTo"
+          :current-user-id="currentUser?.id"
+          :conversation-id="conversationId"
+          :inbox-id="inboxId"
           :class="{ '!bg-n-amber-12/5': isPrivate }"
           @dismiss="resetReplyToMessage"
         />
@@ -1608,6 +1625,9 @@ export default {
     <ReplyBottomPanel
       v-else
       key="reply-bottom-panel"
+      :hide-on-mobile="
+        showCannedMenu || showMacrosMenu || showCannedResponsesModal
+      "
       :conversation-id="conversationId"
       :enable-multiple-file-upload="enableMultipleFileUpload"
       :enable-whats-app-templates="showWhatsappTemplates"
@@ -1634,7 +1654,9 @@ export default {
       :toggle-emoji-picker="toggleEmojiPicker"
       :portal-slug="connectedPortalSlug"
       :new-conversation-modal-active="newConversationModalActive"
+      :enable-macros="isMacrosEnabled && isDefaultEditorMode"
       @select-whatsapp-template="openWhatsappTemplateModal"
+      @select-macro="messageEditor?.openMacros()"
       @select-canned-response="openCannedResponsesModal"
       @select-content-template="openContentTemplateModal"
       @toggle-insert-article="toggleInsertArticle"
@@ -1653,6 +1675,7 @@ export default {
     />
 
     <CannedResponsesModal
+      :variables="messageVariables"
       :show="showCannedResponsesModal"
       @on-select="onSelectCannedResponse"
       @cancel="hideCannedResponsesModal"

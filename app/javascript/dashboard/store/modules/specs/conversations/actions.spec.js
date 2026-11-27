@@ -86,6 +86,76 @@ describe('#actions', () => {
       });
     });
 
+    it('does not close backward pagination for an empty bounded quote lookup', async () => {
+      axios.get.mockResolvedValue({ data: { meta: {}, payload: [] } });
+      await store.dispatch('fetchPreviousMessages', {
+        conversationId: 42,
+        after: 50,
+        before: 100,
+      });
+      expect(conversationA.allMessagesLoaded).not.toBe(true);
+    });
+
+    it('does not insert a capped range with a gap in the history', async () => {
+      axios.get.mockResolvedValue({
+        data: {
+          meta: {},
+          payload: Array.from({ length: 1000 }, (_, id) => ({ id })),
+        },
+      });
+      const result = await store.dispatch('fetchPreviousMessages', {
+        conversationId: 42,
+        after: 1,
+        before: 2000,
+        anchorId: 1999,
+        shouldApply: () => true,
+      });
+      expect(result).toEqual({ limited: true });
+      expect(conversationA.messages).toEqual([{ id: 100 }]);
+    });
+
+    it('rejects a truncated range even when private-note filtering makes it shorter than 1000', async () => {
+      axios.get.mockResolvedValue({
+        data: { meta: {}, payload: [{ id: 50 }] },
+      });
+      const result = await store.dispatch('fetchPreviousMessages', {
+        conversationId: 42,
+        after: 50,
+        before: 101,
+        anchorId: 100,
+        shouldApply: () => true,
+      });
+      expect(result).toEqual({ limited: true });
+      expect(conversationA.messages).toEqual([{ id: 100 }]);
+    });
+
+    it('merges a complete quote range without duplicating its visible anchor', async () => {
+      axios.get.mockResolvedValue({
+        data: { meta: {}, payload: [{ id: 50 }, { id: 100 }] },
+      });
+      await store.dispatch('fetchPreviousMessages', {
+        conversationId: 42,
+        after: 50,
+        before: 101,
+        anchorId: 100,
+        shouldApply: () => true,
+      });
+      expect(conversationA.messages).toEqual([{ id: 50 }, { id: 100 }]);
+      expect(conversationA.allMessagesLoaded).not.toBe(true);
+    });
+
+    it('discards a quote response before it can mutate the timeline when superseded', async () => {
+      axios.get.mockResolvedValue({
+        data: { meta: {}, payload: [{ id: 50 }] },
+      });
+      await store.dispatch('fetchPreviousMessages', {
+        conversationId: 42,
+        after: 50,
+        before: 100,
+        shouldApply: () => false,
+      });
+      expect(conversationA.messages).toEqual([{ id: 100 }]);
+    });
     it('shares pending history when switching A to B to A and keeps responses in their own conversations', async () => {
       let resolveA;
       let resolveB;

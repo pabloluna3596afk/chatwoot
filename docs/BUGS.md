@@ -1,3 +1,11 @@
+### B-NEW-314 - Navegación de citas y continuidad del scroll del chat (2026-11-27)
+
+- **Archivos:** `components-next/message/{useJumpToMessage,ReplyPreview,Message}`, `widgets/conversation/{MessagesView,ReplyToMessage,ReplyBox}`, `store/modules/conversations/actions.js`, metadatos, Base y controles WootWriter.
+- **Problema:** respuestas de historial obsoletas podían mover la conversación, mensajes nuevos cancelaban un salto, citas ausentes seguían activas y redimensionar el compositor podía bajar al final durante la carga. El límite de 1000 mensajes podía dejar un hueco invisible tras filtrar notas privadas.
+- **Cambio:** vigencia antes del commit y del render, petición única con ancla visible para comprobar continuidad, destinos ausentes desactivados, resaltado después del scroll, limpieza de listeners y autoscroll solo para quien está al final. Compositor con contexto de conversación, X independiente, márgenes contenidos, estados de foco y ajustes RTL con tokens existentes. Sin cambios de envío, backend ni migraciones.
+- **Cómo probar:** specs de `useJumpToMessage`, `ReplyPreview`, `MessageReply`, `MessagesView`, `ReplyToMessage`, actions, Base, MessageMeta y EditorModeToggle. Tres regresiones adicionales reproducidas en rojo antes de corregirlas (ausencia, resize y rango recortado). Matriz y resultados finales en `docs-crm/codex/tabla-chat-revision.md` del directorio padre.
+- **Pendiente visual:** 390 px/escritorio, claro/oscuro, RTL, teclado, scroll nativo y contraste. El brief prohíbe Docker/preview/navegador; sin aprobación visual ni PR. El test ajeno `useReportMetrics.spec.js:43` falla por locale es-EC (`5.000` frente a `5,000`), reproducido en el HEAD original aislado.
+
 ### B-NEW-311 - Medidas de adjuntos disponibles en vivo tras el análisis (2026-11-24)
 
 - **Problema:** `message.created` puede difundirse antes de que `ActiveStorage::AnalyzeJob` guarde las dimensiones; la burbuja conserva medidas nulas hasta refrescar.
@@ -3987,3 +3995,19 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Cambio:** éxitos y errores siempre aparecen arriba, con el cambio de estado más reciente primero; solo las tareas en curso tienen un límite de tres. El store conserva un orden interno por creación/cambio de estado sin modificar el contrato de tarea. La tarjeta tiene contorno neutro fino y acento solo en el borde inicial; el spinner conserva su componente compartido y añade un anillo decorativo alineado, con arco de marca contrastado. El título ocupa una sola línea sin cambiar textos.
 - **Cómo probar:** registrar cuatro tareas en curso y pasar una a éxito: deben verse el éxito y las otras tres, sin «+N más»; a los diez segundos desaparece solo el éxito. Con cinco en curso deben verse tres y «+2 más». Cambiar el estado de una tarea debe subirla al principio de su grupo; actualizar únicamente el detalle no debe reordenarla. Revisar contorno neutro, acento lateral, spinner y título en modo claro/oscuro y RTL.
 - **Validación:** Vitest de bandeja/store cubre visibilidad, límite, orden, descarte y estilos. CSS de Tailwind compilado verifica que el acento modifica solo `border-inline-start-color`. Revisión visual posterior al cambio pendiente del PM. Sin backend, contrato, migraciones, push ni PR.
+
+
+### B-NEW-314 ? Atajos del compositor conservan el foco al escribir # y / (2026-11-27)
+
+- **S?ntoma:** al abrir macros/respuestas desde el editor en iPhone, el foco saltaba al buscador y pod?a cerrar/reabrir el teclado.
+- **Causa:** `PreviewPicker.vue` enfocaba siempre el input al montar; los atajos globales procesaban Escape con `blur`, y el viewport reposicionaba el men? en cada evento.
+- **Cambio:** `Editor.vue`, `MacroList.vue`, `CannedResponse.vue` y `PreviewPicker.vue` distinguen apertura escrita y de barra. La escrita conserva el foco y filtra con las suggestions existentes; la barra enfoca con `preventScroll`. `CaretAnchoredPicker.vue` consume navegaci?n antes de ProseMirror, preserva IME y agrupa resize/scroll con rAF cancelable. Las opciones preservan foco al pointerdown y seleccionan solo en click. El buscador del modal de respuestas tambi?n usa `preventScroll`.
+- **Prueba:** `ComposerPickerFocus.spec.js` monta editor y selectores reales: foco, filtro, Enter/Escape, toque, inserci?n ?nica e IME. `ComposerPickers.spec.js` verifica rAF y cancelaci?n. Ejecuci?n amplia en UTC y America/Guayaquil; detalle y resultados en la entrega externa `docs-crm/codex/tabla-atajos3.md`.
+- **L?mite:** continuidad del teclado, animaciones y desplazamiento visual pendientes de Safari y PWA en iPhone real. No se cambia ejecuci?n de macros ni altura global de la app.
+
+### B-NEW-315 — Autor de citas salientes sin remitente (2026-11-27)
+
+- **Problema:** los ecos enviados desde WhatsApp Business se citaban como «Remitente desconocido» aunque la conversación tenía una bandeja identificada.
+- **Cambio:** `components-next/message/ReplyPreview.vue` obtiene la bandeja por `inboxes/getInbox` y usa su nombre para salientes/plantillas sin remitente, conservando el tono teal. `ReplyBox.vue` pasa su `inboxId` existente por `ReplyToMessage.vue` al compositor; las burbujas usan el contexto del mensaje. Se mantiene la prioridad de nota privada, agente actual y nombre del remitente.
+- **Prueba:** `ReplyPreview.spec.js` y `conversation/specs/ReplyToMessage.spec.js` cubren eco, plantilla, agente actual/otro, contacto, remitente parcial, nota privada y bandeja ausente/cambiante. Ejecutar las suites `components-next/message` y `components/widgets/conversation` en UTC y America/Guayaquil, más ESLint de los archivos tocados.
+- **Alcance:** sin backend, datos, migraciones ni nuevas claves i18n. Sin Docker, navegador, push ni PR por instrucción del brief.
