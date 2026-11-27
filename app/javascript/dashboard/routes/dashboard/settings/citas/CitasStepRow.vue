@@ -21,14 +21,11 @@ const isPlain = computed(() => props.icon === 'plain');
     >
       <span
         v-if="!isPlain"
-        class="flex size-[1.375rem] items-center justify-center rounded-full text-xs font-medium"
-        :class="
-          isDone ? 'bg-n-teal-9 text-white' : 'bg-n-alpha-2 text-n-slate-11'
-        "
+        class="flex size-[1.375rem] items-center justify-center rounded-full"
+        :class="isDone ? 'bg-n-teal-9 text-white' : 'border border-n-strong'"
         aria-hidden="true"
       >
         <Icon v-if="isDone" icon="i-lucide-check" class="size-3.5" />
-        <span v-else>{{ icon }}</span>
       </span>
       <Icon
         v-else
