@@ -1,3 +1,4 @@
+import { formatMacroPreviewValue } from 'dashboard/helper/shortcutPreview';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreGetters } from 'dashboard/composables/store';
@@ -65,25 +66,42 @@ export const useMacros = () => {
 
   const resolveActionValue = (
     { action_name: name, action_params: params },
-    files
+    files,
+    variables
   ) => {
-    if (!params?.length) return '';
+    if (!variables && !params?.length) return '';
+    if (!params) return '';
+    if (!Array.isArray(params)) return params;
+    if (!params.length) return '';
 
+    if (variables && name === 'change_status') {
+      return t(`CONVERSATION.PICKER.PREVIEW.STATUS.${params[0]}`);
+    }
     const options = getMacroDropdownValues(name);
     if (options.length) {
       return params
-        .map(id =>
-          isCaptainSelection(id)
-            ? captainSelection(id, options, t).name
-            : options.find(option => option.id === id)?.name
-        )
+        .map(id => {
+          if (variables && name === 'assign_agent' && id === 'self') {
+            return (
+              variables['agent.name'] || t('CONVERSATION.PICKER.PREVIEW.SELF')
+            );
+          }
+          if (isCaptainSelection(id))
+            return captainSelection(id, options, t).name;
+          const label = options.find(
+            option => String(option.id) === String(id)
+          )?.name;
+          return (
+            label || (variables ? t('CONVERSATION.PICKER.PREVIEW.MISSING') : '')
+          );
+        })
         .filter(Boolean)
         .join(', ');
     }
 
     if (name === 'send_attachment') return getFileName(params[0], name, files);
 
-    return params[0];
+    return variables && params.length > 1 ? params : params[0];
   };
 
   /**
@@ -93,10 +111,16 @@ export const useMacros = () => {
    * @param {Object} macro - The macro to resolve
    * @returns {Array} An array of { actionName, actionValue } pairs
    */
-  const resolveMacroActions = macro =>
+  const resolveMacroActions = (macro, variables) =>
     macro.actions.map(action => ({
       actionName: resolveActionName(action.action_name),
-      actionValue: resolveActionValue(action, macro.files),
+      actionValue: variables
+        ? formatMacroPreviewValue(
+            resolveActionValue(action, macro.files, variables),
+            variables,
+            t
+          )
+        : resolveActionValue(action, macro.files),
     }));
 
   return {

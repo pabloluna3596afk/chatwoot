@@ -266,6 +266,18 @@
         "ENABLED": "Enabled",
         "DISABLED": "Disabled",
         "YOU_ARE_A_MEMBER": "You are a member of this team"
+      },
+      "PREVIEW": {
+        "MISSING": "no value",
+        "TODAY": "today",
+        "RELATIVE_DAYS": "today {sign} {days} days",
+        "SELF": "Current agent",
+        "STATUS": {
+          "open": "Open",
+          "pending": "Pending",
+          "resolved": "Resolved",
+          "snoozed": "Snoozed"
+        }
       }
     },
     "CUSTOM_SNOOZE": {

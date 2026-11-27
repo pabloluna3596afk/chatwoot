@@ -501,6 +501,18 @@
         "ENABLED": "Activado",
         "DISABLED": "Deshabilitado",
         "YOU_ARE_A_MEMBER": "Eres un miembro de este equipo"
+      },
+      "PREVIEW": {
+        "MISSING": "sin valor",
+        "TODAY": "hoy",
+        "RELATIVE_DAYS": "hoy {sign} {days} días",
+        "SELF": "Agente actual",
+        "STATUS": {
+          "open": "Abierta",
+          "pending": "Pendiente",
+          "resolved": "Resuelta",
+          "snoozed": "Pospuesta"
+        }
       }
     },
     "CONTACT_HISTORY": {
