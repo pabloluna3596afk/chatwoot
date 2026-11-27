@@ -97,7 +97,7 @@ const inboxOptions = computed(() =>
 );
 
 const sendersAndBotList = computed(() => [
-  { value: 0, label: t('CAMPAIGN.LIVE_CHAT.CARD.CAMPAIGN_DETAILS.BOT') },
+  { value: 0, label: t('CONVERSATION.SYSTEM') },
   ...mapToOptions(senderList.value, 'id', 'name'),
 ]);
 

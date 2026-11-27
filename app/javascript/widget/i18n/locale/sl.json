@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Poglej nova sporočila",
     "CLOSE_MESSAGES_BUTTON": "Zapri",
     "COMPANY_FROM": "Od",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Sistem"
   },
   "BUBBLE": {
     "LABEL": "Klepetajte z nami"

@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Lihat pesan baru",
     "CLOSE_MESSAGES_BUTTON": "Tutup",
     "COMPANY_FROM": "dari",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Sistem"
   },
   "BUBBLE": {
     "LABEL": "Chat dengan kami"

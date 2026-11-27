@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Se nya meddelanden",
     "CLOSE_MESSAGES_BUTTON": "Stäng",
     "COMPANY_FROM": "från",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "Chatta med oss"

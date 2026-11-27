@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Sjá nýjustu skilaboð",
     "CLOSE_MESSAGES_BUTTON": "Loka",
     "COMPANY_FROM": "frá",
-    "BOT": "Spjallmenni"
+    "BOT": "Spjallmenni",
+    "SYSTEM": "Kerfi"
   },
   "BUBBLE": {
     "LABEL": "Spjallaðu við okkur"

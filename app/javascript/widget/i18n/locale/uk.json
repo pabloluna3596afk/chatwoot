@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Переглянути нові повідомлення",
     "CLOSE_MESSAGES_BUTTON": "Закрити",
     "COMPANY_FROM": "від",
-    "BOT": "Бот"
+    "BOT": "Бот",
+    "SYSTEM": "Система"
   },
   "BUBBLE": {
     "LABEL": "Напишіть нам"

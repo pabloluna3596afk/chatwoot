@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "查看新訊息",
     "CLOSE_MESSAGES_BUTTON": "關閉",
     "COMPANY_FROM": "發自",
-    "BOT": "機器人"
+    "BOT": "機器人",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "與我們對話"

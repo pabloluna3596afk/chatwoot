@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Vaata uusi sõnumeid",
     "CLOSE_MESSAGES_BUTTON": "Sulge",
     "COMPANY_FROM": "saatjalt",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Süsteem"
   },
   "BUBBLE": {
     "LABEL": "Vestle meiega"

@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "새 메시지 보기",
     "CLOSE_MESSAGES_BUTTON": "닫기",
     "COMPANY_FROM": "에서",
-    "BOT": "봇"
+    "BOT": "봇",
+    "SYSTEM": "System"
   },
   "BUBBLE": {
     "LABEL": "채팅하기"

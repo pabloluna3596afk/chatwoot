@@ -52,7 +52,8 @@
     "VIEW_MESSAGES_BUTTON": "Vezi mesajele noi",
     "CLOSE_MESSAGES_BUTTON": "Închide",
     "COMPANY_FROM": "de la",
-    "BOT": "Bot"
+    "BOT": "Bot",
+    "SYSTEM": "Sistem"
   },
   "BUBBLE": {
     "LABEL": "Discută cu noi"
