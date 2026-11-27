@@ -4,6 +4,7 @@ import { provideMessageContext } from './provider.js';
 import { useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
+import { isMessageRenderable } from './helpers/messageVisibility';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { LocalStorage } from 'shared/helpers/localStorage';
@@ -464,29 +465,9 @@ const contextMenuEnabledOptions = computed(() => {
   };
 });
 
-const shouldRenderMessage = computed(() => {
-  const hasAttachments = !!(props.attachments && props.attachments.length > 0);
-  const isEmailContentType = props.contentType === CONTENT_TYPES.INCOMING_EMAIL;
-  const isUnsupported = props.contentAttributes?.isUnsupported;
-  const isAnIntegrationMessage =
-    props.contentType === CONTENT_TYPES.INTEGRATIONS;
-  const hasWhatsappFlowResponse =
-    !!props.contentAttributes?.whatsappFlowResponse;
-  const isFailedMessage = props.status === MESSAGE_STATUS.FAILED;
-  const hasExternalError = !!props.contentAttributes?.externalError;
-
-  return (
-    hasAttachments ||
-    props.content ||
-    isEmailContentType ||
-    isUnsupported ||
-    isAnIntegrationMessage ||
-    hasWhatsappFlowResponse ||
-    shouldShowWhatsappReferral.value ||
-    isFailedMessage ||
-    hasExternalError
-  );
-});
+const shouldRenderMessage = computed(() =>
+  isMessageRenderable(props, shouldShowWhatsappReferral.value)
+);
 
 function openContextMenu(e) {
   const shouldSkipContextMenu =

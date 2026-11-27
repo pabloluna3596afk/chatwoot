@@ -125,12 +125,62 @@ describe('MessageList minute grouping', () => {
     [1795125659, 1795129201, false],
   ])('groups timestamps %s and %s: %s', (first, second, grouped) => {
     const wrapper = render([
-      { id: 1, senderId: 9, messageType: 1, createdAt: first },
-      { id: 2, senderId: 9, messageType: 1, createdAt: second },
+      { id: 1, senderId: 9, messageType: 1, createdAt: first, content: 'A' },
+      { id: 2, senderId: 9, messageType: 1, createdAt: second, content: 'B' },
     ]);
     const messages = wrapper.findAllComponents({ name: 'Message' });
     expect(messages[0].attributes('group-with-next')).toBe(String(grouped));
     expect(messages[1].attributes('group-with-next')).toBe('false');
+  });
+
+  it('ignores a hidden message when deciding the timestamp of the last visible one', () => {
+    const wrapper = render([
+      {
+        id: 1,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125601,
+        content: 'Visible',
+      },
+      {
+        id: 2,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125602,
+        content: '',
+        contentAttributes: {},
+      },
+    ]);
+    const messages = wrapper.findAllComponents({ name: 'Message' });
+    expect(messages[0].attributes('group-with-next')).toBe('false');
+  });
+
+  it('still groups with the next visible message past a hidden one', () => {
+    const wrapper = render([
+      {
+        id: 1,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125601,
+        content: 'A',
+      },
+      {
+        id: 2,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125602,
+        content: '',
+      },
+      {
+        id: 3,
+        senderId: 9,
+        messageType: 1,
+        createdAt: 1795125603,
+        content: 'B',
+      },
+    ]);
+    const messages = wrapper.findAllComponents({ name: 'Message' });
+    expect(messages[0].attributes('group-with-next')).toBe('true');
   });
 
   it('does not group a private note with a public reply', () => {
@@ -141,6 +191,7 @@ describe('MessageList minute grouping', () => {
         messageType: 1,
         createdAt: 1795125601,
         private: true,
+        content: 'Nota',
       },
       {
         id: 2,
@@ -148,6 +199,7 @@ describe('MessageList minute grouping', () => {
         messageType: 1,
         createdAt: 1795125602,
         private: false,
+        content: 'Respuesta',
       },
     ]);
     expect(

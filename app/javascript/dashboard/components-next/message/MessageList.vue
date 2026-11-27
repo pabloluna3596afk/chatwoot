@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import Message from './Message.vue';
+import { isMessageRenderable } from './helpers/messageVisibility';
 import { MESSAGE_TYPES } from './constants.js';
 import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 import { useMapGetter } from 'dashboard/composables/store.js';
@@ -167,10 +168,16 @@ const fetchReplyMessage = async (messageId, conversationId) => {
  * @returns {Boolean} - Whether the message should be grouped with next
  */
 const shouldGroupWithNext = (index, searchList) => {
-  if (index === searchList.length - 1) return false;
-
   const current = searchList[index];
-  const next = searchList[index + 1];
+  // Skip messages that draw no bubble; they must not take the timestamp
+  // away from the last visible message of the group.
+  const next = searchList
+    .slice(index + 1)
+    .find(message =>
+      isMessageRenderable(message, Boolean(message.contentAttributes?.referral))
+    );
+
+  if (!next) return false;
 
   if (next.status === 'failed') return false;
 
