@@ -216,6 +216,7 @@ describe('ReplyBox', () => {
       });
       const quote = wrapper.getComponent({ name: 'ReplyToMessage' });
       const input = wrapper.getComponent({ name: 'WootMessageEditor' });
+      expect(quote.classes().includes('!bg-n-amber-12/5')).toBe(isPrivate);
       expect(quote.element.nextElementSibling).toBe(input.element);
       expect(input.classes()).toContain('!rounded-t-none');
       expect(input.props('disabled')).toBe(!isPrivate);

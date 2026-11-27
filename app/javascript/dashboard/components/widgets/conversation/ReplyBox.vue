@@ -1542,6 +1542,7 @@ export default {
           :current-user-id="currentUser?.id"
           :conversation-id="conversationId"
           :inbox-id="inboxId"
+          :class="{ '!bg-n-amber-12/5': isPrivate }"
           @dismiss="resetReplyToMessage"
         />
         <CopilotEditorSection
