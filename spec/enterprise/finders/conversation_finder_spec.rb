@@ -117,7 +117,7 @@ RSpec.describe ConversationFinder do
       expect(counts[:all_count]).to eq(account.conversations.displayed_as('open').count)
     end
 
-    context 'when an AgentBot owns the conversation (Panel AI inboxes stay as on develop)' do
+    context 'when an AgentBot owns the conversation (external bot inboxes stay as on develop)' do
       let!(:plain_bot_owned) { create_conversation(account: account, inbox: plain_inbox, status: :open, ai_assignee: agent_bot) }
 
       it 'keeps it in the unassigned list, as without_human_assignee does on develop' do

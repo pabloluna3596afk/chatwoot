@@ -44,7 +44,7 @@ class Integrations::GoogleCalendar::EventLock
 
   private
 
-  # AgentBots (Panel AI bridge) and Users have separate id sequences, so an id alone is not an identity.
+  # AgentBots (AgentBot bridge) and Users have separate id sequences, so an id alone is not an identity.
   # Locks written before holder_key existed were always taken by a User.
   def holder_key(user)
     "#{user.class.name}:#{user.id}"

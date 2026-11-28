@@ -90,7 +90,6 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
     report_side_failure(e)
   end
 
-  # No bot_followup_policy on purpose: Captain bookings must not notify Panel AI.
   def booking_params(conversation, contact, start_at, end_at, reason)
     {
       calendar_id: calendar_id,

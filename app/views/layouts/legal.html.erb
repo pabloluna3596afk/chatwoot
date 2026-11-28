@@ -59,7 +59,6 @@
       <% InboxHub::LegalDocuments::DOCS.each do |id| %>
         <a href="<%= InboxHub::LegalDocuments.path_for(@locale, id) %>"><%= @nav[id] %></a>
       <% end %>
-      <a href="https://ainbox.paluhub.com/<%= @locale %>/<%= @doc_id %>">Panel AI mirror</a>
     </div>
   </footer>
 </body>

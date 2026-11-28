@@ -16,10 +16,9 @@ Apps Dokploy nuevas, volúmenes `prod-*`, red `main-chatwoot-prod`. **Sin migrar
 | Postgres | `pgvector/pgvector:pg14` |
 | Dominio | `inbox.paluhub.com` |
 
-Orden: Chatwoot prod → onboarding → API token → Panel AI prod (`master`) → webhook → smoke test → DNS.
+Orden: Chatwoot prod → onboarding → smoke test → DNS.
 
 Variables Dokploy: [DOKPLOY_ENV.md](DOKPLOY_ENV.md)  
-Panel AI prod: [panel-ai/docs/PRODUCTION_DEPLOY.md](../../panel-ai/docs/PRODUCTION_DEPLOY.md)
 
 ---
 
@@ -123,7 +122,6 @@ sudo docker exec main-chatwoot-miwnzk-chatwoot-postgres-1 psql -U postgres -d ch
 | Actualizar `CHATWOOT_API_TOKEN` | **Solo si** re-onboarding o token revocado |
 | Re-sync webhook Super Admin | **Solo si** URL/secret cambió |
 
-**Sí redeploy Panel IA** cuando subas código MVP en `panel-ai` `master` (independiente del fork Chatwoot).
 
 ---
 

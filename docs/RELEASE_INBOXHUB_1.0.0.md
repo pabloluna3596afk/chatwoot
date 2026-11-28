@@ -98,9 +98,9 @@ Si ya hay tareas reales en prod, **no** hagas rollback de schema: deja tablas y 
 
 ---
 
-## 5. Panel AI
+## 5. Alcance
 
-Este release es **solo Chatwoot / InboxHub**. Panel AI (`ainbox`) no requiere deploy acoplado salvo que quieras menús WA ya en `develop`/`master` del panel.
+Este release es solo Chatwoot / InboxHub.
 
 ---
 

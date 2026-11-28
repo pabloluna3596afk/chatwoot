@@ -72,18 +72,6 @@ pnpm exec vite build
 docker compose -f docker-compose.dokploy.yml -f docker-compose.dokploy.fork.yml restart chatwoot-rails
 ```
 
-## Panel IA (mismo stack)
-
-```powershell
-cd D:\DOCUMENTOS\GITHUB\chatwoot\panel-ai
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
-```
-
-- UI: http://localhost:3010
-- API: http://localhost:8010
-
-Ambos comparten la red `main-chatwoot-local`.
-
 ## Ramas (orden recomendado)
 
 1. **Feature branch** — trabajo diario (`fix/...`, `feat/...`)
@@ -97,7 +85,7 @@ Local con `fork.yml` funciona en **cualquier rama** con cambios sin push.
 
 ```
 Código local OK → commit → push develop → GitHub Actions → GHCR
-→ Dokploy staging (test.inbox / test.ainbox) → smoke → producción
+→ Dokploy staging (test.inbox) → smoke → producción
 ```
 
 ## Parar
