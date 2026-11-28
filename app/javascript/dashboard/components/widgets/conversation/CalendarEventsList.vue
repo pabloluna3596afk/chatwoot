@@ -58,7 +58,6 @@ const {
 });
 const now = useAppointmentClock(events, timezone);
 const connections = ref([]);
-const panelAiActive = ref(false);
 const connectionRequest = useAbortableRequest();
 const modalRef = ref(null);
 const selectedConnectionId = ref('');
@@ -84,7 +83,6 @@ const loadConnections = async () => {
   );
   if (!response) return;
   const { data } = response;
-  panelAiActive.value = Boolean(data.panel_ai_active);
   connections.value = (data.payload || []).filter(
     item => item.provider === 'google'
   );
@@ -295,11 +293,6 @@ defineExpose({ refresh: loadEvents, openCreate });
         </ul>
       </section>
     </template>
-    <EventModal
-      ref="modalRef"
-      :connections="connections"
-      :panel-ai-active="panelAiActive"
-      @saved="onSaved"
-    />
+    <EventModal ref="modalRef" :connections="connections" @saved="onSaved" />
   </div>
 </template>

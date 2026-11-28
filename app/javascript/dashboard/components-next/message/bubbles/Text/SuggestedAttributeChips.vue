@@ -5,7 +5,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 
 // Rendered from Message.content_attributes.suggestedAttributes, written by
-// Panel AI on handoff (see human_handoff.py). Never writes anywhere on its
+// external bot on handoff (see human_handoff.py). Never writes anywhere on its
 // own — every value here needs an agent's click. Chips with no matching
 // attribute definition (hasField: false) show as informational only, since
 // creating a custom attribute is an admin decision, not the agent's.

@@ -36,11 +36,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  // An AI bot (Panel AI) is active in some inbox of the account: only then is its follow-up offered.
-  panelAiActive: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const emit = defineEmits(['saved']);
@@ -89,14 +84,6 @@ const endTime = ref('09:30');
 const tabIndex = ref(0);
 const includeMeet = ref(false);
 const botFollowupMode = ref('none');
-// An event that already carries the bot follow-up keeps showing it, whatever the account has now.
-const savedBotFollowup = ref(false);
-const showBotFollowup = computed(
-  () => props.panelAiActive || savedBotFollowup.value
-);
-const botFollowupConfirmation = ref(true);
-const botFollowupReminder24h = ref(true);
-const botFollowupReminder30m = ref(true);
 const contactId = ref(null);
 const contactLabel = ref('');
 const contactQuery = ref('');
@@ -372,9 +359,6 @@ const invitationPayload = () => {
 
 const payload = () => {
   const range = currentRange.value;
-  const reminders = [];
-  if (botFollowupReminder24h.value) reminders.push(1440);
-  if (botFollowupReminder30m.value) reminders.push(30);
   const mode = botFollowupMode.value;
   return {
     connection_id: connectionId.value,
@@ -388,15 +372,6 @@ const payload = () => {
     conversation_id: conversationId.value || undefined,
     include_meet: includeMeet.value && !existingMeet.value,
     send_to_contact: mode === 'notice_only',
-    bot_followup_policy:
-      mode === 'bot_followup'
-        ? {
-            enabled: true,
-            confirmation: botFollowupConfirmation.value,
-            reminders_minutes_before: reminders,
-            source: 'override',
-          }
-        : { enabled: false },
     attendee_email: attendeeEmail.value || undefined,
     ...invitationPayload(),
   };
@@ -438,27 +413,6 @@ const startHeartbeat = () => {
 };
 
 const applyBotFollowupDefaults = (event, defaults) => {
-  const policy = event?.bot_followup_policy;
-  savedBotFollowup.value = Boolean(policy?.enabled);
-  if (policy?.enabled) {
-    botFollowupMode.value = 'bot_followup';
-    botFollowupConfirmation.value = policy.confirmation !== false;
-    const reminders = Array.isArray(policy.reminders_minutes_before)
-      ? policy.reminders_minutes_before
-      : [];
-    botFollowupReminder24h.value = reminders.includes(1440);
-    botFollowupReminder30m.value = reminders.includes(30);
-    return;
-  }
-  const hasConversation = Boolean(resolveConversationId(event, defaults));
-  // Panel AI accounts keep the bot follow-up as the default of a new appointment; without Panel AI nothing is sent.
-  if (!event && hasConversation && props.panelAiActive) {
-    botFollowupMode.value = 'bot_followup';
-    botFollowupConfirmation.value = true;
-    botFollowupReminder24h.value = true;
-    botFollowupReminder30m.value = true;
-    return;
-  }
   if (!event && defaults.sendToContact) {
     botFollowupMode.value = 'notice_only';
     return;
@@ -501,11 +455,7 @@ const applyEvent = (event, defaults) => {
   hideConversation.value =
     Boolean(defaults.hideConversation) && !defaults.conversationId;
   applyBotFollowupDefaults(event, defaults);
-  appointmentStatus.value =
-    event?.appointment_status ||
-    (botFollowupMode.value === 'bot_followup' && botFollowupConfirmation.value
-      ? 'pending_confirmation'
-      : 'confirmed');
+  appointmentStatus.value = event?.appointment_status || 'confirmed';
   contactEmail.value = event?.contact?.email || defaults.contactEmail || '';
   inviteEmail.value = contactEmail.value;
   saveEmailOnContact.value = !contactEmail.value;
@@ -1073,44 +1023,6 @@ defineExpose({ open, close });
               </span>
             </span>
           </label>
-          <label
-            v-if="showBotFollowup"
-            class="flex items-start gap-2 text-sm text-n-slate-12"
-          >
-            <input
-              v-model="botFollowupMode"
-              type="radio"
-              value="bot_followup"
-              class="mt-1 accent-n-brand"
-              :disabled="readOnly"
-            />
-            <span class="flex flex-col">
-              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_BOT') }}
-              <span class="text-xs text-n-slate-11">
-                {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_BOT_HELP') }}
-              </span>
-            </span>
-          </label>
-          <div
-            v-if="showBotFollowup && botFollowupMode === 'bot_followup'"
-            class="ml-6 flex flex-col gap-2"
-          >
-            <label class="flex items-center gap-2 text-sm text-n-slate-12">
-              <Checkbox
-                v-model="botFollowupConfirmation"
-                :disabled="readOnly"
-              />
-              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_CONFIRMATION') }}
-            </label>
-            <label class="flex items-center gap-2 text-sm text-n-slate-12">
-              <Checkbox v-model="botFollowupReminder24h" :disabled="readOnly" />
-              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_REMINDER_24H') }}
-            </label>
-            <label class="flex items-center gap-2 text-sm text-n-slate-12">
-              <Checkbox v-model="botFollowupReminder30m" :disabled="readOnly" />
-              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_REMINDER_30M') }}
-            </label>
-          </div>
         </fieldset>
       </template>
       <div v-else class="min-h-64 pt-1">

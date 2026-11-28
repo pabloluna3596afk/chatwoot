@@ -71,34 +71,16 @@ const openWithConversation = async wrapper => {
 };
 
 describe('EventModal customer notification', () => {
-  it('offers the AI bot follow-up only when an AI bot is active', async () => {
-    const without = mountModal({ panelAiActive: false });
-    await openWithConversation(without);
-    expect(followupOptions(without)).toEqual(['none', 'notice_only']);
-
-    const withBot = mountModal({ panelAiActive: true });
-    await openWithConversation(withBot);
-    expect(followupOptions(withBot)).toEqual([
-      'none',
-      'notice_only',
-      'bot_followup',
-    ]);
-  });
-
-  it('keeps the AI bot follow-up as the default of a new appointment only with an AI bot', async () => {
-    const withBot = mountModal({ panelAiActive: true });
-    await openWithConversation(withBot);
-    expect(withBot.find('input[value="bot_followup"]').element.checked).toBe(
-      true
-    );
-
-    const without = mountModal({ panelAiActive: false });
-    await openWithConversation(without);
-    expect(without.find('input[value="none"]').element.checked).toBe(true);
+  it('offers human notification options with no automatic notice by default', async () => {
+    const wrapper = mountModal();
+    await openWithConversation(wrapper);
+    expect(followupOptions(wrapper)).toEqual(['none', 'notice_only']);
+    expect(wrapper.find('input[value="none"]').element.checked).toBe(true);
+    wrapper.unmount();
   });
 
   it('defaults an explicitly eligible new appointment to notice only', async () => {
-    const wrapper = mountModal({ panelAiActive: false });
+    const wrapper = mountModal();
     await wrapper.vm.open({
       defaults: {
         connectionId: '1',
@@ -114,7 +96,7 @@ describe('EventModal customer notification', () => {
   });
 
   it('does not apply the notice default to an existing appointment', async () => {
-    const wrapper = mountModal({ panelAiActive: false });
+    const wrapper = mountModal();
     await wrapper.vm.open({
       event: {
         id: 'e1',
@@ -131,8 +113,8 @@ describe('EventModal customer notification', () => {
     expect(wrapper.find('input[value="none"]').element.checked).toBe(true);
   });
 
-  it('keeps showing the follow-up of an appointment that already has it', async () => {
-    const wrapper = mountModal({ panelAiActive: false });
+  it('ignores the retired follow-up policy of an existing appointment', async () => {
+    const wrapper = mountModal();
     await wrapper.vm.open({
       event: {
         id: 'e1',
@@ -148,11 +130,12 @@ describe('EventModal customer notification', () => {
     });
     await flushPromises();
 
-    expect(followupOptions(wrapper)).toContain('bot_followup');
+    expect(followupOptions(wrapper)).toEqual(['none', 'notice_only']);
+    expect(wrapper.find('input[value="none"]').element.checked).toBe(true);
   });
 
   it('explains every option and that Captain handles its own appointments', async () => {
-    const wrapper = mountModal({ panelAiActive: false });
+    const wrapper = mountModal();
     await openWithConversation(wrapper);
 
     expect(wrapper.text()).toContain(
@@ -203,6 +186,9 @@ describe('EventModal appointment status', () => {
         appointment_status: 'pending_confirmation',
         send_to_contact: true,
       })
+    );
+    expect(CalendarAPI.createEvent.mock.calls[0][0]).not.toHaveProperty(
+      'bot_followup_policy'
     );
     wrapper.unmount();
   });

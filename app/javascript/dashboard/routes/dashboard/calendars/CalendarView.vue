@@ -130,7 +130,6 @@ const weekGroups = computed(() => groupsForDays(7));
 const agendaGroups = computed(() => groupsForDays(AGENDA_DAYS));
 
 const hasConnections = computed(() => connections.value.length > 0);
-const panelAiActive = ref(false);
 const hasEnabledCalendars = computed(() => calendars.value.length > 0);
 const selectedCalendar = computed(() =>
   calendars.value.find(item => item.id === selectedCalendarId.value)
@@ -153,7 +152,6 @@ const loadConnections = async () => {
     );
     if (!response) return;
     const { data } = response;
-    panelAiActive.value = Boolean(data.panel_ai_active);
     connections.value = (data.payload || []).filter(item =>
       ['google', 'microsoft'].includes(item.provider)
     );
@@ -600,11 +598,6 @@ onMounted(loadConnections);
       </div>
     </div>
 
-    <EventModal
-      ref="modalRef"
-      :connections="connections"
-      :panel-ai-active="panelAiActive"
-      @saved="onSaved"
-    />
+    <EventModal ref="modalRef" :connections="connections" @saved="onSaved" />
   </section>
 </template>
