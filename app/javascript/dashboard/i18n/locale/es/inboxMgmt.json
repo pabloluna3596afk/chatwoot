@@ -292,6 +292,11 @@
           "PLACEHOLDER": "Clave de API",
           "ERROR": "Por favor, introduzca un valor válido."
         },
+        "APP_SECRET": {
+          "LABEL": "Secreto de la app",
+          "PLACEHOLDER": "Secreto de tu app de Meta",
+          "ERROR": "Por favor, introduce un valor válido."
+        },
         "API_CALLBACK": {
           "TITLE": "URL de devolución de llamada",
           "SUBTITLE": "Tienes que configurar la URL del webhook y el token de verificación en el portal de desarrolladores de Facebook con los valores mostrados a continuación.",
@@ -395,7 +400,10 @@
             "PHONE_ID_LABEL": "ID de número de teléfono",
             "PHONE_ID_PLACEHOLDER": "Ingrese el ID del número de teléfono",
             "TOKEN_LABEL": "Token de acceso permanente",
-            "TOKEN_PLACEHOLDER": "Pegar token de acceso"
+            "TOKEN_PLACEHOLDER": "Pegar token de acceso",
+            "APP_SECRET_LABEL": "Secreto de la app",
+            "APP_SECRET_PLACEHOLDER": "Pegar secreto de la app",
+            "APP_SECRET_HELP": "Lo encuentras en tu app de Meta, en Configuración de la app > Básico. Se usa para verificar los webhooks entrantes."
           },
           "REVIEW": {
             "TITLE": "Crea tu bandeja de entrada de WhatsApp",
@@ -439,7 +447,7 @@
           },
           "ERRORS": {
             "IDS_REQUIRED": "Introduzca el ID del número de teléfono y el ID de la cuenta empresarial de WhatsApp.",
-            "REQUIRED": "Introduzca el ID del número de teléfono, el ID de la cuenta empresarial de WhatsApp y el token de acceso permanente.",
+            "REQUIRED": "Introduce el ID del número de teléfono, el ID de la cuenta de WhatsApp Business, el token de acceso permanente y el secreto de la app.",
             "INVALID_TOKEN": "Este token de acceso no es válido o ha caducado. Genere un nuevo token permanente y vuelva a intentarlo.",
             "GENERIC": "No hemos podido completar la configuración de WhatsApp. Comprueba tus detalles e inténtalo de nuevo."
           }
@@ -1106,6 +1114,10 @@
       "WHATSAPP_SECTION_UPDATE_TITLE": "Actualizar Clave API",
       "WHATSAPP_SECTION_UPDATE_PLACEHOLDER": "Introduzca aquí la nueva Clave API",
       "WHATSAPP_SECTION_UPDATE_BUTTON": "Actualizar",
+      "WHATSAPP_APP_SECRET_TITLE": "Secreto de la app",
+      "WHATSAPP_APP_SECRET_SUBHEADER": "Introduce el secreto de tu app de Meta (Configuración de la app > Básico). Se usa para verificar que los webhooks entrantes vienen de Meta.",
+      "WHATSAPP_APP_SECRET_MISSING": "Los webhooks entrantes de esta bandeja aún no se verifican. Añade el secreto de tu app de Meta para completar la configuración.",
+      "WHATSAPP_APP_SECRET_PLACEHOLDER": "Introduce aquí el secreto de la app",
       "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_ADD_TITLE": "Añadir token de administración empresarial",
       "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_REPLACE_TITLE": "Sustituir token de administración empresarial",
       "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_CONFIGURED": "Token de administración empresarial configurado",
@@ -1175,6 +1187,8 @@
           "DISPLAY_PHONE_NUMBER_HELP": "El número WhatsApp orientado al cliente. Esto no se puede cambiar durante la migración.",
           "ACCESS_TOKEN": "Token de acceso permanente o token de usuario del sistema",
           "ACCESS_TOKEN_PLACEHOLDER": "Pegar token de acceso",
+          "APP_SECRET": "Secreto de la app",
+          "APP_SECRET_PLACEHOLDER": "Secreto de la app, en Configuración de la app > Básico de tu app de Meta",
           "TOKEN_HELP_PREFIX": "El token debe incluir",
           "TOKEN_HELP_MIDDLE": "Añadir",
           "TOKEN_HELP_SUFFIX": "para sincronización de plantillas y gestión de plantillas.",
@@ -1202,7 +1216,7 @@
           },
           "ACCESS_TOKEN": {
             "TITLE": "Token de acceso",
-            "DESCRIPTION": "Pegue un token de acceso permanente o un token de usuario del sistema con permisos de WhatsApp."
+            "DESCRIPTION": "Pega un token de acceso permanente o de usuario del sistema con permisos de WhatsApp, y el secreto de tu app de Meta."
           },
           "REVIEW_MIGRATION": {
             "TITLE": "Revisar migración",
