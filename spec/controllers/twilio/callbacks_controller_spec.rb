@@ -110,6 +110,7 @@ RSpec.describe 'Twilio::CallbacksController', type: :request do
 
       it 'does not mistake an API key secret for an account auth token' do
         channel.update!(api_key_sid: "SK#{SecureRandom.hex(16)}")
+        allow(Rails.logger).to receive(:info)
         expect(Rails.logger).to receive(:info).with(/Signature not verified, account auth token not configured/)
 
         post twilio_callback_index_url, params: params, headers: { 'X-Twilio-Signature' => signature }

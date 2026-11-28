@@ -270,7 +270,10 @@ describe Integrations::Slack::IncomingMessageBuilder do
     end
 
     context 'when the thread belongs only to another account' do
-      before { create(:conversation, identifier: message_params[:event][:thread_ts]) }
+      before do
+        conversation.update!(identifier: 'unrelated-thread')
+        create(:conversation, identifier: message_params[:event][:thread_ts])
+      end
 
       it 'does not post a message through a hook from a different account' do
         builder = described_class.new(message_params)
