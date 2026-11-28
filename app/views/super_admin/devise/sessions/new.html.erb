@@ -22,6 +22,15 @@
               <% if flash[:error].present? %>
                 <div data-alert class="rounded-md bg-red-500 p-4 text-white text-sm mb-5"><%= flash[:error] %></div>
               <% end %>
+              <% if @mfa_challenge %>
+                <div class="mb-5">
+                  <%= label_tag 'super_admin[otp_code]', t('super_admin.login.mfa_code'),
+                      class: 'block text-sm font-medium text-slate-900 dark:text-white' %>
+                  <%= text_field_tag 'super_admin[otp_code]', nil, autofocus: true, autocomplete: 'one-time-code',
+                      placeholder: t('super_admin.login.mfa_code_placeholder'),
+                      class: 'mt-1 block w-full rounded-md px-3 py-3 ring-1 ring-slate-200 dark:bg-slate-700 dark:text-white' %>
+                </div>
+              <% else %>
               <div class="mb-5">
                 <label for="email_address" class="flex justify-between text-sm font-medium leading-6 text-slate-900 dark:text-white">
                 Email Address
@@ -38,8 +47,9 @@
                   <%= f.password_field :password, autocomplete: "current-password",  placeholder: "Password", class: "block w-full rounded-md border-0 px-3 py-3 appearance-none shadow-sm ring-1 ring-inset text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-woot-500 sm:text-sm sm:leading-6 outline-none dark:bg-slate-700 dark:ring-slate-600 dark:focus:ring-woot-500 ring-slate-200" %>
                 </div>
               </div>
+              <% end %>
               <button type="submit" class="flex items-center w-full justify-center rounded-md bg-woot-500 py-3 px-3 text-base font-medium text-white shadow-sm hover:bg-woot-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-woot-500 cursor-pointer">
-                <span>Login</span>
+                <span><%= @mfa_challenge ? t('super_admin.login.mfa_submit') : 'Login' %></span>
               </button>
             <% end %>
           </div>

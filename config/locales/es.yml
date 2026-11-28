@@ -1045,6 +1045,13 @@ es:
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
+    login:
+      mfa_code: 'Código de autenticación'
+      mfa_code_placeholder: 'Código de 6 dígitos o código de recuperación'
+      mfa_submit: 'Verificar'
+      mfa_invalid: 'Código no válido. Inténtalo de nuevo.'
+      mfa_expired: 'Tu intento de inicio de sesión caducó. Inicia sesión de nuevo.'
+      mfa_attempts_exhausted: 'Demasiados códigos no válidos. Inténtalo de nuevo en unos minutos.'
     ai_usage:
       dashboard: 'Panel'
       title: 'Uso de IA'
