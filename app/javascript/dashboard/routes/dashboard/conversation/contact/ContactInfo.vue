@@ -17,6 +17,7 @@ import ComposeConversation from 'dashboard/components-next/NewConversation/Compo
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.vue';
+import Flag from 'dashboard/components-next/flag/Flag.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import ContactAssigneeSelector from 'dashboard/components-next/Contacts/ContactAssigneeSelector.vue';
 import FeaturedAttributeBadges from 'dashboard/components-next/FeaturedAttributes/FeaturedAttributeBadges.vue';
@@ -128,33 +129,17 @@ const documentNumber = computed(() => {
   return props.contact.documentNumber || props.contact.document_number || '';
 });
 
-const findCountryFlag = (countryCode, cityAndCountry) => {
-  try {
-    if (!countryCode) {
-      return `${cityAndCountry} ðŸŒŽ`;
-    }
-
-    const code = countryCode?.toLowerCase();
-    return `${cityAndCountry} <span class="fi fi-${code} size-3.5"></span>`;
-  } catch (error) {
-    return '';
-  }
-};
+const countryCode = computed(() => {
+  const attributes = additionalAttributes.value;
+  const code = attributes.country_code || attributes.countryCode;
+  return typeof code === 'string' && /^[a-z]{2}$/i.test(code) ? code : '';
+});
 
 const location = computed(() => {
-  const {
-    country = '',
-    city = '',
-    country_code: countryCodeSnake,
-    countryCode,
-  } = additionalAttributes.value;
-  const resolvedCountryCode = countryCodeSnake || countryCode;
-  const cityAndCountry = [city, country].filter(item => !!item).join(', ');
-
-  if (!cityAndCountry) {
-    return '';
-  }
-  return findCountryFlag(resolvedCountryCode, cityAndCountry);
+  const { country = '', city = '' } = additionalAttributes.value;
+  const cityAndCountry = [city, country].filter(Boolean).join(', ');
+  if (!cityAndCountry) return '';
+  return countryCode.value ? cityAndCountry : `${cityAndCountry} 🌎`;
 });
 
 const socialProfiles = computed(() => {
@@ -447,7 +432,13 @@ const onContactRemoved = () => {
           icon="map"
           emoji="🌍"
           :title="$t('CONTACT_PANEL.LOCATION')"
-        />
+        >
+          <Flag
+            v-if="location && countryCode"
+            :country="countryCode"
+            class="size-3.5"
+          />
+        </ContactInfoRow>
         <SocialIcons :social-profiles="socialProfiles" />
         <div
           v-if="

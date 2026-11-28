@@ -35,4 +35,25 @@ describe('ContactInfoRow', () => {
     await wrapper.get('button').trigger('click');
     expect(wrapper.vm.isEditing).toBe(true);
   });
+
+  it.each(['', 'mailto:test@example.com'])(
+    'renders markup as text with href %s',
+    href => {
+      const markup = '<form><input name="field"></form><img src="x">Acme';
+      const wrapper = mountRow({ value: markup, href });
+      expect(wrapper.find('form').exists()).toBe(false);
+      expect(wrapper.find('input').exists()).toBe(false);
+      expect(wrapper.find('img').exists()).toBe(false);
+      expect(wrapper.text()).toContain(markup);
+    }
+  );
+
+  it('renders a flag slot next to the value', () => {
+    const wrapper = mount(ContactInfoRow, {
+      props: { icon: 'map', emoji: '🌍', value: 'Quito, Ecuador' },
+      slots: { default: '<span class="flag" />' },
+      global: { stubs: { EmojiOrIcon: true } },
+    });
+    expect(wrapper.find('.flag').exists()).toBe(true);
+  });
 });

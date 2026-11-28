@@ -1,16 +1,15 @@
-<script>
+<script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { getArticleViewerURL } from 'widget/helpers/urlParamsHelper';
 import IframeLoader from 'shared/components/IframeLoader.vue';
 
-export default {
-  name: 'ArticleViewer',
-  components: {
-    IframeLoader,
-  },
-};
+const route = useRoute();
+const articleURL = computed(() => getArticleViewerURL(route.query.link));
 </script>
 
 <template>
   <div class="bg-n-solid-1 h-full">
-    <IframeLoader :url="$route.query.link" />
+    <IframeLoader :url="articleURL" />
   </div>
 </template>

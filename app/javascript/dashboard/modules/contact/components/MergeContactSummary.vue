@@ -1,16 +1,24 @@
-<script>
-export default {
-  props: {
-    primaryContactName: {
-      type: String,
-      default: '',
-    },
-    parentContactName: {
-      type: String,
-      default: '',
-    },
-  },
-};
+<script setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { escapeHtml } from 'shared/helpers/HTMLSanitizer';
+
+const props = defineProps({
+  primaryContactName: { type: String, default: '' },
+  parentContactName: { type: String, default: '' },
+});
+const { t } = useI18n();
+const deleteWarning = computed(() =>
+  t('MERGE_CONTACTS.SUMMARY.DELETE_WARNING', {
+    primaryContactName: escapeHtml(props.primaryContactName || ''),
+  })
+);
+const attributeWarning = computed(() =>
+  t('MERGE_CONTACTS.SUMMARY.ATTRIBUTE_WARNING', {
+    primaryContactName: escapeHtml(props.primaryContactName || ''),
+    parentContactName: escapeHtml(props.parentContactName),
+  })
+);
 </script>
 
 <!-- eslint-disable-next-line vue/no-root-v-if -->
@@ -25,24 +33,11 @@ export default {
     <ul class="ml-0 list-none">
       <li>
         <span class="inline-block mr-1">❌</span>
-        <span
-          v-dompurify-html="
-            $t('MERGE_CONTACTS.SUMMARY.DELETE_WARNING', {
-              primaryContactName,
-            })
-          "
-        />
+        <span v-dompurify-html="deleteWarning" />
       </li>
       <li>
         <span class="inline-block mr-1">✅</span>
-        <span
-          v-dompurify-html="
-            $t('MERGE_CONTACTS.SUMMARY.ATTRIBUTE_WARNING', {
-              primaryContactName,
-              parentContactName,
-            })
-          "
-        />
+        <span v-dompurify-html="attributeWarning" />
       </li>
     </ul>
   </div>
