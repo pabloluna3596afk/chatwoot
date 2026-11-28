@@ -16,8 +16,9 @@ class Captain::Followup::Closer
         turn = Captain::Decisions::Recorder.capture(conversation) { Captain::Conversation::Turn.last_message(conversation) }
         note = create_note
         create_resolution_message if send_resolution_message
-        conversation.resolved!
+        # Marked before resolving: the CSAT listener reloads the conversation from a background job.
         mark_closed
+        conversation.resolved!
         Captain::Decisions::FollowupRecording.new(conversation, assistant, now: now).close(
           note, turn, inactivity_threshold_minutes: inactivity_threshold_minutes
         )

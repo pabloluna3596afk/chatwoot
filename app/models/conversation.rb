@@ -479,13 +479,20 @@ class Conversation < ApplicationRecord
   # opposite change — making the elsif real — and it belongs in its own commit
   # with its own tests, not folded into an upstream merge.
   def ensure_exclusive_assignee
-    if assignee_id.present?
+    if assignee_id.present? || reopened_from_external_bot?
       # Clears the owner type alongside the id: assigning only the id would leave
       # ai_assignee_type set and the polymorphic association pointing at nothing.
       self.ai_assignee = nil
     elsif assignee_agent_bot_id.present?
       self.assignee_id = nil
     end
+  end
+
+  # An external bot must not keep owning a conversation that reopens (bulk reopen, macros, automation,
+  # snooze expiry, incoming messages): it goes back to the human queue. Captain is excluded on purpose:
+  # it may stay on an open conversation (see the note above).
+  def reopened_from_external_bot?
+    status_changed? && open? && ai_assignee_type == 'AgentBot'
   end
 
   def clear_captain_handoff_mark

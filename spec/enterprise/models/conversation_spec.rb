@@ -447,4 +447,18 @@ RSpec.describe Conversation, type: :model do
       end
     end
   end
+
+  describe 'reopening a conversation owned by Captain' do
+    let(:account) { create(:account) }
+    let(:assistant) { create(:captain_assistant, account: account) }
+    let(:conversation) { create(:conversation, account: account, status: :pending) }
+
+    it 'keeps Captain as the owner when the conversation opens' do
+      conversation.update!(ai_assignee: assistant)
+
+      conversation.update!(status: :open)
+
+      expect(conversation.reload.ai_assignee).to eq(assistant)
+    end
+  end
 end
