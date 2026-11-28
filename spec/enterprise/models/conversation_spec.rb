@@ -6,11 +6,12 @@ RSpec.describe Conversation, type: :model do
   end
 
   describe 'Captain assignment' do
-    let(:account) { create(:account, limits: { 'captain_responses' => 10 }) }
+    let(:account) { create(:account) }
     let(:inbox) { create(:inbox, account: account, enable_auto_assignment: false) }
     let(:assistant) { create(:captain_assistant, account: account) }
 
     before do
+      put_account_on_plan(account, monthly_messages: 10)
       create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     end
 

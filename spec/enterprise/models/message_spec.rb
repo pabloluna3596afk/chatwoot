@@ -186,12 +186,13 @@ RSpec.describe Message do
   end
 
   describe 'reopening Captain-owned conversations' do
-    let(:account) { create(:account, limits: { 'captain_responses' => 10 }) }
+    let(:account) { create(:account) }
     let(:inbox) { create(:inbox, account: account) }
     let(:assistant) { create(:captain_assistant, account: account) }
     let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :resolved) }
 
     before do
+      put_account_on_plan(account, monthly_messages: 10)
       create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
       conversation.update!(ai_assignee: assistant)
     end
@@ -212,7 +213,7 @@ RSpec.describe Message do
 
     it 'opens a resolved conversation and clears Captain when credits are exhausted' do
       account.enable_features!('captain_integration')
-      account.update!(limits: { 'captain_responses' => 0 })
+      account.current_usage_period.update!(responses_consumed: 10)
 
       create(:message, conversation: conversation, message_type: :incoming)
 
