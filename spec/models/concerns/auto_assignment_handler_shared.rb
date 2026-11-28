@@ -46,13 +46,22 @@ shared_examples_for 'auto_assignment_handler' do
       expect(conversation.reload.assignee).to be_nil
     end
 
-    it 'keeps AgentBot ownership when the conversation opens' do
+    it 'clears AgentBot ownership when the conversation opens' do
       agent_bot = create(:agent_bot, account: account)
       conversation = create(:conversation, account: account, inbox: inbox, status: 'pending', ai_assignee: agent_bot)
 
       conversation.update!(status: 'open')
 
-      expect(conversation.reload.assigned_entity).to eq(agent_bot)
+      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, assignee_agent_bot_id: nil)
+    end
+
+    it 'keeps AgentBot ownership when updating a non-open conversation' do
+      agent_bot = create(:agent_bot, account: account)
+      conversation = create(:conversation, account: account, inbox: inbox, status: 'pending', ai_assignee: agent_bot)
+
+      conversation.update!(status: :resolved, priority: :high)
+
+      expect(conversation.reload).to have_attributes(status: 'resolved', ai_assignee: agent_bot, assignee: nil)
     end
 
     it 'assigns an agent when bot handoff clears the agent bot in the same save' do

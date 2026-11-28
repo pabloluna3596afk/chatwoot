@@ -26,6 +26,7 @@ describe CsatSurveyService do
 
     it 'sends the survey once the customer wrote after the close and it is resolved again' do
       create(:message, conversation: conversation, account: account, inbox: inbox, message_type: :incoming, created_at: 1.hour.ago)
+      conversation.update_columns(status: Conversation.statuses[:resolved]) # rubocop:disable Rails/SkipsModelValidations
 
       described_class.new(conversation: conversation).perform
 
