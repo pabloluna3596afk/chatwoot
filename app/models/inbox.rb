@@ -181,9 +181,9 @@ class Inbox < ApplicationRecord
     agent_bot
   end
 
+  # Delegates to InboxBotStatus, which only counts Dialogflow hooks owned by the inbox's account.
   def active_bot?
-    agent_bot_inbox&.active? || hooks.where(app_id: %w[dialogflow],
-                                            status: 'enabled').count.positive?
+    external_bot_active?
   end
 
   def inbox_type

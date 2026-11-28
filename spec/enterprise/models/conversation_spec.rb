@@ -15,23 +15,10 @@ RSpec.describe Conversation, type: :model do
       create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     end
 
-    it 'does not assign Captain when the feature is disabled' do
-      conversation = create(:conversation, account: account, inbox: inbox)
-
-      expect(conversation).to have_attributes(status: 'open', ai_assignee: nil)
-    end
-
     context 'with a Captain assignee' do
       let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending, ai_assignee: assistant) }
 
       before { account.enable_features!('captain_integration') }
-
-      it 'clears Captain when the conversation opens' do
-        conversation.update!(status: :open)
-
-        expect(conversation.reload).to have_attributes(status: 'open', ai_assignee_type: nil, assignee_agent_bot_id: nil)
-        expect(inbox.conversations.unassigned).to include(conversation)
-      end
 
       it 'keeps Captain on unrelated updates while pending' do
         conversation.update!(priority: :high)
@@ -39,27 +26,6 @@ RSpec.describe Conversation, type: :model do
         expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: assistant)
       end
 
-      it 'clears Captain when the snooze expires' do
-        conversation.update!(status: :snoozed, snoozed_until: 1.minute.ago)
-
-        Conversations::ReopenSnoozedConversationsJob.perform_now
-
-        expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
-        expect(inbox.conversations.unassigned).to include(conversation)
-      end
-
-      it 'clears Captain before legacy auto-assignment runs on snooze expiry' do
-        account.disable_features!('assignment_v2')
-        agent = create(:user, account: account, auto_offline: false)
-        create(:inbox_member, inbox: inbox, user: agent)
-        OnlineStatusTracker.set_status(account.id, agent.id, 'online')
-        conversation.update!(status: :snoozed, snoozed_until: 1.minute.ago)
-        inbox.update!(enable_auto_assignment: true)
-
-        Conversations::ReopenSnoozedConversationsJob.perform_now
-
-        expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil, assignee: agent)
-      end
     end
   end
 

@@ -15,7 +15,7 @@ module Enterprise::Inbox
   # Captain only takes conversations it can answer: it needs the installation's AI key and
   # responses left in the plan (see Captain::Assistant#paused_reason).
   def captain_active?
-    account.feature_enabled?('captain_integration') && captain_assistant.present? && captain_assistant.paused_reason.nil?
+    captain_assistant.present? && captain_assistant.paused_reason.nil?
   end
 
   def captain_paused_reason

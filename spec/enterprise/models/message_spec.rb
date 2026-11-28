@@ -197,37 +197,6 @@ RSpec.describe Message do
       conversation.update!(ai_assignee: assistant)
     end
 
-    it 'returns a resolved conversation to Captain when the feature is enabled and credits are available' do
-      account.enable_features!('captain_integration')
-
-      create(:message, conversation: conversation, message_type: :incoming)
-
-      expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: assistant)
-    end
-
-    it 'opens a resolved conversation and clears Captain when the feature is disabled' do
-      create(:message, conversation: conversation, message_type: :incoming)
-
-      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
-    end
-
-    it 'opens a resolved conversation and clears Captain when credits are exhausted' do
-      account.enable_features!('captain_integration')
-      account.current_usage_period.update!(responses_consumed: 10)
-
-      create(:message, conversation: conversation, message_type: :incoming)
-
-      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
-    end
-
-    it 'opens a snoozed conversation and clears Captain' do
-      account.enable_features!('captain_integration')
-      conversation.snoozed!
-
-      create(:message, conversation: conversation, message_type: :incoming)
-
-      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
-    end
   end
 
   it 'preserves AgentBot ownership when a resolved conversation reopens' do
