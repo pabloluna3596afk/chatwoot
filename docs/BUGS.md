@@ -1,3 +1,11 @@
+### B-NEW-326 - Rendimiento de upstream 4.20: caché de miembros, compresión JSON y borrado de SLA (2026-11-28)
+
+- **Archivos:** `app/models/{inbox,team,conversation}.rb`, `config/application.rb`, `enterprise/app/jobs/enterprise/delete_object_job.rb` y sus specs.
+- **Problema:** agregar o quitar miembros sin cambios invalidaba la caché de la cuenta; las respuestas JSON no se comprimían; borrar una política de SLA recorría toda la tabla de conversaciones.
+- **Cambio:** la caché solo se invalida si hubo miembros creados o quitados; `Rack::Deflater` comprime solo `application/json` (fuera de `Rack::ETag`, así los 304 siguen sobre el cuerpo sin comprimir); al borrar una política se desvinculan las conversaciones por lotes.
+- **Cómo probar:** specs de `inbox`, `team` y `delete_object_job`. Sin migraciones (el índice parcial de `sla_policy_id` llega con el PR del esquema).
+- **Pendiente:** confirmar en producción que el proxy no recomprime las respuestas JSON.
+
 ### B-NEW-314 - Navegación de citas y continuidad del scroll del chat (2026-11-27)
 
 - **Archivos:** `components-next/message/{useJumpToMessage,ReplyPreview,Message}`, `widgets/conversation/{MessagesView,ReplyToMessage,ReplyBox}`, `store/modules/conversations/actions.js`, metadatos, Base y controles WootWriter.
