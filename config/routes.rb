@@ -610,6 +610,7 @@ Rails.application.routes.draw do
             end
             resources :articles do
               post :reorder, on: :collection
+              get :preview_token, on: :member
             end
           end
 
@@ -880,7 +881,8 @@ Rails.application.routes.draw do
   require 'sidekiq/web'
   require 'sidekiq/cron/web'
 
-  devise_for :super_admins, path: 'super_admin', controllers: { sessions: 'super_admin/devise/sessions' }
+  devise_for :super_admins, path: 'super_admin', controllers: { sessions: 'super_admin/devise/sessions' },
+                            skip: [:passwords, :registrations, :confirmations]
   devise_scope :super_admin do
     get 'super_admin/logout', to: 'super_admin/devise/sessions#destroy'
     namespace :super_admin do

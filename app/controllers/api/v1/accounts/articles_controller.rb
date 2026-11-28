@@ -46,6 +46,10 @@ class Api::V1::Accounts::ArticlesController < Api::V1::Accounts::BaseController
     render json: { positions: positions }
   end
 
+  def preview_token
+    render json: { preview_token: @article.preview_token }
+  end
+
   private
 
   def set_article_count

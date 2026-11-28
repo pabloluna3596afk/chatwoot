@@ -59,6 +59,13 @@ describe('#PortalAPI', () => {
       window.axios = originalAxios;
     });
 
+    it('#getPreviewToken', () => {
+      articlesAPI.getPreviewToken({ id: 1, portalSlug: 'room-rental' });
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/portals/room-rental/articles/1/preview_token'
+      );
+    });
+
     it('#getArticle', () => {
       articlesAPI.getArticle({
         id: 1,
@@ -90,9 +97,10 @@ describe('#PortalAPI', () => {
       articlesAPI.searchArticles({
         query: 'test',
         portalSlug: 'room-rental',
+        status: 'published',
       });
       expect(axiosMock.get).toHaveBeenCalledWith(
-        '/api/v1/portals/room-rental/articles?query=test'
+        '/api/v1/portals/room-rental/articles?status=published&query=test'
       );
     });
   });
