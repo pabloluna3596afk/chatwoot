@@ -120,14 +120,7 @@ RSpec.describe Integrations::Hook do
     let(:inbox) { create(:inbox, account: account) }
     let!(:account_hook) { create(:integrations_hook, account: account, app_id: 'webhook') }
     let!(:inbox_hook) do
-      create(:integrations_hook,
-             account: account,
-             app_id: 'dialogflow',
-             inbox: inbox,
-             settings: {
-               project_id: 'test-project',
-               credentials: { type: 'service_account' }
-             })
+      create(:integrations_hook, :dialogflow, account: account, inbox: inbox)
     end
 
     it 'returns account hooks' do
@@ -259,6 +252,35 @@ RSpec.describe Integrations::Hook do
       hook = build(:integrations_hook, account: account, app_id: 'slack')
 
       expect(hook).to be_valid
+    end
+  end
+
+  describe 'google translate credential validation' do
+    let!(:hook) do
+      allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(true)
+      create(:integrations_hook, :google_translate)
+    end
+
+    it 'rejects a broken key saved on an existing hook' do
+      allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(false)
+
+      expect(hook.update(settings: { project_id: 'test', credentials: { 'private_key' => 'sample' } })).to be(false)
+      expect(hook.errors[:base]).to include(I18n.t('errors.google_translate.invalid_credentials'))
+    end
+
+    it 'does not call Google when disabling a hook' do
+      expect(Integrations::GoogleTranslate::CredentialsValidator).not_to receive(:valid?)
+
+      hook.update!(status: :disabled)
+    end
+
+    it 'rejects enabling a hook with unsupported stored credentials' do
+      allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_call_original
+      hook.update!(status: :disabled)
+      hook.update_columns(settings: hook.settings.merge('credentials' => {})) # rubocop:disable Rails/SkipsModelValidations
+
+      expect(hook.update(status: :enabled)).to be(false)
+      expect(hook.reload).to be_disabled
     end
   end
 

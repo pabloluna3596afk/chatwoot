@@ -1,4 +1,3 @@
-require 'google/cloud/translate/v3'
 class Integrations::GoogleTranslate::DetectLanguageService
   pattr_initialize [:hook!, :message!]
 
@@ -34,8 +33,6 @@ class Integrations::GoogleTranslate::DetectLanguageService
   end
 
   def client
-    @client ||= ::Google::Cloud::Translate::V3::TranslationService::Client.new do |config|
-      config.credentials = hook.google_translate_credentials
-    end
+    @client ||= Integrations::GoogleTranslate::Client.build(hook.google_translate_client_settings)
   end
 end
