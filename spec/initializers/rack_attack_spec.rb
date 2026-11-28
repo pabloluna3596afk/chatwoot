@@ -195,7 +195,7 @@ describe 'Rack::Attack auth throttles' do
       %w[conversations conversations/filter].each do |route|
         name = "/api/v1/accounts/:account_id/#{route}/user"
         method = route.end_with?('filter') ? 'POST' : 'GET'
-        env = Rack::MockRequest.env_for("/api/v1/accounts/1/#{route}", method: method, 'HTTP_UID' => 'user-1')
+        env = Rack::MockRequest.env_for("/api/v1/accounts/1/#{route}", :method => method, 'HTTP_UID' => 'user-1')
         expect(throttle_key(name, env)).to eq('user-1:1')
         expect(throttle_key(name, env.merge('HTTP_UID' => 'user-2'))).to eq('user-2:1')
         expect(throttle_key(name, env.merge('PATH_INFO' => "/api/v1/accounts/2/#{route}"))).to eq('user-1:2')
@@ -213,7 +213,7 @@ describe 'Rack::Attack auth throttles' do
 
     it 'keeps bulk actions and exports out of the list and filter throttles' do
       %w[bulk_actions conversations/bulk_actions conversations/export].each do |route|
-        env = Rack::MockRequest.env_for("/api/v1/accounts/1/#{route}", method: 'POST', 'HTTP_UID' => 'user-1')
+        env = Rack::MockRequest.env_for("/api/v1/accounts/1/#{route}", :method => 'POST', 'HTTP_UID' => 'user-1')
         expect(throttle_key('/api/v1/accounts/:account_id/conversations/user', env)).to be_nil
         expect(throttle_key('/api/v1/accounts/:account_id/conversations/filter/user', env)).to be_nil
       end
@@ -234,13 +234,13 @@ describe 'Rack::Attack auth throttles' do
     end
 
     it 'keys the conversation filter by the bearer API token' do
-      env = Rack::MockRequest.env_for('/api/v1/accounts/1/conversations/filter?page=2', method: 'POST', 'HTTP_AUTHORIZATION' => 'Bearer api-token')
+      env = Rack::MockRequest.env_for('/api/v1/accounts/1/conversations/filter?page=2', :method => 'POST', 'HTTP_AUTHORIZATION' => 'Bearer api-token')
       expect(throttle_key('/api/v1/accounts/:account_id/conversations/filter/user', env)).to eq('api-token:1')
     end
 
     it 'keeps other filter routes and non-POST requests out of the conversation filter throttle' do
       name = '/api/v1/accounts/:account_id/conversations/filter/user'
-      headers = { method: 'POST', 'HTTP_AUTHORIZATION' => 'Bearer api-token' }
+      headers = { :method => 'POST', 'HTTP_AUTHORIZATION' => 'Bearer api-token' }
       %w[/api/v1/accounts/1/contacts/filter /api/v1/accounts/1/conversations /api/v1/accounts/1/conversations/5].each do |path|
         expect(throttle_key(name, Rack::MockRequest.env_for(path, headers))).to be_nil
       end
