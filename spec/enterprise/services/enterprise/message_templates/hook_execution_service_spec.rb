@@ -15,7 +15,6 @@ RSpec.describe MessageTemplates::HookExecutionService do
   end
 
   context 'when captain assistant is configured' do
-
     it 'does not hand off a human-owned pending conversation when Captain is paused and still counts eligibility' do
       account.enable_features!('captain_integration_v2')
       agent = create(:user, account: account)
