@@ -140,4 +140,65 @@ RSpec.describe 'Public Inbox Contact Conversations API', type: :request do
       expect(conversation.reload.contact_last_seen_at).not_to eq contact_last_seen_at
     end
   end
+
+  context 'when the inbox requires HMAC' do
+    let(:contact) { create(:contact, account: api_channel.account, identifier: 'contact-identifier') }
+    let!(:conversation) do
+      create(:conversation, account: api_channel.account, inbox: api_channel.inbox, contact_inbox: contact_inbox, contact: contact)
+    end
+
+    before { api_channel.update!(hmac_mandatory: true) }
+
+    [:index, :show, :create].each do |action|
+      context "for #{action}" do
+        let(:request_path) do
+          base = "/public/api/v1/inboxes/#{api_channel.identifier}/contacts/#{contact_inbox.source_id}/conversations"
+          action == :show ? "#{base}/#{conversation.display_id}" : base
+        end
+        let(:http_method) { action == :create ? :post : :get }
+
+        it 'rejects a missing hash even if the session was previously verified' do
+          contact_inbox.update!(hmac_verified: true)
+
+          expect { public_send(http_method, request_path, params: { hmac_verified: true }) }.not_to change(Conversation, :count)
+
+          expect(response).to have_http_status(:unauthorized)
+        end
+
+        it 'rejects a valid hash belonging to another contact' do
+          other_contact = create(:contact, account: api_channel.account, identifier: 'other-contact')
+          other_hash = OpenSSL::HMAC.hexdigest('sha256', api_channel.hmac_token, other_contact.identifier)
+
+          expect do
+            public_send(http_method, request_path, params: { identifier: other_contact.identifier, identifier_hash: other_hash })
+          end.not_to change(Conversation, :count)
+
+          expect(response).to have_http_status(:unauthorized)
+          expect(contact_inbox.reload.hmac_verified).to be(false)
+        end
+
+        it 'rejects a contact without an identifier' do
+          contact.update!(identifier: nil)
+          empty_hash = OpenSSL::HMAC.hexdigest('sha256', api_channel.hmac_token, '')
+
+          public_send(http_method, request_path, params: { identifier_hash: empty_hash })
+
+          expect(response).to have_http_status(:unauthorized)
+        end
+
+        it 'accepts the target contact hash' do
+          identifier_hash = OpenSSL::HMAC.hexdigest('sha256', api_channel.hmac_token, contact.identifier)
+
+          public_send(http_method, request_path, params: { identifier_hash: identifier_hash })
+
+          expect(response).to have_http_status(:success)
+          if action == :index
+            expect(response.parsed_body.pluck('id')).to eq([conversation.display_id])
+          else
+            expect(api_channel.inbox.conversations.find_by!(display_id: response.parsed_body['id']).contact_id).to eq(contact.id)
+          end
+        end
+      end
+    end
+  end
 end
