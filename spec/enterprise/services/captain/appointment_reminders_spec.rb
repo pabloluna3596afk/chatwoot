@@ -733,11 +733,5 @@ RSpec.describe Captain::AppointmentReminders do
         expect(reminder('reminder_1').skipped_reason).to eq('disabled')
       end
     end
-
-    it 'never enqueues the Panel AI follow-up job' do
-      schedule
-
-      expect { send_reminder }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
-    end
   end
 end

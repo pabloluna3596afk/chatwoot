@@ -33,7 +33,7 @@ RSpec.describe Integrations::GoogleCalendar::EventLock do
   end
 
   describe 'when an AgentBot calls the service' do
-    # EventService passes the AgentBot as `user` for Panel AI bridge requests, and the lock
+    # EventService passes the AgentBot as `user` for AgentBot bridge requests, and the lock
     # identifies holders by `user.id` only. AgentBot ids and User ids come from different tables.
     let(:colliding_bot) { create(:agent_bot, id: user.id, account: account) }
 

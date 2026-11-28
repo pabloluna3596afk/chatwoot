@@ -39,8 +39,6 @@ class CalendarEvent < ApplicationRecord
   belongs_to :conversation, optional: true
   has_many :activities, class_name: 'CalendarEventActivity', dependent: :destroy
 
-  store_accessor :bot_followup_policy, :enabled, :confirmation, :reminders_minutes_before, :source
-
   validates :external_calendar_id, presence: true
   validates :google_event_id, presence: true
   validates :google_event_id, uniqueness: { scope: :calendar_connection_id }
@@ -65,10 +63,6 @@ class CalendarEvent < ApplicationRecord
     deleted_at.present? || appointment_status == 'cancelled'
   end
 
-  def bot_followup_enabled?
-    ActiveModel::Type::Boolean.new.cast(bot_followup_policy.is_a?(Hash) ? bot_followup_policy['enabled'] : enabled)
-  end
-
   def ai_booked?
     booking_source == 'ai'
   end
@@ -90,7 +84,7 @@ class CalendarEvent < ApplicationRecord
 
     self.customer_reminder_sent_at = nil
     self.customer_reminder_status = nil
-    return unless account.customer_reminders_enabled == true && !ai_booked? && !bot_followup_enabled?
+    return unless account.customer_reminders_enabled == true && !ai_booked?
 
     self.customer_reminder_status = 'skipped_too_close' if start_at && start_at < Time.current + CUSTOMER_REMINDER_LEAD_TIME
   end

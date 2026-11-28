@@ -85,7 +85,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(client).not_to have_received(:create_event)
     end
 
-    it 'keeps accepting a closed day when enforcement is off (agents and the Panel AI bridge)' do
+    it 'keeps accepting a closed day when enforcement is off (agents and the AgentBot bridge)' do
       calendar.update!(working_days: [1, 2, 3, 4, 5])
 
       expect do

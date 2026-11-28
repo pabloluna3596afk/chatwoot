@@ -293,7 +293,7 @@ class Conversation < ApplicationRecord
     ai_assignee || assignee
   end
 
-  # An external AgentBot (Panel AI) owns the conversation; Captain ownership is reported by captain_state.
+  # An external AgentBot owns the conversation; Captain ownership is reported by captain_state.
   def bot_handling?
     ai_assignee_type == 'AgentBot'
   end
@@ -463,7 +463,7 @@ class Conversation < ApplicationRecord
   #
   # WHAT THIS MEANS TODAY: the human wins. Assigning a bot to a conversation that
   # already has an agent drops the bot silently. Anything handing a conversation
-  # to Panel AI must clear the assignee first rather than set ai_assignee alone —
+  # to an external bot must clear the assignee first rather than set ai_assignee alone —
   # AssignmentService does this on the handoff path; nothing else may skip it.
   #
   # WHEN THIS WILL CLASH: upstream made ai_assignee polymorphic as groundwork for
@@ -475,7 +475,7 @@ class Conversation < ApplicationRecord
   #   return if assignee_id.blank?
   #   self.ai_assignee = nil unless ai_assignee_type == 'Captain::Assistant'
   #
-  # If Panel AI ever needs to take a conversation over from an agent, that is the
+  # If an external bot ever needs to take a conversation over from an agent, that is the
   # opposite change — making the elsif real — and it belongs in its own commit
   # with its own tests, not folded into an upstream merge.
   def ensure_exclusive_assignee

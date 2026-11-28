@@ -44,7 +44,7 @@ RSpec.describe 'Session authentication responses', type: :request do
     expect(Current.user).to be_nil
   end
 
-  it 'requires MFA enrollment before creating a Panel AI SSO session when enforcement is enabled' do
+  it 'requires MFA enrollment before creating an SSO session when enforcement is enabled' do
     skip('Skipping since MFA is not configured in this environment') unless Chatwoot.encryption_configured?
     account.update!(enforce_mfa: true)
 

@@ -4,7 +4,7 @@ module AccessTokenAuthHelper
     'api/v1/accounts/conversations/messages' => ['create'],
     'api/v1/accounts/conversations/assignments' => ['create'],
     'api/v1/accounts/conversations/labels' => %w[index create],
-    # Panel AI calendar bridge (AgentBot token, account-scoped). No oauth/destroy/update_calendars.
+    # AgentBot calendar bridge (AgentBot token, account-scoped). No oauth/destroy/update_calendars.
     'api/v1/accounts/integrations/calendar' => %w[index calendars events create_event update_event destroy_event]
   }.freeze
 

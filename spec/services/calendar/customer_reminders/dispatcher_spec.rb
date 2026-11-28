@@ -104,13 +104,6 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     expect(outgoing).to be_empty
   end
 
-  it 'R3 leaves Panel AI follow-up alone' do
-    event.update!(bot_followup_policy: { 'enabled' => true })
-    described_class.new.perform
-    expect(outgoing).to be_empty
-    expect(event.reload.customer_reminder_status).to be_nil
-  end
-
   it 'R4 marks unsupported channels without sending free text' do
     conversation.update!(inbox: create(:inbox, account: account))
     described_class.new.perform

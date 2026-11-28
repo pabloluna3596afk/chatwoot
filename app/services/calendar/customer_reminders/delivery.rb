@@ -36,7 +36,7 @@ class Calendar::CustomerReminders::Delivery
 
   def eligible?
     event.account.reload.customer_reminders_enabled == true && !event.discarded? && event.start_at > Time.current &&
-      event.appointment_status != 'confirmed' && !event.ai_booked? && !event.bot_followup_enabled?
+      event.appointment_status != 'confirmed' && !event.ai_booked?
   end
 
   def attempt

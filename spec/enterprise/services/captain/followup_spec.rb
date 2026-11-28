@@ -280,7 +280,7 @@ RSpec.describe Captain::Followup do
       expect { described_class.new(now: now).perform }.not_to(change { conversation.messages.count })
     end
 
-    it 'leaves alone a conversation that an agent bot (Panel AI) handles' do
+    it 'leaves alone a conversation that an agent bot handles' do
       conversation.update!(ai_assignee: create(:agent_bot, account: account))
 
       expect { described_class.new(now: now).perform }.not_to(change { conversation.messages.count })
@@ -291,10 +291,6 @@ RSpec.describe Captain::Followup do
       allow(ChatwootExceptionTracker).to receive(:new).and_return(instance_double(ChatwootExceptionTracker, capture_exception: nil))
 
       expect { described_class.new(now: now).perform }.not_to raise_error
-    end
-
-    it 'never enqueues the Panel AI follow-up job' do
-      expect { described_class.new(now: now).perform }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
     end
   end
 

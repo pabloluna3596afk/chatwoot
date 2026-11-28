@@ -107,14 +107,6 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#destroy' do
     end
   end
 
-  it 'does not send when Panel AI follow-up is active' do
-    appointment.update!(bot_followup_policy: { enabled: true })
-
-    service.destroy('g-1', params)
-
-    expect(outgoing).to be_empty
-  end
-
   it 'does not send when already cancelled without a deletion timestamp' do
     appointment.update!(appointment_status: 'cancelled')
 

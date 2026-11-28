@@ -1,6 +1,6 @@
 const KNOWN_ASSIGNEE_TYPES = ['AgentBot', 'Captain::Assistant', 'User'];
 
-// Owners that are not people: the inbox's Panel AI bot and its Captain assistant.
+// Owners that are not people: the inbox's external bot bot and its Captain assistant.
 export const isAIAssigneeType = assigneeType =>
   assigneeType === 'AgentBot' || assigneeType === 'Captain::Assistant';
 

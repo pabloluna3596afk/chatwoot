@@ -108,7 +108,7 @@ RSpec.describe 'Device verification on password sign-in', type: :request do
     expect(response.headers['access-token']).to be_nil
   end
 
-  it 'does not challenge Panel AI sign-in or support impersonation tokens' do
+  it 'does not challenge SSO sign-in or support impersonation tokens' do
     post '/auth/sign_in', params: { email: user.email, sso_auth_token: user.generate_sso_auth_token }, as: :json
     expect(response).to have_http_status(:success)
     expect(Enterprise::DeviceVerificationMailer).not_to have_received(:verification_code)

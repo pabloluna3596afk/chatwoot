@@ -32,14 +32,8 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
 
     render json: {
       payload: items,
-      configured: Integrations::GoogleCalendar::Oauth.configured?,
-      panel_ai_active: panel_ai_active?
+      configured: Integrations::GoogleCalendar::Oauth.configured?
     }
-  end
-
-  # The AI bot follow-up of an appointment (Panel AI) only makes sense when an AgentBot is active in some inbox.
-  def panel_ai_active?
-    Current.account.inboxes.joins(:agent_bot_inbox).merge(AgentBotInbox.active).exists?
   end
 
   # The text of the invitation of an appointment, for the settings and for the appointment modal (everyone reads it).
@@ -320,8 +314,7 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
     params.permit(
       :id, :connection_id, :calendar_id, :event_id, :time_min, :time_max, :heartbeat,
       :summary, :start, :end, :etag, :contact_id, :conversation_id, :include_meet, :send_to_contact,
-      :attendee_email, :all, :note, :idempotency_key, :appointment_status, :description,
-      bot_followup_policy: {}
+      :attendee_email, :all, :note, :idempotency_key, :appointment_status, :description
     )
   end
 
