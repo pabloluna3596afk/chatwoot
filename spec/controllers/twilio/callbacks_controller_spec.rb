@@ -43,5 +43,80 @@ RSpec.describe 'Twilio::CallbacksController', type: :request do
         post twilio_callback_index_url, params: params
       end.to have_enqueued_job(Webhooks::TwilioEventsJob).with(params)
     end
+
+    context 'when the request resolves to a channel' do
+      let(:channel) { create(:channel_twilio_sms, :with_phone_number) }
+      let(:params) do
+        { 'From' => '+15550001111', 'To' => channel.phone_number, 'Body' => 'Hello', 'AccountSid' => channel.account_sid, 'SmsSid' => 'SM456' }
+      end
+      let(:signature) { Twilio::Security::RequestValidator.new(channel.auth_token).build_signature_for(twilio_callback_index_url, params) }
+
+      it 'logs unsigned requests and still enqueues them' do
+        expect(Rails.logger).to receive(:warn).with("[TWILIO] Invalid webhook signature channel_id=#{channel.id} endpoint=callback enforced=false")
+
+        expect do
+          post twilio_callback_index_url, params: params
+        end.to have_enqueued_job(Webhooks::TwilioEventsJob).with(params)
+        expect(response).to have_http_status(:no_content)
+        expect(channel.reload.provider_config).not_to have_key('callback_signature_enforced')
+      end
+
+      it 'accepts valid signatures without enabling enforcement' do
+        expect(Rails.logger).not_to receive(:warn).with(/Invalid webhook signature/)
+
+        expect do
+          post twilio_callback_index_url, params: params, headers: { 'X-Twilio-Signature' => signature }
+        end.to have_enqueued_job(Webhooks::TwilioEventsJob).with(params)
+        expect(response).to have_http_status(:no_content)
+        expect(channel.reload.provider_config).not_to have_key('callback_signature_enforced')
+      end
+
+      it 'continues logging invalid signatures after receiving a valid signature' do
+        post twilio_callback_index_url, params: params, headers: { 'X-Twilio-Signature' => signature }
+        expect(Rails.logger).to receive(:warn).with(/Invalid webhook signature.*enforced=false/)
+
+        expect do
+          post twilio_callback_index_url, params: params, headers: { 'X-Twilio-Signature' => 'invalid' }
+        end.to have_enqueued_job(Webhooks::TwilioEventsJob).with(params)
+        expect(response).to have_http_status(:no_content)
+        expect(channel.reload.provider_config).not_to have_key('callback_signature_enforced')
+      end
+
+      it 'accepts a signature for the configured webhook URL when the request URL differs' do
+        expect(Rails.logger).not_to receive(:warn).with(/Invalid webhook signature/)
+
+        post '/twilio/callback', params: params, headers: { 'X-Twilio-Signature' => signature }
+
+        expect(response).to have_http_status(:no_content)
+      end
+
+      it 'logs query parameters added to a signed request' do
+        expect(Rails.logger).to receive(:warn).with(/Invalid webhook signature.*enforced=false/)
+
+        post '/twilio/callback?Body=Tampered', params: params, headers: { 'X-Twilio-Signature' => signature }
+
+        expect(response).to have_http_status(:no_content)
+      end
+
+      it 'verifies numbers in a messaging service pool against the phone number channel' do
+        params['MessagingServiceSid'] = "MG#{SecureRandom.hex(16)}"
+        expect(Rails.logger).not_to receive(:warn).with(/Invalid webhook signature/)
+
+        expect do
+          post twilio_callback_index_url, params: params, headers: { 'X-Twilio-Signature' => signature }
+        end.to have_enqueued_job(Webhooks::TwilioEventsJob).with(params)
+        expect(response).to have_http_status(:no_content)
+      end
+
+      it 'does not mistake an API key secret for an account auth token' do
+        channel.update!(api_key_sid: "SK#{SecureRandom.hex(16)}")
+        expect(Rails.logger).to receive(:info).with(/Signature not verified, account auth token not configured/)
+
+        post twilio_callback_index_url, params: params, headers: { 'X-Twilio-Signature' => signature }
+
+        expect(response).to have_http_status(:no_content)
+        expect(channel.reload.provider_config).not_to have_key('callback_signature_enforced')
+      end
+    end
   end
 end
