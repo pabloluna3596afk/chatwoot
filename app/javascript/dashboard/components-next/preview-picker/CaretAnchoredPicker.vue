@@ -264,10 +264,13 @@ const onListItemSelection = index => {
   onSelect();
 };
 
-watch(items, () => {
-  selectedIndex.value = 0;
-  adjustScroll();
-});
+watch(
+  () => items.value.map(item => item.id).join(),
+  () => {
+    selectedIndex.value = 0;
+    adjustScroll();
+  }
+);
 </script>
 
 <template>
