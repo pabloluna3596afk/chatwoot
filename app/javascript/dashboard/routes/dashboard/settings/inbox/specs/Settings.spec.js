@@ -1,5 +1,7 @@
 import Settings from '../Settings.vue';
 
+vi.mock('@amplitude/analytics-browser', () => ({}));
+
 const computeWhatsappUnauthorized = context =>
   Settings.computed.whatsappUnauthorized.call(context);
 

@@ -185,12 +185,68 @@ RSpec.describe Message do
     end
   end
 
+  describe 'reopening Captain-owned conversations' do
+    let(:account) { create(:account) }
+    let(:inbox) { create(:inbox, account: account) }
+    let(:assistant) { create(:captain_assistant, account: account) }
+    let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :resolved) }
+
+    before do
+      put_account_on_plan(account, monthly_messages: 10)
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+      conversation.update!(ai_assignee: assistant)
+    end
+
+    it 'returns a resolved conversation to Captain when the feature is enabled and credits are available' do
+      account.enable_features!('captain_integration')
+
+      create(:message, conversation: conversation, message_type: :incoming)
+
+      expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: assistant)
+    end
+
+    it 'opens a resolved conversation and clears Captain when the feature is disabled' do
+      create(:message, conversation: conversation, message_type: :incoming)
+
+      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
+    end
+
+    it 'opens a resolved conversation and clears Captain when credits are exhausted' do
+      account.enable_features!('captain_integration')
+      account.current_usage_period.update!(responses_consumed: 10)
+
+      create(:message, conversation: conversation, message_type: :incoming)
+
+      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
+    end
+
+    it 'opens a snoozed conversation and clears Captain' do
+      account.enable_features!('captain_integration')
+      conversation.snoozed!
+
+      create(:message, conversation: conversation, message_type: :incoming)
+
+      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
+    end
+  end
+
+  it 'preserves AgentBot ownership when a resolved conversation reopens' do
+    agent_bot = create(:agent_bot, account: conversation.account)
+    create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
+    conversation.update!(status: :resolved, ai_assignee: agent_bot)
+
+    create(:message, conversation: conversation, message_type: :incoming)
+
+    expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: agent_bot)
+  end
+
   describe 'reopening a resolved conversation' do
     let(:conversation) { create(:conversation, status: :resolved) }
     let(:captain_assistant) { create(:captain_assistant, account: conversation.account) }
     let(:agent) { create(:user, account: conversation.account, role: :agent) }
 
     before do
+      conversation.account.enable_features!('captain_integration')
       create(:captain_inbox, inbox: conversation.inbox, captain_assistant: captain_assistant)
       conversation.update_columns(status: Conversation.statuses[:resolved], ai_assignee_type: nil, assignee_agent_bot_id: nil) # rubocop:disable Rails/SkipsModelValidations
       allow_any_instance_of(Captain::Assistant).to receive(:paused_reason).and_return(nil) # rubocop:disable RSpec/AnyInstance

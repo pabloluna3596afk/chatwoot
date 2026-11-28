@@ -5,7 +5,10 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
   let(:inbox) { create(:inbox, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
 
-  before { put_account_on_plan(account) }
+  before do
+    account.enable_features!('captain_integration')
+    put_account_on_plan(account)
+  end
 
   describe '#perform' do
     let(:conversation) { create(:conversation, inbox: inbox, account: account, status: :pending) }

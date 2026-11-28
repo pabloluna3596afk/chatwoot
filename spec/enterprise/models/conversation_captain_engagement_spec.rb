@@ -10,6 +10,7 @@ RSpec.describe Conversation, type: :model do
     let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact) }
 
     before do
+      account.enable_features!('captain_integration')
       create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
       allow(assistant).to receive(:paused_reason).and_return(nil)
     end

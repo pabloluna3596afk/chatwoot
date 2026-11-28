@@ -13,7 +13,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob do
 
   before do
     put_account_on_plan(account)
-    account.enable_features!(:captain_integration_v2)
+    account.enable_features!(:captain_integration, :captain_integration_v2)
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
     allow(Captain::Assistant::AgentRunnerService).to receive(:new).and_return(runner)
     allow(runner).to receive(:last_run_result).and_return(run_result)

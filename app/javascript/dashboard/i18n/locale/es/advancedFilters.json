@@ -74,6 +74,7 @@
     "ERRORS": {
       "VALUE_REQUIRED": "El valor es requerido",
       "ATTRIBUTE_KEY_REQUIRED": "Clave de atributo es requerida",
+      "INVALID_FILTER_OPERATOR": "Selecciona un operador válido para este atributo",
       "FILTER_OPERATOR_REQUIRED": "El operador de filtro es requerido",
       "VALUE_MUST_BE_BETWEEN_1_AND_998": "El valor debe ser entre 1 y 998",
       "TIME_WINDOW_INVALID": "Elige una hora de inicio y una de fin que sean distintas"

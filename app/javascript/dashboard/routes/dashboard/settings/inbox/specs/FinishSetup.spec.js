@@ -5,6 +5,8 @@ import FinishSetup from '../FinishSetup.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import Button from 'dashboard/components-next/button/Button.vue';
 
+vi.mock('@amplitude/analytics-browser', () => ({}));
+
 const mocks = vi.hoisted(() => ({
   inbox: {},
   toDataURL: vi.fn(),

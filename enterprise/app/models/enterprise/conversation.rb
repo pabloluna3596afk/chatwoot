@@ -43,6 +43,11 @@ module Enterprise::Conversation
 
   private
 
+  def ensure_exclusive_assignee
+    super
+    self.ai_assignee = nil if status_changed? && open? && ai_assignee_type == 'Captain::Assistant'
+  end
+
   def record_captain_control_transition
     return if @captain_skip_assistant
 

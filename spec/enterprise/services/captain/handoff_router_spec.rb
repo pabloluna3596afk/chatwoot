@@ -9,6 +9,7 @@ RSpec.describe Captain::HandoffRouter do
   let(:team) { create(:team, account: account) }
 
   before do
+    account.enable_features!('captain_integration')
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     create(:inbox_member, inbox: inbox, user: agent)
     allow(OnlineStatusTracker).to receive(:get_available_users).with(account.id).and_return(agent.id.to_s => 'online')
