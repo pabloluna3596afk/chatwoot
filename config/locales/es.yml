@@ -77,6 +77,7 @@ es:
       invalid_code: 'El código de verificación es incorrecto.'
       code_field_required: 'Ingresa el código que enviamos a tu correo.'
     auto_translate:
+      invalid_setting: 'La traducción automática debe ser true o false'
       invalid_messages: 'Mensajes no válidos'
     google_translate:
       invalid_credentials: 'No se pudieron validar las credenciales de Google Cloud'
@@ -409,6 +410,9 @@ es:
       sla:
         added: '%{user_name} agregó la política de SLA %{sla_name}'
         removed: '%{user_name} eliminó la política de SLA %{sla_name}'
+      auto_translate:
+        disabled: '%{user_name} desactivó la traducción automática para esta conversación'
+        enabled: '%{user_name} activó la traducción automática para esta conversación'
       linear:
         issue_created: 'Linear issue %{issue_id} was created by %{user_name}'
         issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
@@ -1042,6 +1046,9 @@ es:
       custom_domain_not_configured: 'Custom domain is not configured'
       instructions_sent_successfully: 'Instructions sent successfully'
       subject: 'Finish setting up %{custom_domain}'
+    remove_locale:
+      default_locale: 'No se puede eliminar el idioma predeterminado'
+      invalid_locale: 'El idioma no es válido'
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:

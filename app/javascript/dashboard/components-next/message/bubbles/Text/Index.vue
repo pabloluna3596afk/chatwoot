@@ -10,9 +10,7 @@ import { MESSAGE_TYPES } from '../../constants';
 import { MESSAGE_STATUS } from 'shared/constants/messages';
 import { useMessageContext } from '../../provider.js';
 import { useTranslations } from 'dashboard/composables/useTranslations';
-import { useAccount } from 'dashboard/composables/useAccount';
-import { useMapGetter } from 'dashboard/composables/store';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { useConversationTranslation } from 'dashboard/composables/useConversationTranslation';
 import WhatsappReferral from './WhatsappReferral.vue';
 
 const {
@@ -29,17 +27,7 @@ const { hasTranslations, translationContent } =
   useTranslations(contentAttributes);
 
 const renderOriginal = ref(false);
-const { currentAccount } = useAccount();
-const isFeatureEnabledonAccount = useMapGetter(
-  'accounts/isFeatureEnabledonAccount'
-);
-const showTranslationStatus = computed(
-  () =>
-    isFeatureEnabledonAccount.value(
-      currentAccount.value?.id,
-      FEATURE_FLAGS.AUTO_TRANSLATE
-    ) && currentAccount.value?.settings?.auto_translate === true
-);
+const { enabled: showTranslationStatus } = useConversationTranslation();
 const translationStatus = computed(
   () =>
     contentAttributes.value?.translationStatus ||

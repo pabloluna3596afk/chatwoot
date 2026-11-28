@@ -8,7 +8,13 @@ class Api::V1::Accounts::Integrations::HooksController < Api::V1::Accounts::Inte
   end
 
   def update
-    @hook.update!(permitted_params.slice(:status, :settings))
+    @hook.assign_attributes(permitted_params.slice(:status, :settings))
+    if @hook.app_id == 'google_translate' && @hook.will_save_change_to_settings? &&
+       !Integrations::GoogleTranslate::CredentialsValidator.valid?(@hook)
+      return render json: { error: I18n.t('errors.google_translate.invalid_credentials') }, status: :unprocessable_entity
+    end
+
+    @hook.save!
   end
 
   def process_event

@@ -148,6 +148,7 @@ watch(
         <Editor
           v-model="noteContent"
           focus-on-mount
+          :show-character-count="false"
           :placeholder="t('CONTACTS_LAYOUT.SIDEBAR.NOTES.PLACEHOLDER')"
           class="[&>div]:!border-transparent [&>div]:px-3 [&>div]:py-2"
         />

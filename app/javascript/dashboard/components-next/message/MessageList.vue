@@ -10,7 +10,7 @@ import { useChatCanvas } from 'dashboard/composables/useChatCanvas';
 import { chatPanelStyle } from 'dashboard/helper/chatSkin';
 import MessageApi from 'dashboard/api/inbox/message.js';
 import { useAccount } from 'dashboard/composables/useAccount';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { useConversationTranslation } from 'dashboard/composables/useConversationTranslation';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 
 /**
@@ -51,18 +51,9 @@ const emit = defineEmits(['retry']);
 const { currentAccount } = useAccount();
 const currentChat = useMapGetter('getSelectedChat');
 const { uiSettings } = useUISettings();
-const isFeatureEnabledonAccount = useMapGetter(
-  'accounts/isFeatureEnabledonAccount'
-);
 const requestedTranslations = new Set();
 const translationProviderUnavailable = ref(false);
-const autoTranslateEnabled = computed(
-  () =>
-    isFeatureEnabledonAccount.value(
-      currentAccount.value?.id,
-      FEATURE_FLAGS.AUTO_TRANSLATE
-    ) && currentAccount.value?.settings?.auto_translate === true
-);
+const { enabled: autoTranslateEnabled } = useConversationTranslation();
 
 watch(
   () => [

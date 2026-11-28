@@ -16,7 +16,7 @@ module Enterprise::Concerns::Message
   end
 
   def translation_enabled?
-    return false unless account.auto_translate_enabled? && content.present? && !private?
+    return false unless conversation.auto_translate_enabled? && content.present? && !private?
     return false if additional_attributes.to_h['customer_reminder'].present?
 
     template? ? email_template_message? : translatable_agent_reply?

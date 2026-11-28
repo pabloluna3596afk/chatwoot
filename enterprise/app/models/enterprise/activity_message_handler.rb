@@ -11,6 +11,24 @@ module Enterprise::ActivityMessageHandler
 
   private
 
+  def create_activity
+    super
+    with_account_locale { handle_auto_translate_change(determine_user_name) }
+  end
+
+  def handle_auto_translate_change(user_name) # rubocop:disable Metrics/CyclomaticComplexity
+    return unless account.feature_enabled?('conversation_auto_translate') && user_name && saved_change_to_additional_attributes?
+
+    before, after = previous_changes['additional_attributes']
+    was_disabled = (before || {})['auto_translate_disabled'] == true
+    now_disabled = (after || {})['auto_translate_disabled'] == true
+    return if was_disabled == now_disabled
+
+    change_type = now_disabled ? 'disabled' : 'enabled'
+    content = I18n.t("conversations.activity.auto_translate.#{change_type}", user_name: user_name)
+    enqueue_activity_message(activity_message_params(content, names: [user_name]))
+  end
+
   def activity_message_params(content, content_attributes: nil, names: [])
     content_attributes = captain_control_activity_attributes(content_attributes)
     return super unless Current.executed_by.instance_of?(Captain::Assistant)

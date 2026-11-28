@@ -170,6 +170,13 @@
       "TRANSCRIPT_SHOW_LESS": "Mostrar menos"
     },
     "HEADER": {
+      "AUTO_TRANSLATE": {
+        "TURN_ON": "Activar traducción automática",
+        "TURN_OFF": "Desactivar traducción automática",
+        "TURNED_ON": "Traducción automática activada para esta conversación",
+        "TURNED_OFF": "Traducción automática desactivada para esta conversación",
+        "UPDATE_FAILED": "No se pudo actualizar la traducción automática"
+      },
       "RESOLVE_ACTION": "Resolver",
       "REOPEN_ACTION": "Reabrir",
       "OPEN_ACTION": "Abrir",

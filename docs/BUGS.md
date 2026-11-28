@@ -1,3 +1,12 @@
+### B-NEW-325 - Captain: idioma y audio; continuidad y control de traducción (2026-11-27)
+
+- **Problema:** el idioma del navegador podía sesgar Captain, el saneador omitía el idioma detectado y los mensajes cortos volvían al idioma de la cuenta. Un autosave podía encolar dos transcripciones; un audio rechazado interrumpía el contexto. Un error de traducción podía dejar sin enviar la respuesta del agente.
+- **Cambio:** contexto sin pistas del navegador y con idioma de conversación; reutiliza el algoritmo existente para mensajes cortos y el bloqueo/caché de audio. Evita la doble cola; el rechazo de audio vuelve como error controlado. El fallo de traducción libera el envío original y marca el mensaje. Valida credenciales Google también al editar ajustes mediante la API genérica, sin duplicar la validación del alta/reconexión.
+- **Control nuevo:** `conversation_auto_translate`, apagado por defecto. Permite a agentes activar/desactivar por conversación desde el menú existente, valida booleanos en API y registra actividad en el idioma de la cuenta. Conserva proveedor, planes, tres bolsas de IA y reservas. Sin migraciones ni cambios de modelos configurados.
+- **Archivos:** prompts/saneador de Captain; `AudioTranscriptionService`/job/concern de Attachment; servicios de traducción y validación Google; controlador de conversaciones y concern Enterprise; `MoreActions.vue`, `useConversationTranslation.js`, `MessageList.vue`, burbuja Text y cliente de conversaciones.
+- **Cómo probar:** specs de prompts/saneador, response builder, Attachment, audio, idioma, traducción, API Google, API/control/actividad por conversación; Vitest de menú, composable, lista y acción API. Matriz A1–A8 y comandos en `../docs-crm/codex/tabla-grupo3.md`.
+- **Pendiente:** RSpec/RuboCop con el PM y revisión visual antes del PR. `5d4fa938fb` aplazado: el cierre por espera está ligado al seguimiento, la reapertura y las decisiones propios; no sustituir el evaluador compartido ni saltar recordatorios existentes. El PM/dueño debe acordar ese contrato en un cambio separado. Sin Docker, navegador, fetch, push ni PR.
+
 ### B-NEW-314 - Navegación de citas y continuidad del scroll del chat (2026-11-27)
 
 - **Archivos:** `components-next/message/{useJumpToMessage,ReplyPreview,Message}`, `widgets/conversation/{MessagesView,ReplyToMessage,ReplyBox}`, `store/modules/conversations/actions.js`, metadatos, Base y controles WootWriter.
@@ -4028,3 +4037,22 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Conservado:** Conectores/AgentBot y sus tokens/endpoints, login normal, Google, SAML, SSO genérico, Captain, Copilot y Flows. En Captain solo se elimina un comentario y las expectativas sobre el job borrado; no se cambia su comportamiento.
 - **Cómo probar:** crear y editar citas desde calendario y conversación, con y sin aviso al contacto, estado confirmado/pendiente, Meet e invitación; abrir una cita con política antigua y comprobar que no ofrece seguimiento del bot. Las rutas exclusivas de SSO ya no existen. Los conectores externos configurados siguen usando la API genérica; este cambio no revoca sus tokens ni elimina sus webhooks.
 - **Validación:** Vitest del calendario y batería amplia UTC/Guayaquil; ESLint de lo tocado. Resultados y excepciones en la entrega externa `docs-crm/codex/tabla-desconectar-panel-ai.md`. Specs Ruby revisados a mano; RSpec y RuboCop pendientes del PM por ausencia de Ruby/Bundler en host y prohibición de Docker. Sin migraciones, cambios de schema, navegador, push ni PR.
+
+
+### B-NEW-319 ? Esquema aditivo de upstream 4.20 compatible con Rails 7.2 (2026-11-27)
+
+- **Rama:** `feat/upstream-grupo2-esquema`.
+- **Cambio:** migraciones originales `20261029104503`, `20261104085110` y `20261104085633`: ?ndice parcial concurrente para SLA, ?ndice parcial concurrente de elementos pendientes de importaci?n y tabla `data_exports`.
+- **Alcance:** solo estructura; no activa importaciones ni exportaciones, no incorpora rutas, modelos, jobs ni interfaz. La tabla de exportaciones queda reservada para integrar el flujo completo en otro grupo.
+- **Archivos:** las tres migraciones en `db/migrate/`, `db/schema.rb` y `spec/migrations/upstream_420_schema_spec.rb`.
+- **Verificaci?n:** comparar blobs con `git hash-object`, regenerar desde nuestro esquema en `u08_schema_grupo2_tmp`, probar up/down/up sin transacci?n envolvente y comprobar ?ndices v?lidos. Ejecutar specs de estructura en esa base y consumidores de conversaciones/importaciones mediante `rspec-local.sh`, sin mantenimiento autom?tico del esquema compartido. Evidencia y resultado final en `docs-crm/codex/tabla-grupo2.md` (informe local no versionado).
+- **Despliegue:** aplicar las tres migraciones aditivas; ninguna modificaci?n de datos ni activaci?n global. RuboCop pendiente del PM; sin push, PR ni despliegue en esta sesi?n.
+### B-NEW-318 ? Upstream 4.20 grupo 5: correo, editor, interfaz y Centro de Ayuda (2026-11-27)
+
+- **Rama:** `feat/upstream-grupo5-editor-ui`. Validaci?n en curso; no marcar CONFIRMADO hasta cerrar las comprobaciones.
+- **Correo/editor:** utils 0.0.58 conserva destinatarios Para entrantes en CC; arrastre en `NewConversation/components/ActionButtons.vue`, payload mixto y carga sin conversaci?n; `MessageFormatter` separa el salto de l?nea de enlaces; `CaretAnchoredPicker.vue` conserva selecci?n al refrescar; `SearchInput.vue` respeta `/` al escribir.
+- **Interfaz:** `CustomAttribute.vue` copia la fecha visible; `UserMessageBubble.vue` reutiliza estilos de listas; `ContactNotes.vue` permite notas largas; `_conversation.json.jbuilder` admite contacto ausente sin perder la ?ltima burbuja propia; `Video.vue` limita altura. Se conserva el l?mite y la galer?a de im?genes de `MediaTile.vue`.
+- **Informe de bots:** `V2::Reports::BotMetricsBuilder` cuenta solo salientes p?blicos de AgentBot/Captain::Assistant, sin tocar Message ni Captain. Excluye humanos, notas privadas y remitentes nulos.
+- **Centro de Ayuda:** verificaci?n Cloudflare tras commit, incluso con logo adjunto; clave YAML noruega; eliminaci?n transaccional de art?culos/categor?as por idioma con confirmaci?n, permisos OSS/EE y bloqueo del portal; navegaci?n de gesti?n seg?n permisos; im?genes/avatares ActiveStorage relativos al origen del portal conservando el renderer y sus tablas.
+- **Pruebas:** specs focales por cada control, incluidas peticiones y pol?ticas Enterprise. Matriz, archivos y resultados en `docs-crm/codex/tabla-grupo5.md` (artefacto local, excluido del commit). RuboCop a cargo del PM; revisi?n visual real y aprobaci?n del due?o obligatorias antes de un futuro PR.
+- **Operaci?n:** sin migraciones/schema/Gemfile, backfill, fetch, stash, push, PR ni despliegue. Los cinco cambios nuevos de Help Center se difieren por decisi?n del due?o.

@@ -7,11 +7,19 @@ import MessageApi from 'dashboard/api/inbox/message.js';
 const account = { id: 1, locale: 'en', settings: { auto_translate: true } };
 let featureEnabled = true;
 let conversationId = 42;
+let translationDisabled = false;
 
 vi.mock('dashboard/composables/store.js', () => ({
   useMapGetter: key =>
     computed(() => {
-      if (key === 'getSelectedChat') return { id: conversationId };
+      if (key === 'getSelectedChat') {
+        return {
+          id: conversationId,
+          additional_attributes: {
+            auto_translate_disabled: translationDisabled,
+          },
+        };
+      }
       return () => featureEnabled;
     }),
 }));
@@ -69,11 +77,20 @@ describe('MessageList automatic translation', () => {
   beforeEach(() => {
     featureEnabled = true;
     conversationId = 42;
+    translationDisabled = false;
     MessageApi.autoTranslate.mockClear();
   });
 
   it('does not request translations when the account feature is off', async () => {
     featureEnabled = false;
+    render([incomingMessage(1)]);
+    await nextTick();
+
+    expect(MessageApi.autoTranslate).not.toHaveBeenCalled();
+  });
+
+  it('does not request translations when switched off for this conversation', async () => {
+    translationDisabled = true;
     render([incomingMessage(1)]);
     await nextTick();
 

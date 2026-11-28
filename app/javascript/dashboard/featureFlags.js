@@ -5,6 +5,7 @@ export const FEATURE_FLAGS = {
   ADVANCED_ASSIGNMENT: 'advanced_assignment',
   AUTO_RESOLVE_CONVERSATIONS: 'auto_resolve_conversations',
   AUTO_TRANSLATE: 'auto_translate',
+  CONVERSATION_AUTO_TRANSLATE: 'conversation_auto_translate',
   AUTOMATIONS: 'automations',
   CAMPAIGNS: 'campaigns',
   WHATSAPP_CAMPAIGNS: 'whatsapp_campaign',

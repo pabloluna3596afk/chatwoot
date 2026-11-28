@@ -3,6 +3,7 @@ import { computed, onUnmounted } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
+import { useConversationTranslation } from 'dashboard/composables/useConversationTranslation';
 import { useI18n } from 'vue-i18n';
 import { emitter } from 'shared/helpers/mitt';
 import { useConversationStatusActions } from 'dashboard/composables/useConversationStatusActions';
@@ -35,6 +36,8 @@ const {
 } = useConversationStatusActions();
 
 const currentChat = computed(() => store.getters.getSelectedChat);
+const { canToggle, disabled: translationDisabled } =
+  useConversationTranslation();
 
 const actionMenuItems = computed(() => {
   const items = [];
@@ -79,8 +82,36 @@ const actionMenuItems = computed(() => {
     value: 'send_transcript',
   });
 
+  if (canToggle.value) {
+    items.push({
+      icon: 'i-lucide-languages',
+      label: translationDisabled.value
+        ? t('CONVERSATION.HEADER.AUTO_TRANSLATE.TURN_ON')
+        : t('CONVERSATION.HEADER.AUTO_TRANSLATE.TURN_OFF'),
+      action: 'auto_translate',
+      value: 'auto_translate',
+    });
+  }
+
   return items;
 });
+
+const toggleAutoTranslate = async () => {
+  const disabled = !translationDisabled.value;
+  try {
+    await store.dispatch('setConversationAutoTranslate', {
+      conversationId: currentChat.value.id,
+      disabled,
+    });
+    useAlert(
+      disabled
+        ? t('CONVERSATION.HEADER.AUTO_TRANSLATE.TURNED_OFF')
+        : t('CONVERSATION.HEADER.AUTO_TRANSLATE.TURNED_ON')
+    );
+  } catch {
+    useAlert(t('CONVERSATION.HEADER.AUTO_TRANSLATE.UPDATE_FAILED'));
+  }
+};
 
 const handleActionClick = ({ action }) => {
   toggleDropdown(false);
@@ -95,6 +126,8 @@ const handleActionClick = ({ action }) => {
   } else if (action === 'unmute') {
     store.dispatch('unmuteConversation', currentChat.value.id);
     useAlert(t('CONTACT_PANEL.UNMUTED_SUCCESS'));
+  } else if (action === 'auto_translate') {
+    toggleAutoTranslate();
   } else if (action === 'send_transcript') {
     toggleEmailModal();
   }
