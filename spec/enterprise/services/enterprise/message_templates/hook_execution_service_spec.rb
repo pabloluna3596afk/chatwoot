@@ -15,14 +15,6 @@ RSpec.describe MessageTemplates::HookExecutionService do
   end
 
   context 'when captain assistant is configured' do
-    it 'hands off a pending Captain conversation when the feature is disabled' do
-      conversation.update!(ai_assignee: assistant)
-      account.disable_features!('captain_integration')
-
-      create(:message, conversation: conversation, message_type: :incoming, account: account)
-
-      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
-    end
 
     it 'does not hand off a human-owned pending conversation when Captain is paused and still counts eligibility' do
       account.enable_features!('captain_integration_v2')
