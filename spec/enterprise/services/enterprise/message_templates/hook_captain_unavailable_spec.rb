@@ -25,7 +25,10 @@ RSpec.describe MessageTemplates::HookExecutionService do
     put_account_on_plan(account, monthly_messages: 100, used: 100)
   end
 
-  before { create(:captain_inbox, captain_assistant: assistant, inbox: inbox) }
+  before do
+    account.enable_features!('captain_integration')
+    create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
+  end
 
   context 'when the AI key is missing' do
     before { remove_installation_key }

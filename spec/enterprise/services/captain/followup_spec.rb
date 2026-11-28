@@ -15,7 +15,7 @@ RSpec.describe Captain::Followup do
   around { |example| travel_to(now) { example.run } }
 
   before do
-    account.enable_features!('captain_integration_v2')
+    account.enable_features!('captain_integration', 'captain_integration_v2')
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
   end
 

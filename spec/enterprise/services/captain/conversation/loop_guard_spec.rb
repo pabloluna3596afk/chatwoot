@@ -11,7 +11,7 @@ RSpec.describe Captain::Conversation::LoopGuard do
   let(:incoming) { conversation.messages.incoming.order(:id).last }
 
   before do
-    account.enable_features!('captain_integration_v2')
+    account.enable_features!('captain_integration', 'captain_integration_v2')
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     allow(Captain::ConversationCompletionService).to receive(:new).and_return(evaluation)
   end

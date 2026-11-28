@@ -14,6 +14,7 @@ RSpec.describe Flows::ExitPolicyService do
   let(:run) { FlowRun.create!(account: account, conversation: conversation, flow: flow) }
 
   before do
+    account.enable_features!('captain_integration')
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     create(:inbox_member, inbox: inbox, user: agent)
     conversation.update!(assignee: nil, ai_assignee: nil)

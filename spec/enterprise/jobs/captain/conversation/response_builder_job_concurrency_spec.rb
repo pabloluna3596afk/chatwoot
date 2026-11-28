@@ -12,7 +12,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
   before do
     put_account_on_plan(account, monthly_messages: 1)
-    account.enable_features!(:captain_integration_v2)
+    account.enable_features!(:captain_integration, :captain_integration_v2)
     allow(Captain::Assistant::AgentRunnerService).to receive(:new).and_return(runner)
     allow(runner).to receive_messages(
       generate_response: { 'response_parts' => [{ 'text' => 'Delivered', 'citation_indexes' => [] }] },

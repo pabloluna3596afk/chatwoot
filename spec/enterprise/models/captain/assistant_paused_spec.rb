@@ -52,7 +52,10 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe 'inbox engagement' do
-    before { create(:captain_inbox, captain_assistant: assistant, inbox: inbox) }
+    before do
+      account.enable_features!('captain_integration')
+      create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
+    end
 
     it 'is active and takes new conversations when Captain can answer' do
       expect(inbox.captain_active?).to be(true)

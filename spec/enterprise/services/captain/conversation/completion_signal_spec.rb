@@ -16,7 +16,7 @@ RSpec.describe Captain::Conversation::CompletionSignal do
   let(:evaluation) { instance_double(Captain::ConversationCompletionService, perform: { complete: true, reason: 'Done' }) }
 
   before do
-    account.enable_features!('captain_integration_v2', 'captain_tasks')
+    account.enable_features!('captain_integration', 'captain_integration_v2', 'captain_tasks')
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     incoming
     reply
