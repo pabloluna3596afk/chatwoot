@@ -4028,3 +4028,43 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Conservado:** Conectores/AgentBot y sus tokens/endpoints, login normal, Google, SAML, SSO genérico, Captain, Copilot y Flows. En Captain solo se elimina un comentario y las expectativas sobre el job borrado; no se cambia su comportamiento.
 - **Cómo probar:** crear y editar citas desde calendario y conversación, con y sin aviso al contacto, estado confirmado/pendiente, Meet e invitación; abrir una cita con política antigua y comprobar que no ofrece seguimiento del bot. Las rutas exclusivas de SSO ya no existen. Los conectores externos configurados siguen usando la API genérica; este cambio no revoca sus tokens ni elimina sus webhooks.
 - **Validación:** Vitest del calendario y batería amplia UTC/Guayaquil; ESLint de lo tocado. Resultados y excepciones en la entrega externa `docs-crm/codex/tabla-desconectar-panel-ai.md`. Specs Ruby revisados a mano; RSpec y RuboCop pendientes del PM por ausencia de Ruby/Bundler en host y prohibición de Docker. Sin migraciones, cambios de schema, navegador, push ni PR.
+
+
+### B-NEW-318 — Identidad HMAC ligada al contacto objetivo (2026-11-27)
+
+- Archivos: `app/controllers/concerns/hmac_concern.rb`, `app/controllers/public/api/v1/inboxes_controller.rb`,
+  `app/controllers/public/api/v1/inboxes/contacts_controller.rb`, `app/actions/contact_identify_action.rb`.
+- Se calcula HMAC en el servidor; `hmac_verified` del cliente no acredita identidad. En bandejas con identidad obligatoria,
+  las conversaciones y mensajes públicos exigen el hash del contacto seleccionado. No se fusiona un contacto identificado por solo email/teléfono.
+- Cobertura: specs de contact inboxes, conversaciones de cuenta, contactos/conversaciones/mensajes públicos y ContactIdentifyAction.
+  Index/show/create se prueban con hash propio, hash ajeno, hash ausente y contacto sin identificador. RSpec pendiente de CI.
+
+### B-NEW-319 — Datos del contacto reducidos en el widget (2026-11-27)
+
+- Archivos: vistas `api/v1/widget/`, Contact, Message, EventDataPresenter, ActionCableListener,
+  ActionCableContactBroadcast, ActionCableBroadcastJob y `widget/components/PreChat/Form.vue`.
+- REST/config y eventos del widget usan flags de presencia y remitente `{ type: 'contact' }`.
+  `has_identifier` reemplaza el identificador completo en el prechat. Se conserva el perfil de agentes/bots, el remitente Sistema,
+  el contrato del cliente API y el filtrado de traducciones, incluso al refrescar conversaciones en el job.
+- Cobertura: specs Ruby de widget/modelos/presenter/listener/job; Vitest de prechat y ActionCable. RSpec pendiente de CI.
+
+### B-NEW-320 — Revocación de streams al retirar un agente (2026-11-27)
+
+- Archivos: `app/channels/room_channel.rb`, `app/models/account_user.rb`.
+- La eliminación confirmada de AccountUser emite una señal individual y cierra la conexión del agente.
+  La resuscripción vuelve a validar pertenencia. Se conservan tokens, ACL de tareas/notas/chats y reconexión del fork.
+- Cobertura: specs de RoomChannel (cierre y pertenencia revocada) y AccountUser (señal después de eliminar). RSpec pendiente de CI.
+
+### B-NEW-321 — Reuniones del widget limitadas al visitante (2026-11-27)
+
+- Archivo: `app/controllers/api/v1/widget/integrations/dyte_controller.rb`.
+- La búsqueda del mensaje de reunión queda dentro de las conversaciones autorizadas del visitante y usa el contacto autenticado.
+  Se conserva el procesador RealtimeKit/Cloudflare y sus credenciales. Un mensaje de otro visitante devuelve 404 sin invocar al proveedor.
+- Cobertura: spec del controlador Dyte con otra conversación en la misma bandeja. RSpec pendiente de CI.
+
+### B-NEW-322 — Permisos Platform y secretos de bots por propietario (2026-11-27)
+
+- Archivos: controladores Platform de AgentBots/Users y `api/v1/accounts/inboxes/agent_bot.json.jbuilder`.
+- Crear/mover bots exige permiso sobre la cuenta destino. Crear un usuario solo reutiliza uno que la app Platform ya administra.
+  El presenter expone el token únicamente para bots de la cuenta actual; los bots de sistema conservan su perfil público.
+- Cobertura: specs Platform de bots/usuarios y endpoint agent_bot de bandejas, incluidos permisos cruzados. RSpec pendiente de CI.

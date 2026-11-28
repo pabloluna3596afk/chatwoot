@@ -1305,6 +1305,20 @@ RSpec.describe 'Inboxes API', type: :request do
         expect(response.parsed_body['agent_bot']['access_token']).to eq agent_bot.access_token.token
       end
 
+      it 'does not expose the token of a foreign bot attached by a legacy association' do
+        foreign_bot = create(:agent_bot, account: create(:account))
+        create(:agent_bot_inbox, agent_bot: foreign_bot, inbox: inbox)
+
+        get "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}/agent_bot",
+            headers: admin.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['agent_bot']['id']).to eq(foreign_bot.id)
+        expect(response.parsed_body['agent_bot']['access_token']).to be_nil
+        expect(response.body).not_to include(foreign_bot.access_token.token)
+      end
+
       it 'does not return the access token of a system bot to an administrator' do
         system_bot = create(:agent_bot)
         create(:agent_bot_inbox, agent_bot: system_bot, inbox: inbox)

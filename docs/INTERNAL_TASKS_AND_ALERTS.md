@@ -209,3 +209,13 @@ en [`docs/BUGS.md`](BUGS.md) §2.1.
 | [`docs/LOCAL_DEV.md`](LOCAL_DEV.md) | Local Docker |
 | [`docs/DOKPLOY_ENV.md`](DOKPLOY_ENV.md) | Env / deploy |
 | This file | Full change brief for AI/human review of this PR |
+
+
+### Seguridad upstream 1A — audiencias de ActionCable (2026-11-27)
+
+El widget recibe su propio payload: remitente de contacto reducido al tipo y conversación con id, bandeja, lectura y estado.
+El dashboard conserva sus datos y las ACL de notas privadas, tareas y chats internos. Los clientes API mantienen su estructura
+pública y el filtrado de atributos internos de traducción; el job conserva ese filtro al recargar la conversación.
+Las sesiones HMAC se clasifican por su propia bandeja, incluso cuando el contacto tiene sesiones en varios canales.
+Retirar un AccountUser cierra sus conexiones y la reconexión valida de nuevo su pertenencia; los temporizadores del fork no cambian.
+Ver B-NEW-319/320 en `docs/BUGS.md`. Specs Ruby pendientes de CI; sin cambios de esquema.
