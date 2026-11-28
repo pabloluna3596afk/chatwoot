@@ -581,29 +581,6 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
         expect(CalendarEvent.find_by(google_event_id: result[:id]).created_by).to be_nil
       end
     end
-
-    context 'with a bot follow-up policy' do
-      let(:policy) { { enabled: true, confirmation: true, reminders_minutes_before: %w[1440 120] } }
-
-      it 'marks the event pending_confirmation, normalizes the policy and enqueues the Panel AI job' do
-        expect { service.create(create_params(bot_followup_policy: policy)) }
-          .to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob).with(an_instance_of(Integer), 'created')
-
-        record = CalendarEvent.find_by(google_event_id: 'g-1')
-        expect(record.appointment_status).to eq('pending_confirmation')
-        expect(record.bot_followup_policy).to include('enabled' => true, 'confirmation' => true, 'reminders_minutes_before' => [1440, 120])
-      end
-
-      it 'does not enqueue the Panel AI job when the policy is disabled' do
-        expect { service.create(create_params(bot_followup_policy: policy.merge(enabled: false))) }
-          .not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
-      end
-
-      it 'does not enqueue the Panel AI job without a policy' do
-        expect { service.create(create_params) }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
-        expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('none')
-      end
-    end
   end
 
   describe 'Captain mutations require the local owner' do

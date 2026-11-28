@@ -38,7 +38,6 @@ RSpec.describe 'Calendar association authorization', type: :request do
     end
     allow(client).to receive(:delete_event).and_return({})
     allow(Conversations::ActivityMessageJob).to receive(:perform_later)
-    allow(Calendar::NotifyPanelAiFollowupJob).to receive(:perform_later)
   end
 
   after do
@@ -70,7 +69,6 @@ RSpec.describe 'Calendar association authorization', type: :request do
         expect(CalendarEventActivity.count).to eq(0)
         expect(conversation.messages.count).to eq(0)
         expect(Conversations::ActivityMessageJob).not_to have_received(:perform_later)
-        expect(Calendar::NotifyPanelAiFollowupJob).not_to have_received(:perform_later)
       end
     end
   end

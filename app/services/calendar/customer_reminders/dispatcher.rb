@@ -33,7 +33,7 @@ class Calendar::CustomerReminders::Dispatcher
   end
 
   def eligible?(event)
-    event.account.reload.customer_reminders_enabled == true && !event.ai_booked? && !event.bot_followup_enabled? &&
+    event.account.reload.customer_reminders_enabled == true && !event.ai_booked? &&
       !event.discarded? && event.start_at > @now && event.conversation.present? &&
       unclaimed?(event)
   end

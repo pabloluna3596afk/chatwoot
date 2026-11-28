@@ -700,7 +700,7 @@ class Integrations::GoogleCalendar::EventService
       contact: contact,
       conversation: conversation
     }
-    attrs.merge!(followup_attrs_from(params, creating: creating || was_new, record: record))
+    attrs[:appointment_status] = params[:appointment_status].to_s if params[:appointment_status].present?
     attrs[:customer_reminder_status] = 'skipped_opt_out' if creating && actor_user && conversation.present? &&
                                                             !send_to_contact?(params, conversation)
     if !was_new && slot_changed?(record, attrs[:start_at], attrs[:end_at]) &&
@@ -725,37 +725,6 @@ class Integrations::GoogleCalendar::EventService
       record_activity!(record, 'updated', details) if details.any?
     end
     record
-  end
-
-  def followup_attrs_from(params, creating:, record:)
-    attrs = {}
-    if params.key?(:bot_followup_policy) || params.key?('bot_followup_policy')
-      attrs[:bot_followup_policy] = normalize_bot_followup_policy(params[:bot_followup_policy])
-    end
-    if params[:appointment_status].present?
-      attrs[:appointment_status] = params[:appointment_status].to_s
-    elsif creating && attrs[:bot_followup_policy].is_a?(Hash) &&
-          ActiveModel::Type::Boolean.new.cast(attrs[:bot_followup_policy]['enabled']) &&
-          ActiveModel::Type::Boolean.new.cast(attrs[:bot_followup_policy].fetch('confirmation', true)) &&
-          (record.appointment_status.blank? || record.appointment_status == 'none')
-      attrs[:appointment_status] = 'pending_confirmation'
-    end
-    attrs
-  end
-
-  def normalize_bot_followup_policy(raw)
-    hash = case raw
-           when ActionController::Parameters then raw.to_unsafe_h
-           when Hash then raw
-           else {}
-           end
-    hash = hash.with_indifferent_access
-    {
-      'enabled' => ActiveModel::Type::Boolean.new.cast(hash[:enabled]),
-      'confirmation' => ActiveModel::Type::Boolean.new.cast(hash.fetch(:confirmation, true)),
-      'reminders_minutes_before' => Array(hash[:reminders_minutes_before]).map(&:to_i),
-      'source' => hash[:source].presence || 'override'
-    }
   end
 
   def find_by_idempotency_key(key)
@@ -973,9 +942,7 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def notify_contact_or_bot!(params, conversation, record, google_event, event_name)
-    if record.bot_followup_enabled?
-      Calendar::NotifyPanelAiFollowupJob.perform_later(record.id, event_name)
-    elsif whatsapp_notice?(params, conversation, record, event_name)
+    if whatsapp_notice?(params, conversation, record, event_name)
       send_whatsapp_notice!(conversation, record)
     elsif send_to_contact?(params, conversation)
       send_to_contact!(conversation, record, google_event)
@@ -1012,9 +979,9 @@ class Integrations::GoogleCalendar::EventService
   end
 
   # Only a person cancelling an upcoming appointment of a conversation tells the customer. The customer (template button),
-  # Captain, Google and Panel AI follow-ups do not.
+  # Captain and Google do not.
   def cancellation_notice?(record)
-    user.is_a?(User) && record.start_at&.future? && record.conversation.present? && !record.bot_followup_enabled?
+    user.is_a?(User) && record.start_at&.future? && record.conversation.present?
   end
 
   def send_cancellation_notice!(record)

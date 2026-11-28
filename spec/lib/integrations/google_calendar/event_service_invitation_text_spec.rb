@@ -131,19 +131,15 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       end
     end
 
-    it 'keeps the reservation and followup after description failure and repairs it without another POST', :aggregate_failures do
+    it 'keeps the reservation after description failure and repairs it without another POST', :aggregate_failures do
       with_meet(meet_url)
       allow(client).to receive(:update_description).and_raise(Timeout::Error)
-      allow(Calendar::NotifyPanelAiFollowupJob).to receive(:perform_later)
-      booking = params(include_meet: true, description: 'Hola {{nombre}}: {{enlace_meet}}', idempotency_key: 'meet-retry',
-                       bot_followup_policy: { enabled: true })
+      booking = params(include_meet: true, description: 'Hola {{nombre}}: {{enlace_meet}}', idempotency_key: 'meet-retry')
 
       result = service.create(booking)
       record = connection.calendar_events.find_by!(idempotency_key: 'meet-retry')
       expect(result[:id]).to eq('g-1')
       expect(record).to have_attributes(contact_id: contact.id, invitation_text: booking[:description])
-      expect(record.bot_followup_enabled?).to be true
-      expect(Calendar::NotifyPanelAiFollowupJob).to have_received(:perform_later).with(record.id, 'created').once
 
       allow(client).to receive(:update_description).and_return('description' => "Hola Ana Pérez: #{meet_url}", 'etag' => '"repaired"')
       recovered = service.create(booking)
@@ -152,7 +148,6 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(record.reload.etag).to eq('"repaired"')
       expect(created_calls.size).to eq(1)
       expect(connection.calendar_events.count).to eq(1)
-      expect(Calendar::NotifyPanelAiFollowupJob).to have_received(:perform_later).once
     end
 
     it 'keeps the main edit when the optional description PATCH fails' do

@@ -51,11 +51,9 @@ RSpec.describe CalendarEvent, '#customer_reminder' do
     expect(event.reload.customer_reminder_status).to be_nil
   end
 
-  it 'does not mark Captain or Panel AI appointments' do
+  it 'does not mark Captain appointments' do
     ai = create(:calendar_event, calendar_connection: connection, start_at: now + 2.hours, booking_source: 'ai')
-    panel = create(:calendar_event, calendar_connection: connection, start_at: now + 2.hours, bot_followup_policy: { 'enabled' => true })
     expect(ai.customer_reminder_status).to be_nil
-    expect(panel.customer_reminder_status).to be_nil
   end
 
   it 'selects only nonterminal reminders of appointments with a conversation' do

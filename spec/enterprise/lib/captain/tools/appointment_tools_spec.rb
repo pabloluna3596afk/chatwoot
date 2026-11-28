@@ -369,10 +369,6 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
     expect(CalendarEvent.find_by(google_event_id: 'g-1').summary).to eq('Revisión del plan')
   end
 
-  it 'never sets a bot follow-up policy, so Panel AI is not notified' do
-    expect { call }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
-  end
-
   describe 'confirmation and reminders' do
     it 'confirms and schedules once when Meet completion fails, then repairs on retry', :aggregate_failures do
       remote = nil
@@ -1245,9 +1241,6 @@ RSpec.describe Captain::Tools::ConfirmAppointmentTool do
     expect(own.reload.appointment_status).to eq('pending_confirmation')
   end
 
-  it 'does not notify Panel AI' do
-    expect { tool.perform(tool_context, event_id: 'own-1') }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
-  end
 end
 
 RSpec.describe Captain::Assistant, 'appointment tools exposure' do

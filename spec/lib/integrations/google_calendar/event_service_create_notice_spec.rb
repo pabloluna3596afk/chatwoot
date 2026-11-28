@@ -220,13 +220,6 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     end
   end
 
-  it 'leaves the confirmation to the Panel AI follow-up when it is enabled' do
-    policy = { enabled: true, confirmation: true, reminders_minutes_before: [] }
-
-    expect { service.create(params.merge(bot_followup_policy: policy)) }.to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
-    expect(sent_messages.count).to eq(0)
-  end
-
   it 'leaves the confirmation to Captain when Captain books' do
     bot = create(:agent_bot, account: account)
 
