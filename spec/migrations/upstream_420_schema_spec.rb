@@ -8,7 +8,7 @@ RSpec.describe 'Upstream 4.20 additive schema' do # rubocop:disable RSpec/Descri
 
     expect(index.columns).to eq(['sla_policy_id'])
     expect(index.where).to eq('(sla_policy_id IS NOT NULL)')
-    expect(index).not_to be_unique
+    expect(index.unique).to be(false)
     expect(index).to be_valid
   end
 
@@ -17,7 +17,7 @@ RSpec.describe 'Upstream 4.20 additive schema' do # rubocop:disable RSpec/Descri
 
     expect(index.columns).to eq(%w[data_import_id id])
     expect(index.where).to eq('(status = 0)')
-    expect(index).not_to be_unique
+    expect(index.unique).to be(false)
     expect(index).to be_valid
   end
 

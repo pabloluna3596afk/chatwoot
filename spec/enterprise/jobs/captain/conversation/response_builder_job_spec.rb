@@ -56,8 +56,10 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       account.enable_features!(:captain_integration_v2)
       create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
       conversation.update!(ai_assignee: assistant)
-      attachment = responding_to_message.attachments.create!(account_id: account.id, file_type: :audio)
+      attachment = responding_to_message.attachments.create!(account_id: account.id, file_type: :audio,
+                                                             file: fixture_file_upload('public/audio/widget/ding.mp3'))
       transcription = Messages::AudioTranscriptionService.new(attachment, assistant: true)
+      allow(Messages::AudioTranscriptionService).to receive(:new).and_call_original
       allow(Messages::AudioTranscriptionService).to receive(:new).with(attachment, assistant: true).and_return(transcription)
       allow(transcription).to receive(:preflight_error).and_return(nil)
       allow(transcription).to receive(:quota_details).and_return(units: 1)

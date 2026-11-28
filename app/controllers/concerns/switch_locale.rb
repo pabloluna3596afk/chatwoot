@@ -57,7 +57,8 @@ module SwitchLocale
   end
 
   def validate_and_get_locale(locale)
-    return I18n.default_locale.to_s if locale.blank?
+    # A JSON body can carry locale as a number or an array; only a string names a locale.
+    return I18n.default_locale.to_s if locale.blank? || !locale.is_a?(String)
 
     available_locales = I18n.available_locales.map(&:to_s)
     locale_without_variant = locale.split('_')[0]
