@@ -43,7 +43,7 @@ Rails.application.routes.draw do
   get '/robots.txt', to: 'robots#show', format: false
   get '/api', to: 'api#index'
 
-  # InboxHub legal pages (TikTok / Meta app review) —
+  # InboxHub legal pages (TikTok / Meta app review)
   scope '/:locale', constraints: { locale: /en|es/ } do
     get 'privacy', to: 'legal#show', defaults: { doc: 'privacy' }
     get 'terms', to: 'legal#show', defaults: { doc: 'terms' }
