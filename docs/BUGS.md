@@ -4076,3 +4076,33 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Cómo probar:** rechazar IDs de otra cuenta y conversaciones no visibles antes de invocar servicios; impedir unlink de attachment ajeno; rechazar tokens vacíos/firmas inválidas según proveedor; guardar secreto desde creación/migración/configuración WhatsApp; comprobar transición legacy; abrir/reabrir Captain con feature y cupos, handoff y Flows; corregir un filtro numérico Contains a un operador válido.
 - **Transición:** Cloud manual legacy sin secreto y 360dialog legacy sin token continúan con warning; 360dialog registra token en el siguiente guardado validado. Twilio permanece log-only incluso después de recibir firma válida. Los callbacks Firecrawl con tokens antiguos dejan de ser válidos: terminar/reiniciar crawls al desplegar. Bandwidth queda excluido, requiere esquema/backfill y decisión del dueño.
 - **Validación:** specs Ruby de upstream adaptados y ampliados, revisados manualmente; RSpec en CI y RuboCop por PM pendientes. Vitest focal en UTC/Guayaquil y ESLint se registran con resultados exactos en `docs-crm/codex/tabla-seguridad-1b.md` (externo). Sin migraciones, schema, dependencias, Docker, navegador, push ni PR. Revisión visual pendiente del dueño antes de cualquier PR.
+
+
+### B-NEW-324 — Seguridad de entrada, límites, texto y Centro de Ayuda (2026-11-27)
+
+- **Problema:** Super Admin no pedía el segundo factor habilitado; cambiar email no requería contraseña actual;
+  reset no respetaba caducidad ni revocaba otras sesiones. Listas/filtros no tenían límite individual y contenido
+  de contactos/notificaciones podía interpretarse como HTML. Los artículos no publicados podían verse públicamente.
+- **Cambio:** reto MFA opcional con caducidad, tope de intentos y recovery; contraseña actual al cambiar email;
+  reset de 6 horas (invitaciones pendientes: 7 días), revocación de sesiones coordinada con UserSession y
+  conservación del token personal de API; cookie Google mínima para usuarios existentes. List/filter: 1000/min
+  por usuario y cuenta, 429 JSON con Retry-After. Valores/nombres/cuerpos como texto, banderas validadas y visor
+  restringido al mismo origen /hc/. Artículos/traducciones públicos solo published; preview firmado con propósito
+  y caducidad de una hora, sin analítica ni píxel de visitas. Publicar exige acción explícita.
+- **Archivos:** controladores SuperAdmin Sessions, Profiles, Passwords y OmniauthCallbacks; rack_attack;
+  InboxCard, ContactInfo/ContactInfoRow, MergeContactSummary, useMessageFormatter, ArticleViewer/urlParamsHelper;
+  Article, ArticlesController de cuenta/público, política, editor y vistas del portal. Se conservan marca/layouts,
+  guards MFA/dispositivo, autosave, menús y asignación propios.
+- **Cómo probar:** login Super Admin sin MFA y con OTP/recovery, rechazo tras expiración/tope; rechazar cambio de
+  email sin contraseña o con contraseña errónea; reset vencido e invitación de 2/8 días; comprobar revocación de
+  sesiones y permanencia de la actual al cambiar contraseña; Google existente/nuevo. En UI ingresar HTML en nombres,
+  valores y notificaciones: se muestra como texto. Rechazar iframes externos. Un borrador no aparece públicamente
+  ni en traducciones; su preview firmado funciona por una hora y no incrementa visitas; publicar explícitamente.
+  Las nuevas cuotas excluyen acciones masivas y exportaciones.
+- **Pospuesto:** SAML mantiene el rechazo conservador de usuarios multicuenta; ampliar confianza entre IdP requiere
+  revisión específica. Las rutas Enterprise de conferencia Twilio y llamadas WhatsApp sí existen; los commits de voz
+  excluidos deben revisarse aparte, sin habilitar ni modificar voz en este trabajo.
+- **Validación:** specs Ruby adaptados y revisión manual; RSpec solo en CI y RuboCop por PM pendientes. Resultados
+  exactos de Vitest UTC/Guayaquil, ESLint y tabla A1–A8 en el informe externo
+  `docs-crm/codex/tabla-seguridad-1c.md`. Sin migraciones, schema, dependencias, Docker, navegador, push ni PR.
+  Aprobación visual pendiente del dueño antes de cualquier PR. No se certifica cierre completo sin las pruebas pendientes.
