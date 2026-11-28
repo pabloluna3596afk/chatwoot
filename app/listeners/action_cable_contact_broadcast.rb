@@ -30,7 +30,7 @@ module ActionCableContactBroadcast
     return if client_tokens.blank?
 
     ::ActionCableBroadcastJob.perform_later(client_tokens.uniq, event_name,
-                                           broadcast_payload(account, public_conversation_data(conversation, data)), public_contact_payload: true)
+                                            broadcast_payload(account, public_conversation_data(conversation, data)), public_contact_payload: true)
   end
 
   def public_conversation_data(conversation, data)

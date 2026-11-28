@@ -150,7 +150,7 @@ RSpec.describe 'Public Inbox Contact Conversations API', type: :request do
     before { api_channel.update!(hmac_mandatory: true) }
 
     [:index, :show, :create].each do |action|
-      context "for #{action}" do
+      context "with the #{action} action" do
         let(:request_path) do
           base = "/public/api/v1/inboxes/#{api_channel.identifier}/contacts/#{contact_inbox.source_id}/conversations"
           action == :show ? "#{base}/#{conversation.display_id}" : base

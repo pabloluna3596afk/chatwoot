@@ -307,5 +307,4 @@ RSpec.describe '/api/v1/widget/contacts', type: :request do
       )
     end
   end
-
 end

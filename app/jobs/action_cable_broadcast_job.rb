@@ -12,7 +12,7 @@ class ActionCableBroadcastJob < ApplicationJob
   ].freeze
 
   # widget_members are web widget sessions. They get widget_data, or the widget payload of a refreshed conversation.
-  def perform(members, event_name, data, widget_members: [], widget_data: nil, public_contact_payload: false)
+  def perform(members, event_name, data, widget_members: [], widget_data: nil, public_contact_payload: false) # rubocop:disable Metrics/ParameterLists
     return if members.blank? && widget_members.blank?
 
     conversation = latest_conversation(event_name, data)

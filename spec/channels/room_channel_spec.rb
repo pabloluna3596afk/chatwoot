@@ -43,6 +43,6 @@ RSpec.describe RoomChannel do
     user.account_users.find_by(account: account).destroy!
 
     expect { subscribe(user_id: user.id, pubsub_token: user.pubsub_token, account_id: account.id) }
-      .to raise_error { |error| expect(error.class.name).to eq('ActiveRecord::RecordNotFound') }
+      .to(raise_error { |error| expect(error.class.name).to eq('ActiveRecord::RecordNotFound') })
   end
 end
