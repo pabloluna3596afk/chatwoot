@@ -478,6 +478,35 @@ RSpec.describe Conversation do
     end
   end
 
+  describe 'reopening a conversation owned by an external bot' do
+    let(:agent_bot) { create(:agent_bot) }
+    let(:conversation) { create(:conversation, status: :pending) }
+
+    before { conversation.update!(ai_assignee: agent_bot) }
+
+    it 'returns it to the human queue when it opens' do
+      conversation.update!(status: :open)
+
+      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, assignee_agent_bot_id: nil)
+    end
+
+    it 'keeps the bot while the status does not change to open' do
+      conversation.update!(priority: :high)
+
+      expect(conversation.reload.ai_assignee).to eq(agent_bot)
+    end
+
+    it 'keeps an existing human assignee' do
+      agent = create(:user, account: conversation.account)
+      create(:inbox_member, inbox: conversation.inbox, user: agent)
+      conversation.update!(ai_assignee: nil, assignee: agent)
+
+      conversation.update!(status: :open)
+
+      expect(conversation.reload.assignee).to eq(agent)
+    end
+  end
+
   describe '#toggle_priority' do
     it 'defaults priority to nil when created' do
       conversation = create(:conversation, status: 'open')
