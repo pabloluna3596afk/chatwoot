@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# rubocop:disable Layout/LineLength
 # Legal pages for the ChatHub domain.
 module InboxHub
   module LegalDocuments
@@ -136,3 +137,4 @@ module InboxHub
     # rubocop:enable Metrics/CollectionLiteralLength
   end
 end
+# rubocop:enable Layout/LineLength

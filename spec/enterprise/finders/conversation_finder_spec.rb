@@ -117,6 +117,7 @@ RSpec.describe ConversationFinder do
       expect(counts[:all_count]).to eq(account.conversations.displayed_as('open').count)
     end
 
+    # rubocop:disable RSpec/MultipleMemoizedHelpers
     context 'when an AgentBot owns the conversation (external bot inboxes stay as on develop)' do
       let!(:plain_bot_owned) { create_conversation(account: account, inbox: plain_inbox, status: :open, ai_assignee: agent_bot) }
 
@@ -142,6 +143,7 @@ RSpec.describe ConversationFinder do
         expect(ids(result)).not_to include(ai_conversation.id)
       end
     end
+    # rubocop:enable RSpec/MultipleMemoizedHelpers
 
     %w[open pending].each do |status|
       it "returns counts equal to the rows of every tab for status #{status}" do
