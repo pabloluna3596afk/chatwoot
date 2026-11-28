@@ -11,6 +11,7 @@ RSpec.describe Captain::Decisions::ControlRecording do
     account.enable_features!('captain_integration')
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
   end
+
   after { Current.reset }
 
   it 'records human takeover on the one existing activity with the actual author' do
