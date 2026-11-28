@@ -50,6 +50,19 @@ class Api::V1::Accounts::PortalsController < Api::V1::Accounts::BaseController
     head :ok
   end
 
+  def remove_locale
+    locale = params.permit(:locale).require(:locale)
+    raise ActionController::ParameterMissing, :locale unless locale.is_a?(String)
+
+    @portal.with_lock do
+      return render_could_not_create_error(I18n.t('portals.remove_locale.default_locale')) if locale == @portal.default_locale
+
+      @portal.remove_locale!(locale)
+    end
+
+    render :update
+  end
+
   def send_instructions
     email = permitted_params[:email]
     return render_could_not_create_error(I18n.t('portals.send_instructions.email_required')) if email.blank?

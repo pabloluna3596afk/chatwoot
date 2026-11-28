@@ -38,7 +38,7 @@
     "@breezystack/lamejs": "^1.2.7",
     "@chatwoot/ninja-keys": "1.2.3",
     "@chatwoot/prosemirror-schema": "1.4.5",
-    "@chatwoot/utils": "^0.0.57",
+    "@chatwoot/utils": "^0.0.58",
     "@chatwoot/viz": "^0.1.5",
     "@dagrejs/dagre": "^3.0.0",
     "@formkit/core": "^1.7.2",
