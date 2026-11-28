@@ -57,6 +57,28 @@ class Rack::Attack
       email = get_header('HTTP_EMAIL').presence if email.nil? && include_header
       email&.downcase&.gsub(/\s+/, '')
     end
+
+    def normalized_super_admin_email
+      email = super_admin_params&.dig('email')
+      email.downcase.gsub(/\s+/, '') if email.is_a?(String) && email.present?
+    end
+
+    def super_admin_mfa_submission?
+      !super_admin_params&.dig('otp_code').nil?
+    end
+
+    def super_admin_params
+      scoped_params = params['super_admin'].presence || ActionDispatch::Request.new(env).params['super_admin']
+      scoped_params if scoped_params.is_a?(Hash)
+    rescue StandardError
+      nil
+    end
+
+    def api_user_identifier
+      authorization = get_header('HTTP_AUTHORIZATION').to_s
+      bearer_token = authorization.sub(/\ABearer\s+/i, '').presence if authorization.match?(/\ABearer\s+/i)
+      bearer_token || get_header('HTTP_UID').presence || get_header('HTTP_API_ACCESS_TOKEN').presence || get_header('api_access_token').presence
+    end
   end
 
   ### Safelist IPs from Environment Variable ###
@@ -110,7 +132,11 @@ class Rack::Attack
 
   ### Prevent Brute-Force Super Admin Login Attacks ###
   throttle('super_admin_login/ip', limit: 5, period: 5.minutes) do |req|
-    req.ip if req.path_without_extensions == '/super_admin/sign_in' && req.post?
+    req.ip if req.path_without_extensions == '/super_admin/sign_in' && req.post? && !req.super_admin_mfa_submission?
+  end
+
+  throttle('super_admin_mfa/ip', limit: 10, period: 1.minute) do |req|
+    req.ip if req.path_without_extensions == '/super_admin/sign_in' && req.post? && req.super_admin_mfa_submission?
   end
 
   throttle('super_admin_login/email', limit: 5, period: 15.minutes) do |req|
@@ -118,8 +144,7 @@ class Rack::Attack
       # NOTE: This line used to throw ArgumentError /rails/action_mailbox/sendgrid/inbound_emails : invalid byte sequence in UTF-8
       # Hence placed in the if block
       # ref: https://github.com/rack/rack-attack/issues/399
-      email = req.params['email'].presence || ActionDispatch::Request.new(req.env).params['email'].presence
-      email.to_s.downcase.gsub(/\s+/, '')
+      req.normalized_super_admin_email
     end
   end
 
@@ -333,7 +358,36 @@ class Rack::Attack
     "#{user_identifier}:#{match_data[:account_id]}" if user_identifier.present?
   end
 
+  throttle('/api/v1/accounts/:account_id/conversations/user',
+           limit: ENV.fetch('RATE_LIMIT_CONVERSATIONS_LIST', '1000').to_i, period: 1.minute) do |req|
+    match_data = %r{\A/api/v1/accounts/(?<account_id>\d+)/conversations\z}.match(req.path_without_extensions)
+    next unless match_data.present? && req.get?
+
+    user_identifier = req.api_user_identifier
+
+    "#{user_identifier}:#{match_data[:account_id]}" if user_identifier.present?
+  end
+
+  throttle('/api/v1/accounts/:account_id/conversations/filter/user',
+           limit: ENV.fetch('RATE_LIMIT_CONVERSATIONS_FILTER', '1000').to_i, period: 1.minute) do |req|
+    match_data = %r{\A/api/v1/accounts/(?<account_id>\d+)/conversations/filter/?\z}.match(req.path_without_extensions)
+    next unless match_data.present? && req.post?
+
+    user_identifier = req.api_user_identifier
+
+    "#{user_identifier}:#{match_data[:account_id]}" if user_identifier.present?
+  end
+
   ## ----------------------------------------------- ##
+end
+
+Rack::Attack.throttled_responder = lambda do |request|
+  match_data = request.env['rack.attack.match_data']
+  period = match_data[:period].to_i
+  retry_after = period - (match_data[:epoch_time] % period)
+  body = { error: "Too many requests. Retry after #{retry_after} seconds.", retry_after: retry_after }
+
+  [429, { 'content-type' => 'application/json', 'retry-after' => retry_after.to_s }, [body.to_json]]
 end
 
 # Log blocked events

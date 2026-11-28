@@ -92,6 +92,61 @@ describe 'Rack::Attack auth throttles' do
     end
   end
 
+  describe 'super_admin_login/ip' do
+    it 'counts password sign-ins by ip' do
+      env = form_env({ 'super_admin' => { 'email' => 'a@b.com', 'password' => 'x' } }, '/super_admin/sign_in')
+      expect(throttle_key('super_admin_login/ip', env)).to eq(ip)
+    end
+
+    it 'skips code submissions' do
+      env = form_env({ 'super_admin' => { 'otp_code' => '123456' } }, '/super_admin/sign_in')
+      expect(throttle_key('super_admin_login/ip', env)).to be_nil
+    end
+
+    it 'counts a JSON sign-in with a null code as a password sign-in' do
+      env = json_env({ super_admin: { email: 'a@b.com', password: 'x', otp_code: nil } }, '/super_admin/sign_in')
+      expect(throttle_key('super_admin_login/ip', env)).to eq(ip)
+    end
+  end
+
+  describe 'super_admin_mfa/ip' do
+    it 'counts code submissions by ip' do
+      env = form_env({ 'super_admin' => { 'otp_code' => '123456' } }, '/super_admin/sign_in')
+      expect(throttle_key('super_admin_mfa/ip', env)).to eq(ip)
+    end
+
+    it 'skips password sign-ins' do
+      env = form_env({ 'super_admin' => { 'email' => 'a@b.com', 'password' => 'x' } }, '/super_admin/sign_in')
+      expect(throttle_key('super_admin_mfa/ip', env)).to be_nil
+    end
+  end
+
+  describe 'super_admin_login/email' do
+    it 'keys password sign-ins by the normalized super admin email' do
+      env = form_env({ 'super_admin' => { 'email' => ' Admin@Example.COM ', 'password' => 'x' } }, '/super_admin/sign_in')
+      key = throttle_key('super_admin_login/email', env)
+      expect(key).to eq('admin@example.com')
+    end
+
+    it 'keys JSON password sign-ins by the normalized super admin email' do
+      env = json_env({ super_admin: { email: ' Admin@Example.COM ', password: 'x' } }, '/super_admin/sign_in')
+      expect(throttle_key('super_admin_login/email', env)).to eq('admin@example.com')
+    end
+
+    it 'skips malformed JSON bodies without raising' do
+      env = build_env('/super_admin/sign_in', '{"super_admin": broken', 'application/json')
+      expect(throttle_key('super_admin_login/email', env)).to be_nil
+    end
+
+    it 'skips code submissions instead of sharing a blank key' do
+      expect(throttle_key('super_admin_login/email', form_env({ 'super_admin' => { 'otp_code' => '123456' } }, '/super_admin/sign_in'))).to be_nil
+    end
+
+    it 'skips a non-hash super_admin param' do
+      expect(throttle_key('super_admin_login/email', form_env({ 'super_admin' => 'email' }, '/super_admin/sign_in'))).to be_nil
+    end
+  end
+
   describe 'malformed query strings' do
     it 'falls back to the per-ip throttle instead of raising on an over-nested query' do
       env = build_env('/auth/sign_in', '{}', 'application/json')
@@ -132,6 +187,64 @@ describe 'Rack::Attack auth throttles' do
   describe 'resend_confirmation/email' do
     it 'skips requests without an email instead of sharing a blank key' do
       expect(throttle_key('resend_confirmation/email', json_env({}, '/resend_confirmation'))).to be_nil
+    end
+  end
+
+  describe 'conversation list and filter throttles' do
+    it 'uses separate buckets for each user and account for both list and filter' do
+      %w[conversations conversations/filter].each do |route|
+        name = "/api/v1/accounts/:account_id/#{route}/user"
+        method = route.end_with?('filter') ? 'POST' : 'GET'
+        env = Rack::MockRequest.env_for("/api/v1/accounts/1/#{route}", method: method, 'HTTP_UID' => 'user-1')
+        expect(throttle_key(name, env)).to eq('user-1:1')
+        expect(throttle_key(name, env.merge('HTTP_UID' => 'user-2'))).to eq('user-2:1')
+        expect(throttle_key(name, env.merge('PATH_INFO' => "/api/v1/accounts/2/#{route}"))).to eq('user-1:2')
+        expect(throttle_key(name, env.except('HTTP_UID'))).to be_nil
+      end
+    end
+
+    it 'honors bearer tokens ahead of spoofed uid and supports API access tokens' do
+      name = '/api/v1/accounts/:account_id/conversations/user'
+      env = Rack::MockRequest.env_for('/api/v1/accounts/1/conversations', 'HTTP_UID' => 'user-1', 'HTTP_API_ACCESS_TOKEN' => 'api-token')
+      expect(throttle_key(name, env)).to eq('user-1:1')
+      expect(throttle_key(name, env.except('HTTP_UID'))).to eq('api-token:1')
+      expect(throttle_key(name, env.merge('HTTP_AUTHORIZATION' => 'Bearer bearer-token'))).to eq('bearer-token:1')
+    end
+
+    it 'keeps bulk actions and exports out of the list and filter throttles' do
+      %w[bulk_actions conversations/bulk_actions conversations/export].each do |route|
+        env = Rack::MockRequest.env_for("/api/v1/accounts/1/#{route}", method: 'POST', 'HTTP_UID' => 'user-1')
+        expect(throttle_key('/api/v1/accounts/:account_id/conversations/user', env)).to be_nil
+        expect(throttle_key('/api/v1/accounts/:account_id/conversations/filter/user', env)).to be_nil
+      end
+    end
+
+    it 'keys the conversation list by the bearer API token' do
+      env = Rack::MockRequest.env_for('/api/v1/accounts/1/conversations?page=2', 'HTTP_AUTHORIZATION' => 'Bearer api-token')
+      expect(throttle_key('/api/v1/accounts/:account_id/conversations/user', env)).to eq('api-token:1')
+    end
+
+    it 'keeps other conversation routes and conversation creation out of the list throttle' do
+      name = '/api/v1/accounts/:account_id/conversations/user'
+      headers = { 'HTTP_AUTHORIZATION' => 'Bearer api-token' }
+      %w[/api/v1/accounts/1/conversations/meta /api/v1/accounts/1/conversations/5 /api/v1/accounts/1/contacts/5/conversations].each do |path|
+        expect(throttle_key(name, Rack::MockRequest.env_for(path, headers))).to be_nil
+      end
+      expect(throttle_key(name, Rack::MockRequest.env_for('/api/v1/accounts/1/conversations', headers.merge(method: 'POST')))).to be_nil
+    end
+
+    it 'keys the conversation filter by the bearer API token' do
+      env = Rack::MockRequest.env_for('/api/v1/accounts/1/conversations/filter?page=2', method: 'POST', 'HTTP_AUTHORIZATION' => 'Bearer api-token')
+      expect(throttle_key('/api/v1/accounts/:account_id/conversations/filter/user', env)).to eq('api-token:1')
+    end
+
+    it 'keeps other filter routes and non-POST requests out of the conversation filter throttle' do
+      name = '/api/v1/accounts/:account_id/conversations/filter/user'
+      headers = { method: 'POST', 'HTTP_AUTHORIZATION' => 'Bearer api-token' }
+      %w[/api/v1/accounts/1/contacts/filter /api/v1/accounts/1/conversations /api/v1/accounts/1/conversations/5].each do |path|
+        expect(throttle_key(name, Rack::MockRequest.env_for(path, headers))).to be_nil
+      end
+      expect(throttle_key(name, Rack::MockRequest.env_for('/api/v1/accounts/1/conversations/filter', headers.merge(method: 'GET')))).to be_nil
     end
   end
 
