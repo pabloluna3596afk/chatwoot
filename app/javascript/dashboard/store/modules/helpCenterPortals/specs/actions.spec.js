@@ -9,6 +9,34 @@ global.axios = axios;
 vi.mock('axios');
 
 describe('#actions', () => {
+  describe('#removeLocale', () => {
+    it('deletes the locale and commits the saved portal', async () => {
+      axios.delete.mockResolvedValue({ data: apiResponse.payload[1] });
+      await actions.removeLocale(
+        { commit },
+        { portalSlug: 'domain', locale: 'es' }
+      );
+      expect(axios.delete).toHaveBeenCalledWith(
+        expect.stringContaining('/domain/remove_locale'),
+        { params: { locale: 'es' } }
+      );
+      expect(commit).toHaveBeenCalledWith(
+        types.UPDATE_PORTAL_ENTRY,
+        apiResponse.payload[1]
+      );
+    });
+
+    it('does not change the portal when deletion fails', async () => {
+      axios.delete.mockRejectedValue({
+        response: { data: { error: 'Cannot remove locale' } },
+      });
+      await expect(
+        actions.removeLocale({ commit }, { portalSlug: 'domain', locale: 'es' })
+      ).rejects.toThrow();
+      expect(commit).not.toHaveBeenCalled();
+    });
+  });
+
   describe('#index', () => {
     it('sends correct actions if API is success', async () => {
       axios.get.mockResolvedValue({ data: apiResponse });

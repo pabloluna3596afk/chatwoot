@@ -317,6 +317,11 @@
         }
       },
       "DELETE_LOCALE": {
+        "DIALOG": {
+          "TITLE": "?Eliminar {locale}?",
+          "DESCRIPTION": "Se eliminar?n permanentemente {articles} y {categories} de este idioma. Esta acci?n no se puede deshacer.",
+          "CONFIRM": "Eliminar idioma"
+        },
         "API": {
           "SUCCESS_MESSAGE": "Idioma eliminado del portal correctamente",
           "ERROR_MESSAGE": "No se puede eliminar el idioma del portal. Vuelve a intentarlo."

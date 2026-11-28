@@ -1140,6 +1140,8 @@ en:
       custom_domain_not_configured: 'Custom domain is not configured'
       instructions_sent_successfully: 'Instructions sent successfully'
       subject: 'Finish setting up %{custom_domain}'
+    remove_locale:
+      default_locale: 'The default locale cannot be removed'
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:

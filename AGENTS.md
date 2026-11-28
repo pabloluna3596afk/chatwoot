@@ -421,6 +421,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **Upstream 4.20 grupo 5 / B-NEW-318** (editor, correo, interfaz y Centro de Ayuda) | chatwoot | `feat/upstream-grupo5-editor-ui`: 16 controles adaptados conservando compositor, burbujas y layouts propios; matriz local `docs-crm/codex/tabla-grupo5.md`; Vitest UTC/Guayaquil y RSpec en validaci?n, RuboCop PM y revisi?n visual pendientes; sin migraciones/schema/Gemfile, fetch, stash, push, PR ni despliegue |
 | **Citas continuidad / B-NEW-304..307** (cierre, desconexión, procedencia y privacidad) | chatwoot | `feat/citas-continuidad`: aplicar migración aditiva `20261123120000` antes del código; schema ajustado a mano con autorización del PM, validar volcado aislado; 423 ejemplos/18 fallos previos, correcciones y controles adicionales pendientes de RSpec/RuboCop PM; sin backfill, push, PR ni despliegue |
 | **Citas PR 2 / B-NEW-301** (identidad y contrato de recursos) | chatwoot | `feat/citas-recursos-contrato`: migración aditiva `20261122120000` antes de servir bandejas/Citas; regenerar schema y ejecutar RSpec/RuboCop con el PM; sin backfill, preparación automática, push, PR ni despliegue |
 | **Plantillas / B-NEW-293** (borradores y envío a revisión) | chatwoot | `feat/whatsapp-template-drafts`: aplicar migración aditiva `20261120120000` antes de habilitar API; CRUD admin, snapshots y reconciliación por WABA; pantalla en otro PR; sin backfill, push, PR ni despliegue |
