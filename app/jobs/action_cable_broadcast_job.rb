@@ -1,6 +1,7 @@
 class ActionCableBroadcastJob < ApplicationJob
   queue_as :critical
   include Events::Types
+  include ActionCableContactBroadcast
 
   CONVERSATION_UPDATE_EVENTS = [
     CONVERSATION_READ,
@@ -10,11 +11,15 @@ class ActionCableBroadcastJob < ApplicationJob
     CONVERSATION_STATUS_CHANGED
   ].freeze
 
-  def perform(members, event_name, data)
-    return if members.blank?
+  # widget_members are web widget sessions. They get widget_data, or the widget payload of a refreshed conversation.
+  def perform(members, event_name, data, widget_members: [], widget_data: nil, public_contact_payload: false)
+    return if members.blank? && widget_members.blank?
 
-    broadcast_data = prepare_broadcast_data(event_name, data)
+    conversation = latest_conversation(event_name, data)
+    broadcast_data = conversation ? refreshed_data(conversation, event_name, data) : data
+    broadcast_data = public_conversation_data(conversation, broadcast_data) if conversation && public_contact_payload
     broadcast_to_members(members, event_name, broadcast_data)
+    broadcast_to_members(widget_members, event_name, conversation ? refreshed_widget_data(conversation, data) : widget_data)
   end
 
   private
@@ -22,11 +27,13 @@ class ActionCableBroadcastJob < ApplicationJob
   # Ensures that only the latest available data is sent to prevent UI issues
   # caused by out-of-order events during high-traffic periods. This prevents
   # the conversation job from processing outdated data.
-  def prepare_broadcast_data(event_name, data)
-    return data unless CONVERSATION_UPDATE_EVENTS.include?(event_name)
+  def latest_conversation(event_name, data)
+    return unless CONVERSATION_UPDATE_EVENTS.include?(event_name)
 
-    account = Account.find(data[:account_id])
-    conversation = account.conversations.find_by!(display_id: data[:id])
+    Account.find(data[:account_id]).conversations.find_by!(display_id: data[:id])
+  end
+
+  def refreshed_data(conversation, event_name, data)
     broadcast_data = conversation.push_event_data.merge(account_id: data[:account_id])
     if event_name == ASSIGNEE_CHANGED
       # Keep the original assignment together even when the conversation is
@@ -40,6 +47,10 @@ class ActionCableBroadcastJob < ApplicationJob
       }
     end
     broadcast_data
+  end
+
+  def refreshed_widget_data(conversation, data)
+    conversation.widget_push_event_data.merge(account_id: data[:account_id])
   end
 
   def broadcast_to_members(members, event_name, broadcast_data)

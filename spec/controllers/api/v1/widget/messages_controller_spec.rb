@@ -57,6 +57,34 @@ RSpec.describe '/api/v1/widget/messages', type: :request do
         expect(messages.fetch(contact_message.id)['content_attributes']['submitted_values']).to eq([{ 'name' => 'email' }])
       end
 
+      it 'returns only the type for a contact sender' do
+        contact.update!(email: 'stored@example.com', phone_number: '+15555550100')
+        create(:message, account: account, inbox: web_widget.inbox, conversation: conversation, message_type: :incoming, sender: contact)
+
+        get api_v1_widget_messages_url,
+            params: { website_token: web_widget.website_token },
+            headers: { 'X-Auth-Token' => token },
+            as: :json
+
+        senders = response.parsed_body['payload'].pluck('sender').compact
+        contact_senders = senders.select { |sender| sender['type'] == 'contact' }
+        expect(contact_senders).to be_present
+        expect(contact_senders).to all(eq('type' => 'contact'))
+      end
+
+      it 'keeps the agent details for an agent sender' do
+        agent = create(:user, account: account)
+        create(:message, account: account, inbox: web_widget.inbox, conversation: conversation, message_type: :outgoing, sender: agent)
+
+        get api_v1_widget_messages_url,
+            params: { website_token: web_widget.website_token },
+            headers: { 'X-Auth-Token' => token },
+            as: :json
+
+        senders = response.parsed_body['payload'].pluck('sender').compact
+        expect(senders).to include(hash_including('id' => agent.id, 'name' => agent.name, 'type' => 'user'))
+      end
+
       it 'returns empty messages', :skip_before do
         get api_v1_widget_messages_url,
             params: { website_token: web_widget.website_token },
@@ -310,6 +338,21 @@ RSpec.describe '/api/v1/widget/messages', type: :request do
         expect(message.submitted_email).to eq(email)
         expect(message.conversation.contact.email).to eq(email)
         expect(message.conversation.contact.name).to eq(email.split('@')[0])
+      end
+    end
+
+    context 'when put request is made for a contact with stored details' do
+      it 'returns presence flags instead of the stored contact details' do
+        contact.update!(phone_number: '+15555550100', custom_attributes: { plan: 'pro' })
+        message = create(:message, content_type: 'input_email', account: account, inbox: web_widget.inbox, conversation: conversation)
+
+        put api_v1_widget_message_url(message.id),
+            params: { website_token: web_widget.website_token, contact: { email: Faker::Internet.email } },
+            headers: { 'X-Auth-Token' => token },
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['contact']).to eq('has_email' => true, 'has_name' => true, 'has_phone_number' => true, 'has_identifier' => false)
       end
     end
 

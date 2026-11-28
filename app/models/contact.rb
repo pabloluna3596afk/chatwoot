@@ -249,6 +249,11 @@ class Contact < ApplicationRecord
     data
   end
 
+  # The widget learns which details the contact has, not their values
+  def widget_presence_data
+    { has_email: email.present?, has_name: name.present?, has_phone_number: phone_number.present?, has_identifier: identifier.present? }
+  end
+
   def webhook_data
     {
       account: account.webhook_data,

@@ -37,3 +37,47 @@ describe('PreChat Form getValidation', () => {
     ).toEqual([['required'], ['email']]);
   });
 });
+
+describe('PreChat Form contact presence', () => {
+  const preChatFields = [
+    { name: 'fullName' },
+    { name: 'emailAddress' },
+    { name: 'phoneNumber' },
+  ];
+
+  it('skips the name for an identified contact without receiving the identifier', () => {
+    const fields = Form.computed.filteredPreChatFields.call({
+      currentUser: {
+        has_identifier: true,
+        has_email: false,
+        has_phone_number: false,
+      },
+      preChatFields,
+    });
+    expect(fields).toEqual([{ name: 'emailAddress' }, { name: 'phoneNumber' }]);
+  });
+
+  it('asks an anonymous contact for their details', () => {
+    const fields = Form.computed.filteredPreChatFields.call({
+      currentUser: {
+        has_identifier: false,
+        has_email: false,
+        has_phone_number: false,
+      },
+      preChatFields,
+    });
+    expect(fields).toEqual(preChatFields);
+  });
+
+  it('skips details that are already present', () => {
+    const fields = Form.computed.filteredPreChatFields.call({
+      currentUser: {
+        has_identifier: false,
+        has_email: true,
+        has_phone_number: true,
+      },
+      preChatFields,
+    });
+    expect(fields).toEqual([]);
+  });
+});

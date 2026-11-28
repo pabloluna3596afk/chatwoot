@@ -124,7 +124,7 @@ RSpec.describe Conversation, type: :model do
         it 'does not broadcast the activity to the contact' do
           note = conversation.messages.activity.where("additional_attributes ? 'captain_skip_reason'").sole
 
-          expect(ActionCableListener.instance.send(:contact_tokens, conversation.contact_inbox, note)).to be_empty
+          expect(ActionCableListener.instance.send(:message_contact_inboxes, conversation, note)).to be_empty
         end
       end
     end

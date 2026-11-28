@@ -76,7 +76,6 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
       scope: 'conversation', current: conversation.custom_attributes, keys: params[:custom_attribute]
     )
     conversation.save!
-    render json: conversation
   end
 
   private
