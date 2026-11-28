@@ -42,11 +42,11 @@ const isReel = computed(() => {
       </div>
       <video
         controls
-        class="rounded-[0.625rem] skip-context-menu"
+        class="rounded-[0.625rem] skip-context-menu max-h-[min(24rem,40vh)] w-auto"
         :src="attachment.dataUrl"
         :class="{
           'max-w-48': isReel,
-          'max-w-[20rem] max-h-[22rem]': !isReel,
+          'max-w-[20rem]': !isReel,
         }"
         @click.stop
         @error="handleError"

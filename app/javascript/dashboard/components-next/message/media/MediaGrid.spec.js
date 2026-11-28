@@ -128,6 +128,7 @@ describe('attachment media grid', () => {
       props: { items: [{ ...image, width: 1000, height: 4000 }] },
     });
     expect(tall.text()).toContain('View full');
+    expect(tall.get('figure').classes()).toContain('h-[22rem]');
     expect(tall.get('img').classes()).toContain('object-top');
     const tiny = mount(MediaGrid, {
       ...options(),
