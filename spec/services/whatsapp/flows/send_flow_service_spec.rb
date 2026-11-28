@@ -27,7 +27,7 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
   end
 
   it 'raises its domain error rather than KeyError when the Cloud inbox has no WABA id' do
-    channel.update!(provider_config: { 'api_key' => 'token' })
+    channel.update!(provider_config: { 'api_key' => 'token', 'source' => 'embedded_signup' })
 
     expect { described_class.eligible_for(inbox) }.to raise_error(described_class::Error, 'WhatsApp business account required')
   end

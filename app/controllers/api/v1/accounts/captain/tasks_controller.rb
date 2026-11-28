@@ -62,7 +62,9 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   def authorize_conversation
     return if params[:conversation_display_id].blank? && %w[rewrite follow_up].include?(action_name)
 
-    conversation = Current.account.conversations.find_by!(display_id: params[:conversation_display_id])
+    conversation = Current.account.conversations.find_by(display_id: params[:conversation_display_id])
+    return render_result({ error: I18n.t('captain.conversation_not_found'), error_code: 404 }) if conversation.nil?
+
     authorize conversation, :show?
   end
 

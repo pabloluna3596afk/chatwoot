@@ -25,8 +25,8 @@ module Filters::CustomAttributeFilterHelper
     table_name = attribute_model == 'conversation_attribute' ? 'conversations' : 'contacts'
     return multi_list_query(table_name, query_hash, current_index) if @attribute_data_type == 'jsonb'
 
-    validate_numeric_filter_operator!(query_hash[:filter_operator])
     validate_custom_attribute_values!(query_hash)
+    validate_numeric_filter_operator!(query_hash[:filter_operator])
     filter_operator_value = filter_operation(query_hash, current_index)
     query_operator = query_hash[:query_operator]
 

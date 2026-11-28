@@ -400,7 +400,7 @@ RSpec.describe Captain::Followup do
         if state == 'needs_review'
           resource['components'] << { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'URL', 'url' => 'https://example.com' }] }
         end
-        inbox.channel.update!(message_templates: [resource], provider_config: { 'business_account_id' => '123' },
+        inbox.channel.update!(message_templates: [resource], provider_config: { 'business_account_id' => '123', 'source' => 'embedded_signup' },
                               phone_number_health: state == 'red' ? { 'quality_rating' => 'RED' } : {})
         key = "#{state == 'other_waba' ? '456' : '123'}:volver_a_hablar|es"
         fingerprint = state == 'changed' ? 'a' * 64 : Captain::Messaging::Review.new(assistant, inbox).fingerprint(resource)
