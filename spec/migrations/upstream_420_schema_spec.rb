@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe 'Upstream 4.20 additive schema' do
+RSpec.describe 'Upstream 4.20 additive schema' do # rubocop:disable RSpec/DescribeClass
   let(:connection) { ActiveRecord::Base.connection }
 
   it 'indexes only conversations with an SLA policy' do
@@ -21,7 +21,7 @@ RSpec.describe 'Upstream 4.20 additive schema' do
     expect(index).to be_valid
   end
 
-  it 'reserves export storage with required defaults, ownership and artifact expiry indexing' do
+  it 'reserves export storage with required defaults, ownership and artifact expiry indexing' do # rubocop:disable RSpec/MultipleExpectations
     columns = connection.columns(:data_exports).index_by(&:name)
     expect(columns.fetch('name').null).to be(false)
     expect(columns.fetch('account_id').null).to be(false)
