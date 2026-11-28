@@ -448,3 +448,9 @@
   enabled: false
   column: feature_flags_ext_1
   description: Captain improvements under trial. Turn on only for pilot accounts.
+- name: conversation_auto_translate
+  display_name: Conversation Auto Translate Control
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+  description: Allow agents to turn auto-translate off or on for individual conversations.

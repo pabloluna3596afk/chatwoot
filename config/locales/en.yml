@@ -102,6 +102,7 @@ en:
         too_large: returned a response larger than the SAML metadata limit
         not_metadata: did not return valid SAML identity provider metadata
     auto_translate:
+      invalid_setting: 'Auto-translate must be true or false'
       invalid_messages: 'Invalid messages'
     google_translate:
       invalid_credentials: 'Google Cloud credentials could not be validated'
@@ -465,6 +466,9 @@ en:
       sla:
         added: '%{user_name} added SLA policy %{sla_name}'
         removed: '%{user_name} removed SLA policy %{sla_name}'
+      auto_translate:
+        disabled: '%{user_name} turned off auto-translate for this conversation'
+        enabled: '%{user_name} turned on auto-translate for this conversation'
       linear:
         issue_created: 'Linear issue %{issue_id} was created by %{user_name}'
         issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
