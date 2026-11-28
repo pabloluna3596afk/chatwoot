@@ -185,20 +185,6 @@ RSpec.describe Message do
     end
   end
 
-  describe 'reopening Captain-owned conversations' do
-    let(:account) { create(:account) }
-    let(:inbox) { create(:inbox, account: account) }
-    let(:assistant) { create(:captain_assistant, account: account) }
-    let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :resolved) }
-
-    before do
-      put_account_on_plan(account, monthly_messages: 10)
-      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
-      conversation.update!(ai_assignee: assistant)
-    end
-
-  end
-
   it 'preserves AgentBot ownership when a resolved conversation reopens' do
     agent_bot = create(:agent_bot, account: conversation.account)
     create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)

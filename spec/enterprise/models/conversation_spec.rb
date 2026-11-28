@@ -25,7 +25,6 @@ RSpec.describe Conversation, type: :model do
 
         expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: assistant)
       end
-
     end
   end
 
