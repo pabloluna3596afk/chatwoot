@@ -65,5 +65,4 @@ RSpec.describe 'Google Translate integration API', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
     expect(hook.reload.settings).not_to include('project_id' => 'invalid-project')
   end
-
 end

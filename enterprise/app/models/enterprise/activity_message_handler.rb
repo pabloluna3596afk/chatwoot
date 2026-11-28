@@ -16,7 +16,7 @@ module Enterprise::ActivityMessageHandler
     with_account_locale { handle_auto_translate_change(determine_user_name) }
   end
 
-  def handle_auto_translate_change(user_name)
+  def handle_auto_translate_change(user_name) # rubocop:disable Metrics/CyclomaticComplexity
     return unless account.feature_enabled?('conversation_auto_translate') && user_name && saved_change_to_additional_attributes?
 
     before, after = previous_changes['additional_attributes']

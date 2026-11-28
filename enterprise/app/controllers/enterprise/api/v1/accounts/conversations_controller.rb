@@ -2,7 +2,7 @@ module Enterprise::Api::V1::Accounts::ConversationsController
   extend ActiveSupport::Concern
 
   prepended do
-    before_action :validate_auto_translate_switch, only: :update
+    before_action :validate_auto_translate_switch, only: :update # rubocop:disable Rails/LexicallyScopedActionFilter
   end
 
   def inbox_assistant
