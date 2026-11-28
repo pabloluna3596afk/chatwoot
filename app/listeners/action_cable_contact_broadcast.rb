@@ -24,7 +24,7 @@ module ActionCableContactBroadcast
   def broadcast_conversation_to_agents_and_contact(account, tokens, event_name, conversation, data = conversation.push_event_data)
     sessions = session_contact_inboxes(conversation.contact_inbox)
     widget_tokens, client_tokens = split_contact_tokens(sessions)
-    widget_tokens = [] if event_name == CONVERSATION_UPDATED
+    widget_tokens = [] if event_name == Events::Types::CONVERSATION_UPDATED
     broadcast(account, tokens, event_name, data,
               widget: { tokens: widget_tokens, data: conversation.widget_push_event_data })
     return if client_tokens.blank?

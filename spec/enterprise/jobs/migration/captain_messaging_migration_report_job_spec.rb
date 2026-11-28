@@ -91,7 +91,7 @@ RSpec.describe Migration::CaptainMessagingMigrationReportJob do
   end
 
   it 'reports a Cloud inbox without WABA id without raising or changing messaging config' do
-    channel.update!(provider_config: { 'api_key' => 'token' })
+    channel.update!(provider_config: { 'api_key' => 'token', 'source' => 'embedded_signup' })
     original = assistant.config['messaging'].deep_dup
 
     expect { described_class.perform_now(assistant.id) }.not_to raise_error
