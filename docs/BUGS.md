@@ -4028,3 +4028,13 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Conservado:** Conectores/AgentBot y sus tokens/endpoints, login normal, Google, SAML, SSO genérico, Captain, Copilot y Flows. En Captain solo se elimina un comentario y las expectativas sobre el job borrado; no se cambia su comportamiento.
 - **Cómo probar:** crear y editar citas desde calendario y conversación, con y sin aviso al contacto, estado confirmado/pendiente, Meet e invitación; abrir una cita con política antigua y comprobar que no ofrece seguimiento del bot. Las rutas exclusivas de SSO ya no existen. Los conectores externos configurados siguen usando la API genérica; este cambio no revoca sus tokens ni elimina sus webhooks.
 - **Validación:** Vitest del calendario y batería amplia UTC/Guayaquil; ESLint de lo tocado. Resultados y excepciones en la entrega externa `docs-crm/codex/tabla-desconectar-panel-ai.md`. Specs Ruby revisados a mano; RSpec y RuboCop pendientes del PM por ausencia de Ruby/Bundler en host y prohibición de Docker. Sin migraciones, cambios de schema, navegador, push ni PR.
+
+
+### B-NEW-319 ? Esquema aditivo de upstream 4.20 compatible con Rails 7.2 (2026-11-27)
+
+- **Rama:** `feat/upstream-grupo2-esquema`.
+- **Cambio:** migraciones originales `20261029104503`, `20261104085110` y `20261104085633`: ?ndice parcial concurrente para SLA, ?ndice parcial concurrente de elementos pendientes de importaci?n y tabla `data_exports`.
+- **Alcance:** solo estructura; no activa importaciones ni exportaciones, no incorpora rutas, modelos, jobs ni interfaz. La tabla de exportaciones queda reservada para integrar el flujo completo en otro grupo.
+- **Archivos:** las tres migraciones en `db/migrate/`, `db/schema.rb` y `spec/migrations/upstream_420_schema_spec.rb`.
+- **Verificaci?n:** comparar blobs con `git hash-object`, regenerar desde nuestro esquema en `u08_schema_grupo2_tmp`, probar up/down/up sin transacci?n envolvente y comprobar ?ndices v?lidos. Ejecutar specs de estructura en esa base y consumidores de conversaciones/importaciones mediante `rspec-local.sh`, sin mantenimiento autom?tico del esquema compartido. Evidencia y resultado final en `docs-crm/codex/tabla-grupo2.md` (informe local no versionado).
+- **Despliegue:** aplicar las tres migraciones aditivas; ninguna modificaci?n de datos ni activaci?n global. RuboCop pendiente del PM; sin push, PR ni despliegue en esta sesi?n.
