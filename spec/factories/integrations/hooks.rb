@@ -28,13 +28,10 @@ FactoryBot.define do
 
     trait :google_translate do
       app_id { 'google_translate' }
-      settings do
-        {
-          project_id: 'test',
-          credentials: {
-            type: 'service_account', project_id: 'test', client_email: 'translate@test.iam.gserviceaccount.com', private_key: 'test-key'
-          }
-        }
+      settings { { project_id: 'test' } }
+      # ChatHub keeps the Google key in access_token (see Integrations::Hook#google_translate_credentials).
+      access_token do
+        { type: 'service_account', project_id: 'test', client_email: 'translate@test.iam.gserviceaccount.com', private_key: 'test-key' }.to_json
       end
     end
 

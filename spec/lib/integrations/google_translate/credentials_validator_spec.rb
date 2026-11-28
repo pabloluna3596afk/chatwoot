@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Integrations::GoogleTranslate::CredentialsValidator do
   let(:key) { { 'type' => 'service_account', 'client_email' => 'translate@example.iam.gserviceaccount.com', 'private_key' => 'key' } }
-  let(:hook) { build(:integrations_hook, :google_translate, settings: { 'project_id' => 'test', 'credentials' => credentials }) }
+  let(:hook) { build(:integrations_hook, :google_translate, settings: { 'project_id' => 'test' }, access_token: credentials.to_json) }
   let(:client_class) { Google::Cloud::Translate::V3::TranslationService::Client }
   let(:google) { instance_double(client_class, detect_language: Google::Cloud::Translate::V3::DetectLanguageResponse.new) }
   let(:config) { OpenStruct.new }

@@ -88,6 +88,10 @@ class Integrations::Hook < ApplicationRecord
     app_id == 'shopify'
   end
 
+  def google_translate?
+    app_id == 'google_translate'
+  end
+
   def google_translate_credentials
     return settings['credentials'] unless access_token&.start_with?('{')
 
@@ -204,7 +208,8 @@ class Integrations::Hook < ApplicationRecord
   end
 
   def settings_changed_or_enabling?
-    new_record? || will_save_change_to_settings? || will_save_change_to_status?(to: 'enabled')
+    new_record? || will_save_change_to_settings? || will_save_change_to_status?(to: 'enabled') ||
+      (google_translate? && will_save_change_to_access_token?)
   end
 
   def validate_dialogflow_configuration

@@ -8,6 +8,7 @@ describe Integrations::GoogleTranslate::DetectLanguageService do
   let(:translate_client) { double }
 
   before do
+    allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(true)
     allow(Google::Cloud::Translate::V3::TranslationService::Client).to receive(:new).and_return(translate_client)
     allow(translate_client).to receive(:detect_language).and_return(Google::Cloud::Translate::V3::DetectLanguageResponse
       .new({ languages: [{ language_code: 'es', confidence: 0.71875 }] }))
@@ -22,7 +23,7 @@ describe Integrations::GoogleTranslate::DetectLanguageService do
 
     it 'skips language detection for a stored file-backed key' do
       credentials = { 'type' => 'external_account', 'credential_source' => { 'file' => 'unsupported' } }
-      hook.update_columns(settings: hook.settings.merge('credentials' => credentials)) # rubocop:disable Rails/SkipsModelValidations
+      hook.update_columns(access_token: credentials.to_json) # rubocop:disable Rails/SkipsModelValidations
 
       HookJob.perform_now(hook, 'message.created', { message: message })
 

@@ -264,7 +264,7 @@ RSpec.describe Integrations::Hook do
     it 'rejects a broken key saved on an existing hook' do
       allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(false)
 
-      expect(hook.update(settings: { project_id: 'test', credentials: { 'private_key' => 'sample' } })).to be(false)
+      expect(hook.update(access_token: { 'private_key' => 'sample' }.to_json)).to be(false)
       expect(hook.errors[:base]).to include(I18n.t('errors.google_translate.invalid_credentials'))
     end
 
@@ -277,7 +277,7 @@ RSpec.describe Integrations::Hook do
     it 'rejects enabling a hook with unsupported stored credentials' do
       allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_call_original
       hook.update!(status: :disabled)
-      hook.update_columns(settings: hook.settings.merge('credentials' => {})) # rubocop:disable Rails/SkipsModelValidations
+      hook.update_columns(access_token: '{}') # rubocop:disable Rails/SkipsModelValidations
 
       expect(hook.update(status: :enabled)).to be(false)
       expect(hook.reload).to be_disabled

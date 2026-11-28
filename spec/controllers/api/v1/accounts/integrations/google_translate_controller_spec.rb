@@ -45,6 +45,7 @@ RSpec.describe 'Google Translate integration API', type: :request do
 
   describe 'DELETE /integrations/google_translate' do
     it 'disconnects the account hook' do
+      allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(true)
       hook = create(:integrations_hook, :google_translate, account: account)
 
       expect do

@@ -7,6 +7,7 @@ RSpec.describe Integrations::GoogleTranslate::ProcessorService do
   let(:client) { instance_double(Google::Cloud::Translate::V3::TranslationService::Client) }
 
   before do
+    allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(true)
     allow(Google::Cloud::Translate::V3::TranslationService::Client).to receive(:new).and_return(client)
   end
 

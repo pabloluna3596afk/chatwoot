@@ -29,8 +29,8 @@ RSpec.describe 'Conversation Messages API', type: :request do
     end
 
     it 'rejects an unsupported token URL on a stored credential before opening the client' do
-      credentials = hook.settings.fetch('credentials').merge('token_uri' => 'https://example.test/token')
-      hook.update_columns(settings: hook.settings.merge('credentials' => credentials)) # rubocop:disable Rails/SkipsModelValidations
+      credentials = JSON.parse(hook.access_token).merge('token_uri' => 'https://example.test/token')
+      hook.update_columns(access_token: credentials.to_json) # rubocop:disable Rails/SkipsModelValidations
 
       post path, params: { target_language: 'fr' }, headers: admin.create_new_auth_token, as: :json
 

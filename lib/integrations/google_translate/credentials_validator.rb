@@ -10,7 +10,7 @@ module Integrations::GoogleTranslate::CredentialsValidator
   def self.valid?(hook)
     Integrations::GoogleTranslate::ProcessorService.new(hook: hook).detect('Hello')
     true
-  rescue JSON::ParserError, Google::Cloud::Error, Signet::AuthorizationError, OpenSSL::PKey::PKeyError => e
+  rescue JSON::ParserError, *KEY_ERRORS => e
     Rails.logger.warn("[google-translate-validator] #{e.class}: #{e.message}")
     false
   end
