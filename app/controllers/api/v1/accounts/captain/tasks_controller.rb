@@ -1,5 +1,6 @@
 class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseController
   before_action :check_authorization
+  before_action :authorize_conversation
 
   def rewrite
     operation = params[:operation].to_s
@@ -18,10 +19,6 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   end
 
   def summarize
-    unless Current.account.conversations.exists?(display_id: params[:conversation_display_id])
-      return render_result({ error: I18n.t('captain.conversation_not_found'), error_code: 404 })
-    end
-
     result = Captain::SummaryService.new(
       account: Current.account,
       conversation_display_id: params[:conversation_display_id]
@@ -61,6 +58,15 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   end
 
   private
+
+  def authorize_conversation
+    return if params[:conversation_display_id].blank? && %w[rewrite follow_up].include?(action_name)
+
+    conversation = Current.account.conversations.find_by(display_id: params[:conversation_display_id])
+    return render_result({ error: I18n.t('captain.conversation_not_found'), error_code: 404 }) if conversation.nil?
+
+    authorize conversation, :show?
+  end
 
   def render_result(result)
     if result.nil?

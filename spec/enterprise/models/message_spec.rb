@@ -185,12 +185,23 @@ RSpec.describe Message do
     end
   end
 
+  it 'preserves AgentBot ownership when a resolved conversation reopens' do
+    agent_bot = create(:agent_bot, account: conversation.account)
+    create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
+    conversation.update!(status: :resolved, ai_assignee: agent_bot)
+
+    create(:message, conversation: conversation, message_type: :incoming)
+
+    expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: agent_bot)
+  end
+
   describe 'reopening a resolved conversation' do
     let(:conversation) { create(:conversation, status: :resolved) }
     let(:captain_assistant) { create(:captain_assistant, account: conversation.account) }
     let(:agent) { create(:user, account: conversation.account, role: :agent) }
 
     before do
+      conversation.account.enable_features!('captain_integration')
       create(:captain_inbox, inbox: conversation.inbox, captain_assistant: captain_assistant)
       conversation.update_columns(status: Conversation.statuses[:resolved], ai_assignee_type: nil, assignee_agent_bot_id: nil) # rubocop:disable Rails/SkipsModelValidations
       allow_any_instance_of(Captain::Assistant).to receive(:paused_reason).and_return(nil) # rubocop:disable RSpec/AnyInstance

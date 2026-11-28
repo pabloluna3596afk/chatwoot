@@ -71,7 +71,10 @@ const mountInfo = (realDelete = false) =>
           },
           template: `<div v-if="opened"><button @click="$emit('confirm')">{{ confirmButtonLabel }}</button></div>`,
         },
-        ContactInfoRow: true,
+        ContactInfoRow: {
+          props: ['value'],
+          template: '<div>{{ value }}<slot /></div>',
+        },
         ViewAllConversations: true,
         Avatar: true,
         SocialIcons: true,
@@ -217,4 +220,44 @@ describe('ContactInfo header menu', () => {
     );
     open.mockRestore();
   });
+
+  it.each(['EC', 'ec'])(
+    'renders a validated country flag for %s without interpreting the location',
+    async countryCode => {
+      const wrapper = mountInfo();
+      const city = '<img src=x>Quito';
+      await wrapper.setProps({
+        contact: {
+          ...contact,
+          additional_attributes: {
+            city,
+            country: 'Ecuador',
+            country_code: countryCode,
+          },
+        },
+      });
+      expect(wrapper.find('img').exists()).toBe(false);
+      expect(wrapper.text()).toContain(`${city}, Ecuador`);
+      expect(wrapper.find('.fi-ec').exists()).toBe(true);
+    }
+  );
+
+  it.each(['ec injected', '<img src=x>', 42, null])(
+    'does not create a flag for invalid country code %s',
+    async countryCode => {
+      const wrapper = mountInfo();
+      await wrapper.setProps({
+        contact: {
+          ...contact,
+          additionalAttributes: {
+            city: 'Quito',
+            country: 'Ecuador',
+            countryCode,
+          },
+        },
+      });
+      expect(wrapper.find('.fi').exists()).toBe(false);
+      expect(wrapper.text()).toContain('Quito, Ecuador');
+    }
+  );
 });

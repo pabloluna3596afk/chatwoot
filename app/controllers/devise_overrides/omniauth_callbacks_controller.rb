@@ -1,6 +1,11 @@
 class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCallbacksController
   include EmailHelper
 
+  def redirect_callbacks
+    super
+    keep_only_sign_in_fields_in_session if params[:provider] == 'google_oauth2'
+  end
+
   def omniauth_success
     get_resource_from_auth_hash
 
@@ -8,6 +13,14 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
   end
 
   private
+
+  # Existing users only need their email on the second OAuth callback; avoid oversized cookies.
+  def keep_only_sign_in_fields_in_session
+    email = request.env['omniauth.auth'].dig('info', 'email')
+    return if resource_class.from_email(email).blank?
+
+    session['dta.omniauth.auth'] = { 'provider' => 'google_oauth2', 'info' => { 'email' => email } }
+  end
 
   def sign_in_user
     # Capture before skip_confirmation! sets confirmed_at, which would

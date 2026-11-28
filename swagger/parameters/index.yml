@@ -54,3 +54,6 @@ public_contact_identifier:
 
 portal_id:
   $ref: ./portal_id.yml
+
+public_identifier_hash:
+  $ref: ./public/identifier_hash.yml

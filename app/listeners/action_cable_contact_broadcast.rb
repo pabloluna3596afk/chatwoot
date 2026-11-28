@@ -2,10 +2,6 @@ module ActionCableContactBroadcast
   private
 
   def broadcast_message_to_agents_and_contact(account, tokens, event_name, message, data = message.push_event_data)
-    contact_tokens = contact_tokens(message.conversation.contact_inbox, message)
-    broadcast(account, tokens - contact_tokens, event_name, data)
-    return if contact_tokens.blank?
-
     # Shallow copies only: deep_dup would duplicate ActiveRecord objects (no id) and break job serialization.
     contact_data = data.dup
     contact_data[:content_attributes] = message.public_content_attributes
@@ -18,21 +14,27 @@ module ActionCableContactBroadcast
         message.public_content_attributes(attributes)
       end
     end
-    broadcast(account, contact_tokens, event_name, contact_data)
+    sessions = message_contact_inboxes(message.conversation, message)
+    widget_tokens, client_tokens = split_contact_tokens(sessions)
+    broadcast(account, tokens, event_name, data,
+              widget: { tokens: widget_tokens, data: message.widget_push_event_data(contact_data) })
+    broadcast(account, client_tokens, event_name, contact_data)
   end
 
   def broadcast_conversation_to_agents_and_contact(account, tokens, event_name, conversation, data = conversation.push_event_data)
-    contact_tokens = contact_inbox_tokens(conversation.contact_inbox)
-    broadcast(account, tokens - contact_tokens, event_name, data)
-    return if contact_tokens.blank?
+    sessions = session_contact_inboxes(conversation.contact_inbox)
+    widget_tokens, client_tokens = split_contact_tokens(sessions)
+    widget_tokens = [] if event_name == Events::Types::CONVERSATION_UPDATED
+    broadcast(account, tokens, event_name, data,
+              widget: { tokens: widget_tokens, data: conversation.widget_push_event_data })
+    return if client_tokens.blank?
 
-    contact_data = data.dup
-    last_message = conversation.messages.where(account_id: account.id).chat.last
-    contact_data[:messages] = if last_message
-                                [last_message.push_event_data.merge(content_attributes: last_message.public_content_attributes)]
-                              else
-                                []
-                              end
-    broadcast(account, contact_tokens, event_name, contact_data)
+    ::ActionCableBroadcastJob.perform_later(client_tokens.uniq, event_name,
+                                            broadcast_payload(account, public_conversation_data(conversation, data)), public_contact_payload: true)
+  end
+
+  def public_conversation_data(conversation, data)
+    last_message = conversation.messages.where(account_id: conversation.account_id).chat.last
+    data.merge(messages: last_message ? [last_message.push_event_data.merge(content_attributes: last_message.public_content_attributes)] : [])
   end
 end

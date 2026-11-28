@@ -9,6 +9,7 @@ RSpec.describe MessageTemplates::HookExecutionService do
   let(:configured_job) { instance_double(ActiveJob::ConfiguredJob, perform_later: true) }
 
   before do
+    account.enable_features!('captain_integration')
     allow(Captain::Conversation::ResponseBuilderJob).to receive(:set).and_return(configured_job)
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
   end

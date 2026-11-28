@@ -2,6 +2,8 @@ import { shallowMount } from '@vue/test-utils';
 import ButtonV4 from 'next/button/Button.vue';
 import AccountHealth from '../AccountHealth.vue';
 
+vi.mock('@amplitude/analytics-browser', () => ({}));
+
 const { locale } = vi.hoisted(() => ({ locale: { value: 'en' } }));
 
 vi.mock('vue-i18n', () => ({

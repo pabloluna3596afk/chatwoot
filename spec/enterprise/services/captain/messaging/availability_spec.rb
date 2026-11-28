@@ -81,7 +81,7 @@ RSpec.describe Captain::Messaging::Availability do
   end
 
   it 'returns no eligible flows and an empty flow catalog when the Cloud inbox has no WABA id' do
-    channel.update!(provider_config: { 'api_key' => 'token' })
+    channel.update!(provider_config: { 'api_key' => 'token', 'source' => 'embedded_signup' })
 
     availability = described_class.new(assistant, inbox)
     expect(availability.flows).to be_empty
@@ -89,7 +89,7 @@ RSpec.describe Captain::Messaging::Availability do
   end
 
   it 'does not raise while taking an activation snapshot when the Cloud inbox has no WABA id' do
-    channel.update!(provider_config: { 'api_key' => 'token' })
+    channel.update!(provider_config: { 'api_key' => 'token', 'source' => 'embedded_signup' })
 
     expect(Captain::Messaging::Review.new(assistant, inbox).activation_snapshot)
       .to eq('templates' => {}, 'flows' => {})
@@ -146,7 +146,7 @@ RSpec.describe Captain::Messaging::Availability do
 
   it 'does not reuse a reviewed template from another WABA' do
     previous_waba_id = waba_id
-    channel.update!(provider_config: { 'business_account_id' => '456' })
+    channel.update!(provider_config: { 'business_account_id' => '456', 'source' => 'embedded_signup' })
     enable_auto(reviewed: { 'templates' => { "#{previous_waba_id}:order_ready|es" => 'a' * 64 }, 'flows' => {} })
 
     expect(described_class.new(assistant, inbox).templates.first.state).to eq('new')

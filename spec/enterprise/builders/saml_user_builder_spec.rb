@@ -108,6 +108,17 @@ RSpec.describe SamlUserBuilder do
         expect { builder.perform }.not_to change(AccountUser, :count)
       end
 
+      context 'when the user also belongs to another account' do
+        it 'rejects sign in without changing the global provider' do
+          create(:account_user, user: existing_user, account: create(:account))
+          original_provider = existing_user.provider
+          expect { builder.perform }.to raise_error do |error|
+            expect(error.class.name).to eq('SamlUserBuilder::AuthenticationFailed')
+          end
+          expect(existing_user.reload.provider).to eq(original_provider)
+        end
+      end
+
       context 'when the user does not belong to the target account' do
         let!(:other_account) { create(:account) }
         let!(:existing_user) { create(:user, email: email, account: other_account) }

@@ -1,4 +1,4 @@
-<% if @article.present? %>
+<% if @article.present? && !@is_internal_preview %>
 <script>
   (function() {
     let viewTracked = false;
@@ -93,7 +93,7 @@ html.light {
     tocHeader: '<%= I18n.t('public_portal.toc_header') %>'
   };
 </script>
-<% if @portal.channel_web_widget.present? && !@is_plain_layout_enabled %>
+<% if @portal.channel_web_widget.present? && !@is_plain_layout_enabled && !@is_internal_preview %>
 <script>
   window.chatwootSettings = window.chatwootSettings || {};
   window.chatwootSettings.locale = '<%= @locale %>';

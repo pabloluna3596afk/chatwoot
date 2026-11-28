@@ -65,6 +65,8 @@ module Redis::RedisKeys
   CAPTAIN_TEMPLATE_DAILY_NOTICE = 'CAPTAIN_TEMPLATE_DAILY_NOTICE::%<account_id>d::%<date>s'.freeze
 
   ## User Keys
+  SUPER_ADMIN_MFA_FAILED_ATTEMPTS = 'SUPER_ADMIN_MFA_FAILED_ATTEMPTS::%<user_id>d'.freeze
+
   # SSO Auth Tokens
   USER_SSO_AUTH_TOKEN = 'USER_SSO_AUTH_TOKEN::%<user_id>d::%<token>s'.freeze
   DEVICE_VERIFICATION_CODE = 'DEVICE_VERIFICATION::CODE::%<user_id>d::%<jti>s'.freeze

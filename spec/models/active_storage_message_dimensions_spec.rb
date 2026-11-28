@@ -47,8 +47,9 @@ RSpec.describe ActiveStorageMessageDimensions do
   it 'sends the dimensions through the real ActionCable listener' do
     create(:user, account: message.account, role: :administrator)
     allow(dispatcher).to receive(:dispatch).and_call_original
+    allow(ActionCableBroadcastJob).to receive(:perform_later)
     expect(ActionCableBroadcastJob).to receive(:perform_later).with(
-      anything, 'message.updated', hash_including(attachments: [hash_including(id: attachment.id, width: 256, height: 256)])
+      anything, 'message.updated', hash_including(attachments: [hash_including(id: attachment.id, width: 256, height: 256)]), any_args
     ).at_least(:once)
 
     ActiveStorage::AnalyzeJob.perform_now(blob)

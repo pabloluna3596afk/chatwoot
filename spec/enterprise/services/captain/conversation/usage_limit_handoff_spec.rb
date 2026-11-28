@@ -9,6 +9,7 @@ RSpec.describe Captain::Conversation::UsageLimitHandoff do
 
   before do
     put_account_on_plan(account, monthly_messages: 1, used: 1)
+    account.enable_features!('captain_integration')
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
   end
 

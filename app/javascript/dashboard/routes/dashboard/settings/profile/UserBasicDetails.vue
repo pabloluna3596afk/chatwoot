@@ -1,93 +1,87 @@
-<script>
+<script setup>
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import FormInput from 'dashboard/components-next/input/Input.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import { useVuelidate } from '@vuelidate/core';
-import { required, minLength, email } from '@vuelidate/validators';
-export default {
-  components: {
-    NextButton,
-    FormInput,
-  },
-  props: {
-    name: {
-      type: String,
-      default: '',
-    },
-    email: {
-      type: String,
-      default: '',
-    },
-    displayName: {
-      type: String,
-      default: '',
-    },
-    emailEnabled: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  emits: ['updateUser'],
-  setup() {
-    return { v$: useVuelidate() };
-  },
-  data() {
-    return {
-      userName: this.name,
-      userDisplayName: this.displayName,
-      userEmail: this.email,
-    };
-  },
-  validations: {
-    userName: {
-      required,
-      minLength: minLength(1),
-    },
-    userDisplayName: {},
-    userEmail: {
-      required,
-      email,
-    },
-  },
-  watch: {
-    name: {
-      handler(value) {
-        this.userName = value;
-      },
-      immediate: true,
-    },
-    displayName: {
-      handler(value) {
-        this.userDisplayName = value;
-      },
-      immediate: true,
-    },
-    email: {
-      handler(value) {
-        this.userEmail = value;
-      },
-      immediate: true,
-    },
-  },
-  methods: {
-    async updateUser() {
-      this.v$.$touch();
-      if (this.v$.$invalid) {
-        useAlert(this.$t('PROFILE_SETTINGS.FORM.ERROR'));
-        return;
-      }
-      this.$emit('updateUser', {
-        name: this.userName,
-        displayName: this.userDisplayName,
-        email: this.userEmail,
-      });
-    },
-  },
+import {
+  required,
+  requiredIf,
+  minLength,
+  email as emailValidator,
+} from '@vuelidate/validators';
+
+const props = defineProps({
+  name: { type: String, default: '' },
+  email: { type: String, default: '' },
+  displayName: { type: String, default: '' },
+  emailEnabled: { type: Boolean, default: false },
+});
+const emit = defineEmits(['updateUser']);
+const { t } = useI18n();
+const userName = ref(props.name);
+const userDisplayName = ref(props.displayName);
+const userEmail = ref(props.email);
+const currentPassword = ref('');
+const isEmailChanged = computed(
+  () =>
+    props.emailEnabled &&
+    userEmail.value.trim().toLowerCase() !== props.email.toLowerCase()
+);
+const rules = computed(() => ({
+  userName: { required, minLength: minLength(1) },
+  userDisplayName: {},
+  userEmail: { required, email: emailValidator },
+  currentPassword: { required: requiredIf(isEmailChanged.value) },
+}));
+const v$ = useVuelidate(rules, {
+  userName,
+  userDisplayName,
+  userEmail,
+  currentPassword,
+});
+
+watch(
+  () => props.name,
+  value => {
+    userName.value = value;
+  }
+);
+watch(
+  () => props.displayName,
+  value => {
+    userDisplayName.value = value;
+  }
+);
+watch(
+  () => props.email,
+  value => {
+    userEmail.value = value;
+  }
+);
+watch(isEmailChanged, () => {
+  currentPassword.value = '';
+  v$.value.currentPassword.$reset();
+});
+
+const updateUser = () => {
+  v$.value.$touch();
+  if (v$.value.$invalid) {
+    useAlert(t('PROFILE_SETTINGS.FORM.ERROR'));
+    return;
+  }
+  emit('updateUser', {
+    name: userName.value,
+    displayName: userDisplayName.value,
+    email: userEmail.value,
+    currentPassword: isEmailChanged.value ? currentPassword.value : undefined,
+  });
 };
 </script>
 
 <template>
-  <form class="flex flex-col gap-4" @submit.prevent="updateUser('profile')">
+  <form class="flex flex-col gap-4" @submit.prevent="updateUser">
     <FormInput
       v-model="userName"
       class="sm:!gap-0 sm:pb-0.5 sm:[&>label]:!mb-0"
@@ -129,6 +123,24 @@ export default {
       }`"
       @input="v$.userEmail.$touch"
       @blur="v$.userEmail.$touch"
+    />
+    <FormInput
+      v-if="isEmailChanged"
+      v-model="currentPassword"
+      type="password"
+      autocomplete="current-password"
+      class="sm:!gap-0 sm:pb-0.5 sm:[&>label]:!mb-0"
+      custom-input-class="!rounded-xl !py-1.5 !h-10"
+      :message-type="v$.currentPassword.$error ? 'error' : 'info'"
+      :label="$t('PROFILE_SETTINGS.FORM.CURRENT_PASSWORD.LABEL')"
+      :placeholder="$t('PROFILE_SETTINGS.FORM.CURRENT_PASSWORD.PLACEHOLDER')"
+      :message="
+        v$.currentPassword.$error
+          ? $t('PROFILE_SETTINGS.FORM.CURRENT_PASSWORD.ERROR')
+          : ''
+      "
+      @input="v$.currentPassword.$touch"
+      @blur="v$.currentPassword.$touch"
     />
     <div>
       <NextButton type="submit" :label="$t('PROFILE_SETTINGS.BTN_TEXT')" />

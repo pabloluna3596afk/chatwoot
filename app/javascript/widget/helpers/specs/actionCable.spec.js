@@ -50,4 +50,40 @@ describe('Widget ActionCableConnector', () => {
       'conversationAttributes/getAttributes'
     );
   });
+
+  it('updates conversation status from the reduced realtime payload', () => {
+    const data = {
+      id: 7,
+      inbox_id: 2,
+      contact_last_seen_at: 123,
+      status: 'resolved',
+    };
+    connector.onStatusChange(data);
+
+    expect(mockDispatch).toHaveBeenCalledWith('campaign/resetCampaign');
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'conversationAttributes/update',
+      data
+    );
+  });
+
+  it('accepts a contact message whose sender contains only its type', async () => {
+    app.$store.getters['conversationAttributes/getConversationParams'] = {
+      id: 7,
+    };
+    mockDispatch.mockResolvedValue();
+    const data = {
+      id: 10,
+      conversation_id: 7,
+      content: 'Hello',
+      sender: { type: 'contact' },
+    };
+
+    connector.onMessageCreated(data);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'conversation/addOrUpdateMessage',
+      data
+    );
+  });
 });

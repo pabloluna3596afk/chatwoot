@@ -32,7 +32,7 @@ class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
       scope: 'contact', current: @contact.custom_attributes, keys: params[:custom_attributes]
     )
     @contact.save!
-    render json: @contact
+    render :update
   end
 
   private

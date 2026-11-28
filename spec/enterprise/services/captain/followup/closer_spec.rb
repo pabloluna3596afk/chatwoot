@@ -8,7 +8,7 @@ RSpec.describe Captain::Followup::Closer do
   let(:now) { Time.current.change(usec: 0) }
 
   before do
-    account.enable_features!('captain_integration_v2')
+    account.enable_features!('captain_integration', 'captain_integration_v2')
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
   end
 

@@ -815,7 +815,9 @@
         "DRAFT": "Borrador",
         "ARCHIVE": "Archive",
         "BACK_TO_ARTICLES": "Volver a artículos",
-        "CREATE_IN_PROGRESS": "El artículo aún se está creando. Vuelve a agregar los archivos en un momento."
+        "CREATE_IN_PROGRESS": "El artículo aún se está creando. Vuelve a agregar los archivos en un momento.",
+        "PREVIEW_ERROR": "No se pudo abrir la vista previa. Inténtalo de nuevo.",
+        "PREVIEW_POPUP_BLOCKED": "Permite las ventanas emergentes para ver este artículo."
       },
       "PENDING_CHANGES_POPOVER": {
         "TITLE": "Cambios no publicados",

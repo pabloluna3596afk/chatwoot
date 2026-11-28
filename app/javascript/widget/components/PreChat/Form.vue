@@ -83,7 +83,7 @@ export default {
     filteredPreChatFields() {
       const isUserEmailAvailable = this.currentUser.has_email;
       const isUserPhoneNumberAvailable = this.currentUser.has_phone_number;
-      const isUserIdentifierAvailable = !!this.currentUser.identifier;
+      const isUserIdentifierAvailable = this.currentUser.has_identifier;
 
       const isUserNameAvailable = !!(
         isUserIdentifierAvailable ||

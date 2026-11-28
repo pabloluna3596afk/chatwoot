@@ -5,6 +5,29 @@ RSpec.describe Conversation, type: :model do
     it { is_expected.to belong_to(:sla_policy).optional }
   end
 
+  describe 'Captain assignment' do
+    let(:account) { create(:account) }
+    let(:inbox) { create(:inbox, account: account, enable_auto_assignment: false) }
+    let(:assistant) { create(:captain_assistant, account: account) }
+
+    before do
+      put_account_on_plan(account, monthly_messages: 10)
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+    end
+
+    context 'with a Captain assignee' do
+      let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending, ai_assignee: assistant) }
+
+      before { account.enable_features!('captain_integration') }
+
+      it 'keeps Captain on unrelated updates while pending' do
+        conversation.update!(priority: :high)
+
+        expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: assistant)
+      end
+    end
+  end
+
   describe 'SLA policy updates' do
     let(:conversation) { create(:conversation) }
     let!(:sla_policy) { create(:sla_policy, account: conversation.account) }

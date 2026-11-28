@@ -815,7 +815,9 @@
         "VIEW_CHANGES": "View unpublished changes",
         "DRAFT": "Draft",
         "ARCHIVE": "Archive",
-        "BACK_TO_ARTICLES": "Back to articles"
+        "BACK_TO_ARTICLES": "Back to articles",
+        "PREVIEW_ERROR": "Unable to open the preview. Please try again.",
+        "PREVIEW_POPUP_BLOCKED": "Allow popups to preview this article."
       },
       "PENDING_CHANGES_POPOVER": {
         "TITLE": "Unpublished changes",

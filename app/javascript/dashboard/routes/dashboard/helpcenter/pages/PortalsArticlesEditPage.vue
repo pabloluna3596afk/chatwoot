@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert, useTrack } from 'dashboard/composables';
@@ -10,6 +10,7 @@ import {
 } from 'dashboard/helper/portalHelper';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { rendersIdentically } from 'dashboard/helper/articleDiffHelper';
+import ArticlesAPI from 'dashboard/api/helpCenter/articles';
 
 import ArticleEditor from 'dashboard/components-next/HelpCenter/Pages/ArticleEditorPage/ArticleEditor.vue';
 
@@ -18,15 +19,16 @@ const router = useRouter();
 const store = useStore();
 const { t } = useI18n();
 
-const { articleSlug, portalSlug } = route.params;
+const articleSlug = computed(() => route.params.articleSlug);
+const portalSlug = computed(() => route.params.portalSlug);
 
 const articleById = useMapGetter('articles/articleById');
 
-const article = computed(() => articleById.value(articleSlug));
+const article = computed(() => articleById.value(articleSlug.value));
 
 const portalBySlug = useMapGetter('portals/portalBySlug');
 
-const portal = computed(() => portalBySlug.value(portalSlug));
+const portal = computed(() => portalBySlug.value(portalSlug.value));
 
 const isUpdating = ref(false);
 const isSaved = ref(false);
@@ -36,7 +38,7 @@ const articleLink = computed(() => {
   const { slug: articleSlugValue } = article.value;
   const portalCustomDomain = portal.value?.custom_domain;
   return buildPortalArticleURL(
-    portalSlug,
+    portalSlug.value,
     categorySlug,
     categoryLocale,
     articleSlugValue,
@@ -95,8 +97,8 @@ const saveArticle = async ({ ...values }) => {
   isUpdating.value = true;
   try {
     await store.dispatch('articles/update', {
-      portalSlug,
-      articleId: articleSlug,
+      portalSlug: portalSlug.value,
+      articleId: articleSlug.value,
       ...stageDraftFields(values),
     });
     isSaved.value = true;
@@ -137,19 +139,39 @@ const goBackToArticles = () => {
 
 const fetchArticleDetails = () => {
   store.dispatch('articles/show', {
-    id: articleSlug,
-    portalSlug,
+    id: articleSlug.value,
+    portalSlug: portalSlug.value,
   });
 };
 
-const previewArticle = () => {
-  window.open(articleLink.value, '_blank');
-  useTrack(PORTALS_EVENTS.PREVIEW_ARTICLE, {
-    status: article.value?.status,
-  });
+const previewArticle = async () => {
+  const id = articleSlug.value;
+  const portalId = portalSlug.value;
+  const status = article.value.status;
+  const previewUrl = new URL(articleLink.value);
+  const previewTab = window.open('about:blank', '_blank');
+  if (!previewTab) {
+    useAlert(t('HELP_CENTER.EDIT_ARTICLE_PAGE.HEADER.PREVIEW_POPUP_BLOCKED'));
+    return;
+  }
+  previewTab.opener = null;
+  try {
+    if (status !== ARTICLE_STATUSES.PUBLISHED) {
+      const { data } = await ArticlesAPI.getPreviewToken({
+        id,
+        portalSlug: portalId,
+      });
+      previewUrl.searchParams.set('preview_token', data.preview_token);
+    }
+    previewTab.location.replace(previewUrl.toString());
+    useTrack(PORTALS_EVENTS.PREVIEW_ARTICLE, { status });
+  } catch {
+    previewTab.close();
+    useAlert(t('HELP_CENTER.EDIT_ARTICLE_PAGE.HEADER.PREVIEW_ERROR'));
+  }
 };
 
-onMounted(fetchArticleDetails);
+watch([articleSlug, portalSlug], fetchArticleDetails, { immediate: true });
 </script>
 
 <template>

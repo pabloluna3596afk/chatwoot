@@ -4028,3 +4028,81 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - **Conservado:** Conectores/AgentBot y sus tokens/endpoints, login normal, Google, SAML, SSO genérico, Captain, Copilot y Flows. En Captain solo se elimina un comentario y las expectativas sobre el job borrado; no se cambia su comportamiento.
 - **Cómo probar:** crear y editar citas desde calendario y conversación, con y sin aviso al contacto, estado confirmado/pendiente, Meet e invitación; abrir una cita con política antigua y comprobar que no ofrece seguimiento del bot. Las rutas exclusivas de SSO ya no existen. Los conectores externos configurados siguen usando la API genérica; este cambio no revoca sus tokens ni elimina sus webhooks.
 - **Validación:** Vitest del calendario y batería amplia UTC/Guayaquil; ESLint de lo tocado. Resultados y excepciones en la entrega externa `docs-crm/codex/tabla-desconectar-panel-ai.md`. Specs Ruby revisados a mano; RSpec y RuboCop pendientes del PM por ausencia de Ruby/Bundler en host y prohibición de Docker. Sin migraciones, cambios de schema, navegador, push ni PR.
+
+
+### B-NEW-318 — Identidad HMAC ligada al contacto objetivo (2026-11-27)
+
+- Archivos: `app/controllers/concerns/hmac_concern.rb`, `app/controllers/public/api/v1/inboxes_controller.rb`,
+  `app/controllers/public/api/v1/inboxes/contacts_controller.rb`, `app/actions/contact_identify_action.rb`.
+- Se calcula HMAC en el servidor; `hmac_verified` del cliente no acredita identidad. En bandejas con identidad obligatoria,
+  las conversaciones y mensajes públicos exigen el hash del contacto seleccionado. No se fusiona un contacto identificado por solo email/teléfono.
+- Cobertura: specs de contact inboxes, conversaciones de cuenta, contactos/conversaciones/mensajes públicos y ContactIdentifyAction.
+  Index/show/create se prueban con hash propio, hash ajeno, hash ausente y contacto sin identificador. RSpec pendiente de CI.
+
+### B-NEW-319 — Datos del contacto reducidos en el widget (2026-11-27)
+
+- Archivos: vistas `api/v1/widget/`, Contact, Message, EventDataPresenter, ActionCableListener,
+  ActionCableContactBroadcast, ActionCableBroadcastJob y `widget/components/PreChat/Form.vue`.
+- REST/config y eventos del widget usan flags de presencia y remitente `{ type: 'contact' }`.
+  `has_identifier` reemplaza el identificador completo en el prechat. Se conserva el perfil de agentes/bots, el remitente Sistema,
+  el contrato del cliente API y el filtrado de traducciones, incluso al refrescar conversaciones en el job.
+- Cobertura: specs Ruby de widget/modelos/presenter/listener/job; Vitest de prechat y ActionCable. RSpec pendiente de CI.
+
+### B-NEW-320 — Revocación de streams al retirar un agente (2026-11-27)
+
+- Archivos: `app/channels/room_channel.rb`, `app/models/account_user.rb`.
+- La eliminación confirmada de AccountUser emite una señal individual y cierra la conexión del agente.
+  La resuscripción vuelve a validar pertenencia. Se conservan tokens, ACL de tareas/notas/chats y reconexión del fork.
+- Cobertura: specs de RoomChannel (cierre y pertenencia revocada) y AccountUser (señal después de eliminar). RSpec pendiente de CI.
+
+### B-NEW-321 — Reuniones del widget limitadas al visitante (2026-11-27)
+
+- Archivo: `app/controllers/api/v1/widget/integrations/dyte_controller.rb`.
+- La búsqueda del mensaje de reunión queda dentro de las conversaciones autorizadas del visitante y usa el contacto autenticado.
+  Se conserva el procesador RealtimeKit/Cloudflare y sus credenciales. Un mensaje de otro visitante devuelve 404 sin invocar al proveedor.
+- Cobertura: spec del controlador Dyte con otra conversación en la misma bandeja. RSpec pendiente de CI.
+
+### B-NEW-322 — Permisos Platform y secretos de bots por propietario (2026-11-27)
+
+- Archivos: controladores Platform de AgentBots/Users y `api/v1/accounts/inboxes/agent_bot.json.jbuilder`.
+- Crear/mover bots exige permiso sobre la cuenta destino. Crear un usuario solo reutiliza uno que la app Platform ya administra.
+  El presenter expone el token únicamente para bots de la cuenta actual; los bots de sistema conservan su perfil público.
+- Cobertura: specs Platform de bots/usuarios y endpoint agent_bot de bandejas, incluidos permisos cruzados. RSpec pendiente de CI.
+### B-NEW-323 — Seguridad de canales e integraciones upstream 4.20 (2026-11-27)
+
+- **Problema:** automatizaciones, hooks, correo entrante, tareas Captain, Linear e hilos Slack permitían referencias sin comprobar toda la propiedad o visibilidad. Algunos callbacks admitían tokens vacíos, firmas ausentes o descargas autenticadas a destinos arbitrarios.
+- **Cambio:** equipos/bandejas/conversaciones/attachments/hilos limitados a su cuenta y permisos; validación de operadores numéricos; Firecrawl con HMAC por assistant; firmas Meta/Twitter y conexión Facebook/WhatsApp solo admin; secretos obligatorios en nuevas conexiones Cloud manuales; token 360dialog; observación de firmas Twilio; adjuntos Slack/Twitter con SafeFetch y destinos permitidos. Captain conserva clave, cuotas, audiencia, handoff, Flows y decisiones.
+- **Archivos:** AutomationRules::ActionService; Integrations::Hook/Webhook y presenters; Captain TasksController, Enterprise::Inbox/Conversation y Firecrawl; InReplyToStrategy; filtros compartidos/ConditionRow; LinearController y argumentos GraphQL; controladores Meta/Twitter/Twilio/WhatsApp; proveedores WhatsApp; Slack IncomingMessageBuilder/FileDownloadService y Twitter DirectMessageParserService.
+- **Cómo probar:** rechazar IDs de otra cuenta y conversaciones no visibles antes de invocar servicios; impedir unlink de attachment ajeno; rechazar tokens vacíos/firmas inválidas según proveedor; guardar secreto desde creación/migración/configuración WhatsApp; comprobar transición legacy; abrir/reabrir Captain con feature y cupos, handoff y Flows; corregir un filtro numérico Contains a un operador válido.
+- **Transición:** Cloud manual legacy sin secreto y 360dialog legacy sin token continúan con warning; 360dialog registra token en el siguiente guardado validado. Twilio permanece log-only incluso después de recibir firma válida. Los callbacks Firecrawl con tokens antiguos dejan de ser válidos: terminar/reiniciar crawls al desplegar. Bandwidth queda excluido, requiere esquema/backfill y decisión del dueño.
+- **Validación:** specs Ruby de upstream adaptados y ampliados, revisados manualmente; RSpec en CI y RuboCop por PM pendientes. Vitest focal en UTC/Guayaquil y ESLint se registran con resultados exactos en `docs-crm/codex/tabla-seguridad-1b.md` (externo). Sin migraciones, schema, dependencias, Docker, navegador, push ni PR. Revisión visual pendiente del dueño antes de cualquier PR.
+
+
+### B-NEW-324 — Seguridad de entrada, límites, texto y Centro de Ayuda (2026-11-27)
+
+- **Problema:** Super Admin no pedía el segundo factor habilitado; cambiar email no requería contraseña actual;
+  reset no respetaba caducidad ni revocaba otras sesiones. Listas/filtros no tenían límite individual y contenido
+  de contactos/notificaciones podía interpretarse como HTML. Los artículos no publicados podían verse públicamente.
+- **Cambio:** reto MFA opcional con caducidad, tope de intentos y recovery; contraseña actual al cambiar email;
+  reset de 6 horas (invitaciones pendientes: 7 días), revocación de sesiones coordinada con UserSession y
+  conservación del token personal de API; cookie Google mínima para usuarios existentes. List/filter: 1000/min
+  por usuario y cuenta, 429 JSON con Retry-After. Valores/nombres/cuerpos como texto, banderas validadas y visor
+  restringido al mismo origen /hc/. Artículos/traducciones públicos solo published; preview firmado con propósito
+  y caducidad de una hora, sin analítica ni píxel de visitas. Publicar exige acción explícita.
+- **Archivos:** controladores SuperAdmin Sessions, Profiles, Passwords y OmniauthCallbacks; rack_attack;
+  InboxCard, ContactInfo/ContactInfoRow, MergeContactSummary, useMessageFormatter, ArticleViewer/urlParamsHelper;
+  Article, ArticlesController de cuenta/público, política, editor y vistas del portal. Se conservan marca/layouts,
+  guards MFA/dispositivo, autosave, menús y asignación propios.
+- **Cómo probar:** login Super Admin sin MFA y con OTP/recovery, rechazo tras expiración/tope; rechazar cambio de
+  email sin contraseña o con contraseña errónea; reset vencido e invitación de 2/8 días; comprobar revocación de
+  sesiones y permanencia de la actual al cambiar contraseña; Google existente/nuevo. En UI ingresar HTML en nombres,
+  valores y notificaciones: se muestra como texto. Rechazar iframes externos. Un borrador no aparece públicamente
+  ni en traducciones; su preview firmado funciona por una hora y no incrementa visitas; publicar explícitamente.
+  Las nuevas cuotas excluyen acciones masivas y exportaciones.
+- **Pospuesto:** SAML mantiene el rechazo conservador de usuarios multicuenta; ampliar confianza entre IdP requiere
+  revisión específica. Las rutas Enterprise de conferencia Twilio y llamadas WhatsApp sí existen; los commits de voz
+  excluidos deben revisarse aparte, sin habilitar ni modificar voz en este trabajo.
+- **Validación:** specs Ruby adaptados y revisión manual; RSpec solo en CI y RuboCop por PM pendientes. Resultados
+  exactos de Vitest UTC/Guayaquil, ESLint y tabla A1–A8 en el informe externo
+  `docs-crm/codex/tabla-seguridad-1c.md`. Sin migraciones, schema, dependencias, Docker, navegador, push ni PR.
+  Aprobación visual pendiente del dueño antes de cualquier PR. No se certifica cierre completo sin las pruebas pendientes.

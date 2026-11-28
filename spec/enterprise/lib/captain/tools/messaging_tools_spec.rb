@@ -74,7 +74,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
     end
 
     it 'returns an empty catalog when the Cloud inbox has no WABA id' do
-      channel.update!(provider_config: { 'api_key' => 'token' })
+      channel.update!(provider_config: { 'api_key' => 'token', 'source' => 'embedded_signup' })
 
       expect(JSON.parse(described_class.new(assistant).perform(tool_context))['flows']).to be_empty
     end

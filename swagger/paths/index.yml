@@ -96,6 +96,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
   post:
     $ref: ./public/inboxes/conversations/create.yml
   get:
@@ -105,6 +106,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
     - $ref: '#/components/parameters/conversation_id'
   get:
     $ref: ./public/inboxes/conversations/show.yml
@@ -113,6 +115,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
     - $ref: '#/components/parameters/conversation_id'
   post:
     $ref: ./public/inboxes/conversations/toggle_status.yml
@@ -121,6 +124,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
     - $ref: '#/components/parameters/conversation_id'
   post:
     $ref: ./public/inboxes/conversations/toggle_typing.yml
@@ -129,6 +133,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
     - $ref: '#/components/parameters/conversation_id'
   post:
     $ref: ./public/inboxes/conversations/update_last_seen.yml
@@ -137,6 +142,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
     - $ref: '#/components/parameters/conversation_id'
   post:
     $ref: ./public/inboxes/messages/create.yml
@@ -147,6 +153,7 @@
   parameters:
     - $ref: '#/components/parameters/public_inbox_identifier'
     - $ref: '#/components/parameters/public_contact_identifier'
+    - $ref: '#/components/parameters/public_identifier_hash'
     - $ref: '#/components/parameters/conversation_id'
     - $ref: '#/components/parameters/message_id'
   patch:
