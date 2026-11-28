@@ -20,10 +20,11 @@ RSpec.describe Captain::Assistant::PromptDataSanitizer do
   end
 
   it 'keeps only allowed additional attributes of the conversation' do
-    data = { additional_attributes: { referer: 'site', browser_language: 'es', mail_subject: 'hola', type: 'email', secret: 'no' } }
+    data = { additional_attributes: { referer: 'site', browser_language: 'fr', conversation_language: 'es',
+                                      mail_subject: 'hola', type: 'email', secret: 'no' } }
 
     expect(described_class.conversation(data)[:additional_attributes]).to eq(
-      'referer' => 'site', 'browser_language' => 'es', 'mail_subject' => 'hola', 'type' => 'email'
+      'referer' => 'site', 'conversation_language' => 'es', 'mail_subject' => 'hola', 'type' => 'email'
     )
   end
 

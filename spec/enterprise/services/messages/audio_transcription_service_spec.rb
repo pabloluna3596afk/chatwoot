@@ -363,4 +363,10 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       end
     end
   end
+
+  it 'returns an error instead of raising when the provider rejects a voice note' do
+    allow(service).to receive(:transcribe_audio).and_raise(Faraday::BadRequestError)
+
+    expect(service.perform).to eq(error: 'Audio rejected by the transcription API')
+  end
 end

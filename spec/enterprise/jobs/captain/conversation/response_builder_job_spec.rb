@@ -37,6 +37,39 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    it 'delivers the customer-language response when browser and account languages differ' do
+      account.enable_features!(:captain_integration_v2)
+      account.update!(locale: 'en')
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+      conversation.update!(ai_assignee: assistant, additional_attributes: { 'browser_language' => 'fr', 'conversation_language' => 'es' })
+      responding_to_message.update!(content: 'Necesito ayuda con mi pedido')
+      allow(mock_agent_runner_service).to receive(:generate_response).and_return(
+        'response_parts' => [{ 'text' => 'Puedo ayudarte con tu pedido.', 'citation_indexes' => [] }]
+      )
+
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+      expect(conversation.messages.outgoing.where(private: false).last.content).to eq('Puedo ayudarte con tu pedido.')
+    end
+
+    it 'still delivers a reply after a voice note is rejected by transcription' do
+      account.enable_features!(:captain_integration_v2)
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+      conversation.update!(ai_assignee: assistant)
+      attachment = responding_to_message.attachments.create!(account_id: account.id, file_type: :audio)
+      transcription = Messages::AudioTranscriptionService.new(attachment, assistant: true)
+      allow(Messages::AudioTranscriptionService).to receive(:new).with(attachment, assistant: true).and_return(transcription)
+      allow(transcription).to receive(:preflight_error).and_return(nil)
+      allow(transcription).to receive(:quota_details).and_return(units: 1)
+      allow(transcription).to receive(:transcribe_audio).and_raise(Faraday::BadRequestError)
+
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+      expect(transcription).to have_received(:transcribe_audio)
+      expect(conversation.messages.outgoing.where(private: false).last.content).to eq('Hey, welcome to Captain V2')
+      expect(conversation.reload).to be_pending
+    end
+
     it 'stops a fourteen-turn courtesy simulator after four real V2 reply jobs' do
       account.enable_features!(:captain_integration_v2)
       create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
@@ -1321,8 +1354,8 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           created_at: same_second,
           updated_at: same_second
         )
-        create(:message, account: account, conversation: conversation, message_type: :activity, content: 'Assigned to agent', created_at: same_second,
-                         updated_at: same_second)
+        create(:message, account: account, conversation: conversation, message_type: :activity, content: 'Assigned to agent',
+                         created_at: same_second, updated_at: same_second)
         create(:message, account: account, conversation: conversation, content: 'Fresh question', message_type: :incoming, created_at: same_second,
                          updated_at: same_second)
 
@@ -1843,7 +1876,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       let(:message_with_image) do
         create(:message, account: account, conversation: conversation, message_type: :incoming, content: 'Can you help with this error?')
       end
-      let(:image_attachment) { message_with_image.attachments.create!(account: account, file_type: :image, external_url: 'https://example.com/error.jpg') }
+      let(:image_attachment) do
+        message_with_image.attachments.create!(account: account, file_type: :image, external_url: 'https://example.com/error.jpg')
+      end
 
       before do
         image_attachment

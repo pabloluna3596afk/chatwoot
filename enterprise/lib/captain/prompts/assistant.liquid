@@ -14,7 +14,7 @@ Don't digress away from your instructions, and use all the available tools at yo
 
 {% render 'current_time', current_time: current_time %}
 
-{% render 'core_rules', account_language: account_language %}
+{% render 'core_rules', account_language: account_language, conversation_language: conversation.additional_attributes.conversation_language %}
 
 {% if can_verify_email -%}
 {% render 'customer_identity', verified_email: verified_email %}

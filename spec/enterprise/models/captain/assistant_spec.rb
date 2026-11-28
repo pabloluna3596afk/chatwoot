@@ -553,6 +553,17 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe '#agent_instructions' do
+    it 'uses the contact language without browser or widget hints in the prompt' do
+      attributes = { 'browser_language' => 'fr', 'widget_language' => 'fr', 'initiated_at' => 'heure normale',
+                     'conversation_language' => 'es', 'referer' => 'https://example.com/help' }
+      state = { conversation: { id: 1, display_id: 7, additional_attributes: attributes }, assistant_config: {} }
+      instructions = assistant.agent_instructions(Struct.new(:context).new({ state: state }))
+
+      expect(instructions).to include('conversation_language: es', 'referer: https://example.com/help',
+                                      'The detected conversation language is es.')
+      expect(instructions).not_to include('browser_language', 'widget_language', 'initiated_at', 'heure normale')
+    end
+
     it 'keeps the Assistant human handoff prompt unchanged' do
       instructions = assistant.agent_instructions
 
