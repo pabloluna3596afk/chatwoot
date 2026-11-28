@@ -52,7 +52,7 @@ class Api::V1::Accounts::PortalsController < Api::V1::Accounts::BaseController
 
   def remove_locale
     locale = params.permit(:locale).require(:locale)
-    raise ActionController::ParameterMissing, :locale unless locale.is_a?(String)
+    return render_could_not_create_error(I18n.t('portals.remove_locale.invalid_locale')) unless locale.is_a?(String)
 
     @portal.with_lock do
       return render_could_not_create_error(I18n.t('portals.remove_locale.default_locale')) if locale == @portal.default_locale

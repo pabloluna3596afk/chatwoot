@@ -1048,6 +1048,7 @@ es:
       subject: 'Finish setting up %{custom_domain}'
     remove_locale:
       default_locale: 'No se puede eliminar el idioma predeterminado'
+      invalid_locale: 'El idioma no es válido'
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
