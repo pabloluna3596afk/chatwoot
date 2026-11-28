@@ -4068,7 +4068,7 @@ RSpec lo ejecuta el PM; no se verificó en navegador por restricción explícita
 - Crear/mover bots exige permiso sobre la cuenta destino. Crear un usuario solo reutiliza uno que la app Platform ya administra.
   El presenter expone el token únicamente para bots de la cuenta actual; los bots de sistema conservan su perfil público.
 - Cobertura: specs Platform de bots/usuarios y endpoint agent_bot de bandejas, incluidos permisos cruzados. RSpec pendiente de CI.
-### B-NEW-318 — Seguridad de canales e integraciones upstream 4.20 (2026-11-27)
+### B-NEW-323 — Seguridad de canales e integraciones upstream 4.20 (2026-11-27)
 
 - **Problema:** automatizaciones, hooks, correo entrante, tareas Captain, Linear e hilos Slack permitían referencias sin comprobar toda la propiedad o visibilidad. Algunos callbacks admitían tokens vacíos, firmas ausentes o descargas autenticadas a destinos arbitrarios.
 - **Cambio:** equipos/bandejas/conversaciones/attachments/hilos limitados a su cuenta y permisos; validación de operadores numéricos; Firecrawl con HMAC por assistant; firmas Meta/Twitter y conexión Facebook/WhatsApp solo admin; secretos obligatorios en nuevas conexiones Cloud manuales; token 360dialog; observación de firmas Twilio; adjuntos Slack/Twitter con SafeFetch y destinos permitidos. Captain conserva clave, cuotas, audiencia, handoff, Flows y decisiones.
