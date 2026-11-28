@@ -6,6 +6,8 @@ RSpec.describe 'plan feature rake tasks', type: :task do
     account = create(:account, plan: plan)
     account.update!(feature_automations: false, feature_delayed_automations: false)
     task = Rake::Task['plans:sync_account_features']
+    # Rake runs a task once per process; another spec (or plans:sync_features) may have invoked it already.
+    task.reenable
 
     expect { with_modified_env('DRY_RUN' => nil) { task.invoke } }
       .to output(/account=#{account.id}.*automations/).to_stdout
@@ -19,6 +21,7 @@ RSpec.describe 'plan feature rake tasks', type: :task do
   it 'keeps plan keys unchanged during the default dry run' do
     plan = Plan.create!(name: 'Basic', slug: 'basico', feature_keys: ['captain_integration'])
     task = Rake::Task['plans:fill_feature_keys']
+    task.reenable
 
     expect { with_modified_env('DRY_RUN' => nil) { task.invoke } }.to output(/plan=basico/).to_stdout
     expect(plan.reload.feature_keys).to eq(['captain_integration'])
