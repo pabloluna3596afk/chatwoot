@@ -18,6 +18,9 @@ class Messages::AudioTranscriptionService
   rescue Faraday::UnauthorizedError
     Rails.logger.warn('Skipping audio transcription: OpenAI configuration is invalid or disabled (401 Unauthorized).')
     { error: 'OpenAI configuration is invalid or disabled (401)' }
+  rescue Faraday::BadRequestError => e
+    Rails.logger.warn("Skipping audio transcription for attachment #{attachment.id}: rejected with #{e.response&.dig(:status)}")
+    { error: 'Audio rejected by the transcription API' }
   end
 
   def quota_preview

@@ -23,6 +23,10 @@ module Enterprise::Concerns::Attachment
   def enqueue_audio_transcription
     return unless file_type.to_sym == :audio
 
+    # Conversation autosave can commit this same new attachment twice.
+    return if @audio_transcription_enqueued
+
+    @audio_transcription_enqueued = true
     # No file.attached? guard: the social-media ingest path saves the
     # Attachment before attaching the blob. AudioTranscriptionJob retries
     # on ActiveStorage::FileNotFoundError to ride out that race.

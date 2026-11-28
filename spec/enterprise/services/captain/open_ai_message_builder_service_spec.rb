@@ -461,4 +461,15 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
       end
     end
   end
+
+  it 'continues building Captain context when a voice note is rejected by the provider' do
+    attachment = message.attachments.create!(account_id: message.account_id, file_type: :audio)
+    transcription = Messages::AudioTranscriptionService.new(attachment, assistant: true)
+    allow(Messages::AudioTranscriptionService).to receive(:new).with(attachment, assistant: true).and_return(transcription)
+    allow(transcription).to receive(:preflight_error).and_return(nil)
+    allow(transcription).to receive(:transcribe_audio).and_raise(Faraday::BadRequestError)
+    allow(transcription).to receive(:quota_details).and_return(units: 1)
+
+    expect(service.generate_content).to eq('Hello world')
+  end
 end

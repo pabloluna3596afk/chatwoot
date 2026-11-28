@@ -40,4 +40,31 @@ RSpec.describe Captain::Conversation::AgentMessageTranslationService do
     expect(translator).not_to have_received(:translate)
     expect(private_note.reload.content).to eq('Internal note')
   end
+
+  it 'sends the original reply when translation raises, without leaving it pending' do
+    allow(translator).to receive(:translate).and_raise(StandardError, 'provider unavailable')
+    tracker = instance_double(ChatwootExceptionTracker, capture_exception: nil)
+    allow(ChatwootExceptionTracker).to receive(:new).and_return(tracker)
+    delivery = instance_double(Messages::SendEmailNotificationService, perform: nil)
+    allow(Messages::SendEmailNotificationService).to receive(:new).with(message: message).and_return(delivery)
+
+    SendReplyJob.perform_now(message.id)
+
+    expect(delivery).to have_received(:perform)
+    expect(message.reload.content).to eq('Hello')
+    expect(message.content_attributes).to include('translation_status' => 'failed', 'translation_failed' => true)
+    expect(message.content_attributes).not_to have_key('translation_pending')
+  end
+
+  it 'marks a failed detection when the conversation language is unknown' do
+    conversation.update!(additional_attributes: {})
+    create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, content: 'Hi')
+    allow(translator).to receive_messages(language: nil, failed?: true)
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.content).to eq('Hello')
+    expect(message.translation_failed).to be(true)
+    expect(message.content_attributes).not_to have_key('translation_pending')
+  end
 end

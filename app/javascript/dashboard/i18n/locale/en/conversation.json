@@ -195,6 +195,13 @@
       "TRANSCRIPT_SHOW_LESS": "Show less"
     },
     "HEADER": {
+      "AUTO_TRANSLATE": {
+        "TURN_ON": "Turn on auto-translate",
+        "TURN_OFF": "Turn off auto-translate",
+        "TURNED_ON": "Auto-translate turned on for this conversation",
+        "TURNED_OFF": "Auto-translate turned off for this conversation",
+        "UPDATE_FAILED": "Could not update auto-translate"
+      },
       "RESOLVE_ACTION": "Resolve",
       "REOPEN_ACTION": "Reopen",
       "OPEN_ACTION": "Open",

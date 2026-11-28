@@ -43,7 +43,7 @@ RSpec.describe Captain::Conversation::MessageLanguageService do
 
     before do
       allow(Captain::Llm::LanguageDetectionService).to receive(:new) do |text:, **|
-        instance_double(Captain::Llm::LanguageDetectionService, language: languages.fetch(text, 'en'))
+        instance_double(Captain::Llm::LanguageDetectionService, failed?: false, language: languages.fetch(text, 'en'))
       end
     end
 

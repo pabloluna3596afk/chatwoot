@@ -14,7 +14,7 @@ module Enterprise::Api::V1::Accounts::Conversations::MessagesController
   MAX_AUTO_TRANSLATE_MESSAGES = 20
 
   def auto_translate
-    return head :forbidden unless Current.account.auto_translate_enabled?
+    return head :forbidden unless @conversation.auto_translate_enabled?
 
     message_ids = params.require(:message_ids)
     unless valid_message_ids?(message_ids)

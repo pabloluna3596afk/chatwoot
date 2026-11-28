@@ -1,3 +1,12 @@
+### B-NEW-325 - Captain: idioma y audio; continuidad y control de traducción (2026-11-27)
+
+- **Problema:** el idioma del navegador podía sesgar Captain, el saneador omitía el idioma detectado y los mensajes cortos volvían al idioma de la cuenta. Un autosave podía encolar dos transcripciones; un audio rechazado interrumpía el contexto. Un error de traducción podía dejar sin enviar la respuesta del agente.
+- **Cambio:** contexto sin pistas del navegador y con idioma de conversación; reutiliza el algoritmo existente para mensajes cortos y el bloqueo/caché de audio. Evita la doble cola; el rechazo de audio vuelve como error controlado. El fallo de traducción libera el envío original y marca el mensaje. Valida credenciales Google también al editar ajustes mediante la API genérica, sin duplicar la validación del alta/reconexión.
+- **Control nuevo:** `conversation_auto_translate`, apagado por defecto. Permite a agentes activar/desactivar por conversación desde el menú existente, valida booleanos en API y registra actividad en el idioma de la cuenta. Conserva proveedor, planes, tres bolsas de IA y reservas. Sin migraciones ni cambios de modelos configurados.
+- **Archivos:** prompts/saneador de Captain; `AudioTranscriptionService`/job/concern de Attachment; servicios de traducción y validación Google; controlador de conversaciones y concern Enterprise; `MoreActions.vue`, `useConversationTranslation.js`, `MessageList.vue`, burbuja Text y cliente de conversaciones.
+- **Cómo probar:** specs de prompts/saneador, response builder, Attachment, audio, idioma, traducción, API Google, API/control/actividad por conversación; Vitest de menú, composable, lista y acción API. Matriz A1–A8 y comandos en `../docs-crm/codex/tabla-grupo3.md`.
+- **Pendiente:** RSpec/RuboCop con el PM y revisión visual antes del PR. `5d4fa938fb` aplazado: el cierre por espera está ligado al seguimiento, la reapertura y las decisiones propios; no sustituir el evaluador compartido ni saltar recordatorios existentes. El PM/dueño debe acordar ese contrato en un cambio separado. Sin Docker, navegador, fetch, push ni PR.
+
 ### B-NEW-314 - Navegación de citas y continuidad del scroll del chat (2026-11-27)
 
 - **Archivos:** `components-next/message/{useJumpToMessage,ReplyPreview,Message}`, `widgets/conversation/{MessagesView,ReplyToMessage,ReplyBox}`, `store/modules/conversations/actions.js`, metadatos, Base y controles WootWriter.

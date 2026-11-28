@@ -4,7 +4,7 @@ class Captain::Assistant::PromptDataSanitizer
   MAX_NAME_LENGTH = 80
   MAX_ATTRIBUTES = 25
   INTERNAL_PREFIX = 'captain_'.freeze
-  CONVERSATION_ADDITIONAL_KEYS = %w[referer browser_language mail_subject type].freeze
+  CONVERSATION_ADDITIONAL_KEYS = %w[referer conversation_language mail_subject type].freeze
   CONTACT_ADDITIONAL_KEYS = %w[city country country_code company_name description].freeze
 
   def self.conversation(data)

@@ -19,4 +19,17 @@ RSpec.describe Integrations::GoogleTranslate::CredentialsValidator do
     expect(Integrations::GoogleTranslate::ProcessorService).not_to receive(:new)
     expect(described_class.valid?(hook)).to be false
   end
+
+  it 'rejects other credential types before calling the Google client' do
+    hook.access_token = { type: 'external_account', client_email: 'translator@example.com', private_key: 'key' }.to_json
+
+    expect(Integrations::GoogleTranslate::ProcessorService).not_to receive(:new)
+    expect(described_class.valid?(hook)).to be(false)
+  end
+
+  it 'rejects a key when the auth library raises a runtime error' do
+    allow(Integrations::GoogleTranslate::ProcessorService).to receive(:new).and_raise(RuntimeError, 'invalid key')
+
+    expect(described_class.valid?(hook)).to be(false)
+  end
 end
