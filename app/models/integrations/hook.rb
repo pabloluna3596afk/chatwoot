@@ -26,6 +26,7 @@ class Integrations::Hook < ApplicationRecord
   encrypts :access_token, deterministic: true if Chatwoot.encryption_configured?
 
   validates :account_id, presence: true
+  validate :inbox_must_belong_to_account
   validates :app_id, presence: true
   validates :inbox_id, presence: true, if: -> { hook_type == 'inbox' }
   validates :reference_id, presence: true, format: { with: Shopify::ShopDomain::FORMAT }, if: :shopify?
@@ -110,7 +111,20 @@ class Integrations::Hook < ApplicationRecord
     account.feature_enabled?(flag)
   end
 
+  def inbox_belongs_to_account?
+    inbox.present? && inbox.account_id == account_id
+  end
+
   private
+
+  def inbox_must_belong_to_account
+    # Legacy invalid links must remain disableable; account and inbox are readonly.
+    return if persisted? && disabled?
+    return if inbox_id.blank? && inbox.blank?
+    return if inbox_belongs_to_account?
+
+    errors.add(:inbox_id, 'must belong to the same account as the hook')
+  end
 
   def ensure_feature_enabled
     return if shopify? && disabled?
