@@ -6,8 +6,7 @@ class Captain::Conversation::AgentMessageTranslationService
   def perform
     return unless message.outgoing? && !message.private? && message.content.present?
 
-    detect_contact_language
-    translate_reply if conversation.language.present?
+    translate_message
     message.content_attributes.delete('translation_pending')
     message.content_attributes['translation_status'] = message.translation_failed == true ? 'failed' : 'completed'
     message.save!
@@ -17,10 +16,25 @@ class Captain::Conversation::AgentMessageTranslationService
 
   delegate :conversation, :account, :inbox, to: :message
 
+  # Provider failure must not prevent SendReplyJob from delivering the original reply.
+  def translate_message
+    detect_contact_language
+    if conversation.language.present?
+      translate_reply
+    elsif translator.failed?
+      message.translation_failed = true
+    end
+  rescue StandardError => e
+    ChatwootExceptionTracker.new(e, account: account).capture_exception
+    message.translation_failed = true
+  end
+
   def detect_contact_language
     contact_message = conversation.messages.incoming.where(content_type: %w[text incoming_email], private: false)
                                   .where.not(content: [nil, '']).order(:id).last
-    Captain::Conversation::MessageLanguageService.new(conversation: conversation, message: contact_message).perform if contact_message
+    return unless contact_message
+
+    Captain::Conversation::MessageLanguageService.new(conversation: conversation, message: contact_message, translator: translator).perform
   end
 
   def translate_reply

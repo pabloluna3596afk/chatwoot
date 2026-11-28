@@ -55,4 +55,15 @@ RSpec.describe 'Google Translate integration API', type: :request do
       expect(Integrations::Hook.exists?(hook.id)).to be false
     end
   end
+  it 'rejects invalid settings changed through the generic hook API' do
+    hook = create(:integrations_hook, :google_translate, account: account)
+    allow(Integrations::GoogleTranslate::CredentialsValidator).to receive(:valid?).and_return(false)
+
+    patch "/api/v1/accounts/#{account.id}/integrations/hooks/#{hook.id}",
+          params: { hook: { settings: { project_id: 'invalid-project' } } }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(hook.reload.settings).not_to include('project_id' => 'invalid-project')
+  end
+
 end

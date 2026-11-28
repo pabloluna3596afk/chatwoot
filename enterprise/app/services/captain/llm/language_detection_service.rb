@@ -7,9 +7,14 @@ class Captain::Llm::LanguageDetectionService < Captain::BaseTaskService
 
   def language
     response = perform
+    @failed = response[:error].present?
     Rails.logger.warn("[AutoTranslate] language detection failed: #{response[:error]}") if response[:error]
     code = response.dig(:message, 'language')
     code unless code.blank? || code == 'und'
+  end
+
+  def failed?
+    @failed == true
   end
 
   private
@@ -29,7 +34,8 @@ class Captain::Llm::LanguageDetectionService < Captain::BaseTaskService
   def messages
     [
       { role: 'system', content: <<~PROMPT },
-        Identify the language of this customer support message. Return a BCP 47 language tag, including a region or script only when clear. Return und if it is too short or ambiguous.
+        Identify the language of this customer support message. Return a BCP 47 language tag,
+        including a region or script only when clear. Return und if it is too short or ambiguous.
       PROMPT
       { role: 'user', content: text }
     ]
